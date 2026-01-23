@@ -1,7 +1,6 @@
 # 🐕 Biz-Retriever (비즈 리트리버)
 
-[![CI](https://github.com/doublesilver/biz-retriever/workflows/CI/badge.svg)](https://github.com/doublesilver/biz-retriever/actions)
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
 [![Tests](https://img.shields.io/badge/Tests-120%2F120-brightgreen.svg)]()
 [![Coverage](https://img.shields.io/badge/Coverage-83%25-green.svg)]()
