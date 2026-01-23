@@ -1,0 +1,20 @@
+{
+    "name": "biz-retriever-frontend",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "Premium dark-mode frontend for Biz-Retriever bid collection platform",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc && vite build",
+        "preview": "vite preview",
+        "type-check": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.3",
+        "vite": "^5.0.11",
+        "@types/node": "^20.11.5"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

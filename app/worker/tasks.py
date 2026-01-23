@@ -28,9 +28,15 @@ def process_bid_analysis(bid_id: int):
                 analysis_result = await rag_service.analyze_bid(bid.content)
                 logger.info(f"Bid {bid_id} 분석 완료: {analysis_result}")
 
-                # 3. Update Status
-                await bid_service.update_bid_processing_status(session, bid_id, True)
-                logger.info(f"Bid {bid_id} 처리 완료로 표시")
+                # 3. Update Status and Save Result
+                bid.ai_summary = analysis_result.get("summary")
+                bid.ai_keywords = analysis_result.get("keywords")
+                bid.processed = True
+                
+                session.add(bid)
+                await session.commit()
+                
+                logger.info(f"Bid {bid_id} 처리 및 저장 완료")
 
     # Run async function in sync Celery worker
     async_to_sync(_process)()
@@ -71,6 +77,11 @@ def crawl_g2b_bids():
                 session.add(new_announcement)
                 await session.commit()
                 await session.refresh(new_announcement)
+                
+                # 중요 공고(2점 이상)는 즉시 AI 분석 요청
+                if importance_score >= 2:
+                    process_bid_analysis.delay(new_announcement.id)
+                    logger.info(f"AI 분석 요청: {new_announcement.id}")
                 
                 # Slack 알림 (중요도 2 이상만)
                 if importance_score >= 2 and not new_announcement.is_notified:

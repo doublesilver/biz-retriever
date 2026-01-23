@@ -13,7 +13,7 @@ from app.worker.tasks import crawl_g2b_bids
 router = APIRouter()
 
 
-@router.post("/crawl/trigger")
+@router.post("/trigger")
 async def trigger_manual_crawl(current_user: User = Depends(get_current_user)):
     """
     수동 크롤링 트리거 (관리자용)
@@ -33,7 +33,7 @@ async def trigger_manual_crawl(current_user: User = Depends(get_current_user)):
     }
 
 
-@router.get("/crawl/status/{task_id}")
+@router.get("/status/{task_id}")
 async def check_crawl_status(
     task_id: str = Path(
         ...,
