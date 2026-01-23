@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대시보드 - Biz-Retriever</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span>🐕</span>
+            <span>Biz-Retriever</span>
+        </div>
+        <div class="navbar-actions">
+            <button class="btn-icon" id="darkModeToggle" title="다크모드">
+                🌙
+            </button>
+            <button class="btn-icon" id="refreshBtn" title="새로고침">
+                🔄
+            </button>
+            <div class="user-menu">
+                <button class="btn-icon" id="userMenuBtn">
+                    👤
+                </button>
+                <div class="dropdown-menu" id="userDropdown">
+                    <button id="logoutBtn">로그아웃</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard-container">
+        <div class="container">
+            <!-- Stats Section -->
+            <section class="section">
+                <div class="section-header">
+                    <h2>📊 통계</h2>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">총 공고</div>
+                        <div class="stat-value" id="statTotal">-</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-label">신규 공고</div>
+                        <div class="stat-value" id="statNew">-</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-label">마감 임박</div>
+                        <div class="stat-value" id="statDeadline">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">총 예산</div>
+                        <div class="stat-value" id="statBudget">-</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bids Section -->
+            <section class="section">
+                <div class="section-header">
+                    <h2>📋 공고 목록</h2>
+                    <button class="btn btn-primary" id="exportExcelBtn">
+                        📥 Excel 내보내기
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters">
+                    <input type="search" id="searchInput" placeholder="검색... (제목, 기관명)" class="search-input">
+                    <select id="sortSelect" class="filter-select">
+                        <option value="-created_at">최신순</option>
+                        <option value="deadline">마감일순</option>
+                        <option value="-priority_score">중요도순</option>
+                    </select>
+                    <select id="priorityFilter" class="filter-select">
+                        <option value="">모든 중요도</option>
+                        <option value="3">⭐⭐⭐ 높음</option>
+                        <option value="2">⭐⭐ 보통</option>
+                        <option value="1">⭐ 낮음</option>
+                    </select>
+                </div>
+
+                <!-- Bid List -->
+                <div id="bidsList" class="bids-list">
+                    <!-- Loading -->
+                    <div class="loading-container">
+                        <div class="spinner-lg"></div>
+                        <p>공고를 불러오는 중...</p>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+
+</html>

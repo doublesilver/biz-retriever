@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biz-Retriever - 입찰 공고 자동 수집 플랫폼</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/main.css">
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo">
+                <span class="logo-icon">🐕</span>
+                <h1>Biz-Retriever</h1>
+            </div>
+            <p class="tagline">입찰 공고 자동 수집 플랫폼</p>
+
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="email">이메일</label>
+                    <input type="email" id="email" name="email" placeholder="your@email.com" required
+                        autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">비밀번호</label>
+                    <div class="password-input">
+                        <input type="password" id="password" name="password" placeholder="••••••••" required
+                            autocomplete="current-password">
+                        <button type="button" class="toggle-password" aria-label="비밀번호 표시">
+                            👁️
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    로그인
+                </button>
+            </form>
+
+            <div class="divider">
+                <span>또는</span>
+            </div>
+
+            <button class="btn btn-secondary btn-block" id="showRegisterBtn">
+                회원가입
+            </button>
+
+            <p class="footer-text">
+                포트폴리오 프로젝트 · <a href="https://github.com/doublesilver/biz-retriever" target="_blank">GitHub</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- 회원가입 모달 -->
+    <div id="registerModal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>회원가입</h2>
+                <button class="modal-close" aria-label="닫기">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="registerForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="registerEmail">이메일</label>
+                        <input type="email" id="registerEmail" name="email" placeholder="your@email.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="registerPassword">비밀번호</label>
+                        <div class="password-input">
+                            <input type="password" id="registerPassword" name="password" placeholder="8자 이상, 영문+숫자+특수문자"
+                                required minlength="8">
+                            <button type="button" class="toggle-password" aria-label="비밀번호 표시">
+                                👁️
+                            </button>
+                        </div>
+                        <small class="hint">영문 대/소문자, 숫자, 특수문자 포함 8자 이상</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        가입하기
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 알림 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+
+</html>
