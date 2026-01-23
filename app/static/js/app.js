@@ -1,10 +1,85 @@
-// Phase 3: Mock Server Port Check (Default 8003 for Mock)
-const API_BASE = '/api/v1'; // Logic: If serving from same origin.
-// But if running index.html directly or from port 8000 while API is 8003, we need full URL.
-// Since we serve static from same app, relative path '/api/v1' works IF user accesses http://localhost:8003.
-// If user accesses 8000, they will fail.
-// So I will assume user accesses the port where server is running.
+// Enhanced error handling and loading states
+const API_BASE = '/api/v1';
 let token = localStorage.getItem('access_token');
+
+// Loading state manager
+const LoadingManager = {
+    show(message = 'Loading...') {
+        const loader = document.getElementById('global-loader') || this.create();
+        loader.querySelector('.loader-text').textContent = message;
+        loader.style.display = 'flex';
+    },
+
+    hide() {
+        const loader = document.getElementById('global-loader');
+        if (loader) loader.style.display = 'none';
+    },
+
+    create() {
+        const loader = document.createElement('div');
+        loader.id = 'global-loader';
+        loader.innerHTML = `
+            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+                <div style="background: #1e293b; padding: 2rem; border-radius: 8px; text-align: center;">
+                    <div class="spinner"></div>
+                    <div class="loader-text" style="margin-top: 1rem; color: white;">Loading...</div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(loader);
+        return loader;
+    }
+};
+
+// Enhanced error handler
+function handleError(error, context = '') {
+    console.error(`Error in ${context}:`, error);
+
+    let message = 'An error occurred';
+
+    if (error.message) {
+        message = error.message;
+    } else if (typeof error === 'string') {
+        message = error;
+    }
+
+    // Check for specific error types
+    if (message.includes('401') || message.includes('Unauthorized')) {
+        message = 'Session expired. Please login again.';
+        localStorage.removeItem('access_token');
+        setTimeout(() => showLogin(), 2000);
+    } else if (message.includes('429')) {
+        message = 'Too many requests. Please wait a moment.';
+    } else if (message.includes('500')) {
+        message = 'Server error. Please try again later.';
+    } else if (message.includes('Network')) {
+        message = 'Network error. Check your connection.';
+    }
+
+    showToast(message, 'error');
+    LoadingManager.hide();
+}
+
+// Enhanced fetch wrapper with retry
+async function fetchWithRetry(url, options = {}, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url, options);
+
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.detail || `HTTP ${response.status}`);
+            }
+
+            return response;
+        } catch (error) {
+            if (i === retries - 1) throw error;
+
+            // Wait before retry (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+        }
+    }
+}
 
 // Nodes
 const loginView = document.getElementById('login-view');
