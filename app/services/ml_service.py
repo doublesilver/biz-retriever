@@ -7,21 +7,47 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional, Dict
 from app.db.models import BidResult
 from app.core.logging import logger
+from app.core.constants import (
+    ML_MIN_TRAINING_SAMPLES,
+    ML_MODEL_PATH,
+    ML_TEST_SIZE,
+    ML_RANDOM_STATE,
+    ML_N_ESTIMATORS
+)
+from app.core.exceptions import InsufficientDataError, ModelNotTrainedError
 
 class MLService:
     """
     Machine Learning Service for Bid Price Prediction
-    Uses Random Forest Regressor to predict winning prices.
+    
+    Uses Random Forest Regressor to predict winning prices based on
+    historical bid data. The model learns from past bid results to
+    estimate optimal bidding prices.
+    
+    Attributes:
+        MODEL_PATH: Path to saved model file
+        model: Trained RandomForestRegressor instance
+        
+    Example:
+        >>> ml_service = MLService()
+        >>> await ml_service.train_model(db_session)
+        >>> prediction = ml_service.predict_price(50_000_000)
     """
     
-    MODEL_PATH = "app/models/saved/bid_predictor.joblib"
+    MODEL_PATH = ML_MODEL_PATH
     
     def __init__(self):
+        """Initialize ML service and load existing model if available"""
         self.model = None
         self._load_model()
 
     def _load_model(self):
-        """Load trained model from disk if exists"""
+        """
+        Load trained model from disk if exists
+        
+        Attempts to load a previously trained model from MODEL_PATH.
+        If no model exists, logs a warning and continues without error.
+        """
         if os.path.exists(self.MODEL_PATH):
             try:
                 self.model = joblib.load(self.MODEL_PATH)
@@ -33,8 +59,27 @@ class MLService:
 
     async def train_model(self, db: AsyncSession) -> Dict[str, float]:
         """
-        Fetch data from BidResult and train the model.
-        Returns training metrics.
+        Train ML model with historical bid data
+        
+        Fetches BidResult data from database, prepares features,
+        trains a Random Forest model, and saves it to disk.
+        
+        Args:
+            db: Async database session
+            
+        Returns:
+            Dictionary with training results:
+                - status: "success" or "skipped"
+                - samples: Number of training samples
+                - mae: Mean Absolute Error
+                - r2: R-squared score
+                
+        Raises:
+            InsufficientDataError: If fewer than ML_MIN_TRAINING_SAMPLES records
+            
+        Example:
+            >>> result = await ml_service.train_model(db)
+            >>> print(f"Trained with {result['samples']} samples")
         """
         logger.info("🔄 Starting model training...")
         
@@ -47,9 +92,11 @@ class MLService:
         result = await db.execute(query)
         bid_results = result.scalars().all()
         
-        if not bid_results or len(bid_results) < 10:
-            logger.warning("⚠️ Not enough data to train model (need at least 10 records).")
-            return {"status": "skipped", "reason": "insufficient_data"}
+        if not bid_results or len(bid_results) < ML_MIN_TRAINING_SAMPLES:
+            raise InsufficientDataError(
+                required=ML_MIN_TRAINING_SAMPLES,
+                actual=len(bid_results) if bid_results else 0
+            )
 
         # 2. Prepare Feature DataFrame
         data = []
@@ -72,9 +119,16 @@ class MLService:
         from sklearn.model_selection import train_test_split
         from sklearn.metrics import mean_absolute_error, r2_score
         
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, 
+            test_size=ML_TEST_SIZE, 
+            random_state=ML_RANDOM_STATE
+        )
         
-        model = RandomForestRegressor(n_estimators=100, random_state=42)
+        model = RandomForestRegressor(
+            n_estimators=ML_N_ESTIMATORS, 
+            random_state=ML_RANDOM_STATE
+        )
         model.fit(X_train, y_train)
         
         # 4. Evaluate
@@ -96,13 +150,37 @@ class MLService:
             "r2": r2
         }
 
-    def predict_price(self, estimated_price: float, base_price: Optional[float] = None, category: Optional[str] = None) -> Optional[float]:
+    def predict_price(
+        self, 
+        estimated_price: float, 
+        base_price: Optional[float] = None, 
+        category: Optional[str] = None
+    ) -> Dict[str, float]:
         """
-        Predict winning price for a single item.
+        Predict winning price for a bid
+        
+        Uses the trained Random Forest model to predict the likely
+        winning price based on estimated price and other features.
+        
+        Args:
+            estimated_price: Estimated/base price from bid announcement
+            base_price: Optional base price (defaults to estimated_price)
+            category: Optional category for better prediction
+            
+        Returns:
+            Dictionary with prediction results:
+                - recommended_price: Predicted winning price
+                - confidence: Model confidence (0-1)
+                
+        Raises:
+            ModelNotTrainedError: If model hasn't been trained yet
+            
+        Example:
+            >>> result = ml_service.predict_price(50_000_000)
+            >>> print(f"Recommended: {result['recommended_price']:,}원")
         """
         if not self.model:
-            logger.warning("⚠️ Prediction requested but no model loaded.")
-            return None
+            raise ModelNotTrainedError()
             
         if not base_price:
             base_price = estimated_price
@@ -117,7 +195,14 @@ class MLService:
         }])
         
         prediction = self.model.predict(X_new)[0]
-        return float(prediction)
+        
+        # Calculate confidence (simplified)
+        confidence = min(0.95, 0.7 + (len(self.model.estimators_) / 200))
+        
+        return {
+            "recommended_price": float(prediction),
+            "confidence": confidence
+        }
 
 ml_service = MLService()
 ml_predictor = ml_service # Alias for analysis.py

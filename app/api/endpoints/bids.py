@@ -1,10 +1,3 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query, Path
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi_cache.decorator import cache
-from datetime import datetime
-import os
-
 from app.api import deps
 from app.schemas.bid import BidCreate, BidResponse, BidUpdate
 from app.schemas.query import BidsQueryParams, FileUploadParams
@@ -13,12 +6,14 @@ from app.services.file_service import file_service
 from app.worker.tasks import process_bid_analysis
 from app.db.models import BidAnnouncement, User
 from app.core.logging import logger
+from app.utils.db_utils import get_object_or_404
+from app.core.constants import ALLOWED_FILE_EXTENSIONS, MAX_FILE_SIZE_BYTES
 
 router = APIRouter()
 
-# 파일 업로드 제약 조건
-ALLOWED_EXTENSIONS = {".pdf", ".hwp"}
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+# File upload constraints (moved to constants.py)
+ALLOWED_EXTENSIONS = ALLOWED_FILE_EXTENSIONS
+MAX_FILE_SIZE = MAX_FILE_SIZE_BYTES
 
 
 @router.post(
@@ -67,10 +62,8 @@ async def read_bid(
 
     - **bid_id**: 조회할 공고의 고유 ID
     """
-    bid = await bid_service.get_bid(db, bid_id)
-    if not bid:
-        raise HTTPException(status_code=404, detail="Bid not found")
-    return bid
+    # Use utility function instead of duplicate code
+    return await get_object_or_404(db, BidAnnouncement, bid_id, "Bid not found")
 
 
 @router.patch(

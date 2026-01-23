@@ -1,86 +1,52 @@
 """
-Custom Exception 계층
-개선사항: Generic Exception → 의미 있는 Exception 클래스
+Custom exception classes for better error handling
 """
 
+
 class BizRetrieverException(Exception):
-    """Base Exception for Biz-Retriever"""
+    """Base exception for all application errors"""
     pass
 
 
-# 크롤러 관련 예외
-class CrawlerException(BizRetrieverException):
-    """크롤러 관련 에러"""
-    pass
+class InsufficientDataError(BizRetrieverException):
+    """Raised when ML training data is insufficient"""
+    
+    def __init__(self, required: int, actual: int):
+        self.required = required
+        self.actual = actual
+        super().__init__(
+            f"Insufficient training data: required {required}, got {actual}"
+        )
 
 
-class APIKeyInvalidError(CrawlerException):
-    """API 키가 유효하지 않음"""
-    pass
+class CrawlerError(BizRetrieverException):
+    """Raised when crawler fails"""
+    
+    def __init__(self, source: str, message: str):
+        self.source = source
+        super().__init__(f"Crawler error from {source}: {message}")
 
 
-class CrawlerTimeoutError(CrawlerException):
-    """크롤링 타임아웃"""
-    pass
+class APIKeyError(BizRetrieverException):
+    """Raised when API key is invalid or missing"""
+    
+    def __init__(self, key_name: str):
+        self.key_name = key_name
+        super().__init__(f"Invalid or missing API key: {key_name}")
 
 
-class ParsingError(CrawlerException):
-    """데이터 파싱 에러"""
-    pass
+class ModelNotTrainedError(BizRetrieverException):
+    """Raised when trying to predict without trained model"""
+    
+    def __init__(self):
+        super().__init__(
+            "ML model not trained. Please train the model first."
+        )
 
 
-# 알림 관련 예외
-class NotificationException(BizRetrieverException):
-    """알림 관련 에러"""
-    pass
-
-
-class SlackWebhookError(NotificationException):
-    """Slack Webhook 전송 실패"""
-    pass
-
-
-# 보안 관련 예외
-class SecurityException(BizRetrieverException):
-    """보안 관련 에러"""
-    pass
-
-
-class WeakPasswordError(SecurityException):
-    """약한 비밀번호"""
-    pass
-
-
-class RateLimitExceededError(SecurityException):
-    """Rate Limit 초과"""
-    pass
-
-
-# 파일 처리 관련 예외
 class FileProcessingError(BizRetrieverException):
-    """파일 처리 에러"""
-    pass
-
-
-# 데이터베이스 관련 예외
-class DatabaseError(BizRetrieverException):
-    """데이터베이스 에러"""
-    pass
-
-
-# 입력 검증 관련 예외
-class ValidationError(BizRetrieverException):
-    """입력 검증 에러"""
-    pass
-
-
-# 외부 API 관련 예외
-class ExternalAPIError(BizRetrieverException):
-    """외부 API 호출 에러"""
-    pass
-
-
-# AI/ML 관련 예외
-class AIAnalysisError(BizRetrieverException):
-    """AI 분석 에러"""
-    pass
+    """Raised when file processing fails"""
+    
+    def __init__(self, filename: str, reason: str):
+        self.filename = filename
+        super().__init__(f"Failed to process file '{filename}': {reason}")
