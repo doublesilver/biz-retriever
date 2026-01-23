@@ -54,4 +54,14 @@ class BidService:
             await session.refresh(bid)
         return bid
 
+    async def update_bid(self, session: AsyncSession, db_bid: BidAnnouncement, bid_in: BidUpdate) -> BidAnnouncement:
+        update_data = bid_in.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_bid, field, value)
+        
+        session.add(db_bid)
+        await session.commit()
+        await session.refresh(db_bid)
+        return db_bid
+
 bid_service = BidService()

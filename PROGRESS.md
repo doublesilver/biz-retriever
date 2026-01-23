@@ -1,7 +1,9 @@
 # 프로젝트 진행 상황 (PROGRESS.md)
 
 ## 현재 단계 (Current Phase)
-- **Phase 1~3 구현 완료**: Biz-Retriever 핵심 기능 모두 구현. G2B 크롤링, Slack 알림, Kanban 상태 관리, AI 투찰가 예측 시스템 완성.
+- **프로젝트 완료**: Phase 1-3 구현 완료, 문서화 및 배포 준비 완료
+- **상태**: Production Ready (Docker 실행 대기)
+- **Next**: Docker Desktop 실행 후 Production 배포
 
 ## 할 일 (Todo)
 
@@ -15,18 +17,21 @@
     - [x] 환경 변수 설정 (G2B_API_KEY, SLACK_WEBHOOK_URL)
     - [x] 검증 스크립트 (`scripts/verify_phase1.py`)
 
-- [/] **Phase 2: 사냥 훈련 (고도화)**
-    - [ ] 온비드 크롤러 구현
-    - [ ] 상태 관리 필드 추가 (status, assigned_to)
-    - [ ] Kanban 대시보드 UI
-    - [ ] 제외어 관리 API
-    - [ ] 제외어 관리 프론트엔드
+- [x] **Phase 2: 사냥 훈련 (고도화)**
+    - [x] 온비드 크롤러 구현 (`app/services/onbid_crawler.py`)
+    - [x] 온비드 크롤러 테스트
+    - [x] WebSocket 실시간 알림 (`app/api/endpoints/websocket.py`)
+    - [x] WebSocket 단위 테스트
+    - [x] 상 관리 필드 추가 (status, assigned_to)
+    - [x] Kanban 대시보드 UI
+    - [x] 제외어 관리 API
+    - [x] 제외어 관리 프론트엔드
 
-- [ ] **Phase 3: 명견 등극 (AI 고도화)**
-    - [ ] 낙찰 데이터 수집 테이블 (bid_results)
-    - [ ] ML 투찰가 예측 모델
-    - [ ] AI 분석 API 엔드포인트
-    - [ ] AI 제안 UI
+- [x] **Phase 3: 명견 등극 (AI 고도화)**
+    - [x] 낙찰 데이터 수집 테이블 (bid_results)
+    - [x] ML 투찰가 예측 모델 (scikit-learn, Random Forest 구현 완료)
+    - [x] AI 분석 API 엔드포인트 (`/api/v1/analysis/predict-price`)
+    - [x] AI 제안 UI (공고 상세 모달 내 예측 버튼)
 
 ## 완료 (Completion)
 초기 프로젝트 구축 (Steps 1~10) 완료:

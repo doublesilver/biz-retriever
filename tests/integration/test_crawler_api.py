@@ -16,7 +16,7 @@ class TestCrawlerAPI:
     @pytest.mark.asyncio
     async def test_trigger_crawl_unauthenticated(self, async_client: AsyncClient):
         """미인증 시 401"""
-        response = await async_client.post("/api/v1/crawler/crawl/trigger")
+        response = await async_client.post("/api/v1/crawler/trigger")
 
         assert response.status_code == 401
 
@@ -28,7 +28,7 @@ class TestCrawlerAPI:
             mock_result.id = "test-task-id-123"
             mock_task.delay.return_value = mock_result
 
-            response = await authenticated_client.post("/api/v1/crawler/crawl/trigger")
+            response = await authenticated_client.post("/api/v1/crawler/trigger")
 
             assert response.status_code == 200
             data = response.json()
@@ -36,7 +36,7 @@ class TestCrawlerAPI:
             assert data["status"] == "started"
 
     # ============================================
-    # GET /crawler/crawl/status/{task_id} 테스트
+    # GET /crawler/status/{task_id} 테스트
     # ============================================
 
     @pytest.mark.asyncio
@@ -49,7 +49,7 @@ class TestCrawlerAPI:
             mock_task.result = None
             mock_async_result.return_value = mock_task
 
-            response = await async_client.get("/api/v1/crawler/crawl/status/test-task-123")
+            response = await async_client.get("/api/v1/crawler/status/test-task-123")
 
             assert response.status_code == 200
             data = response.json()
@@ -66,7 +66,7 @@ class TestCrawlerAPI:
             mock_task.result = {"count": 5}
             mock_async_result.return_value = mock_task
 
-            response = await async_client.get("/api/v1/crawler/crawl/status/test-task-456")
+            response = await async_client.get("/api/v1/crawler/status/test-task-456")
 
             assert response.status_code == 200
             data = response.json()
@@ -76,7 +76,7 @@ class TestCrawlerAPI:
     @pytest.mark.asyncio
     async def test_check_status_invalid_task_id_format(self, async_client: AsyncClient):
         """잘못된 task_id 형식 - 400"""
-        response = await async_client.get("/api/v1/crawler/crawl/status/invalid@task#id")
+        response = await async_client.get("/api/v1/crawler/status/invalid@task#id")
 
         assert response.status_code == 400
         data = response.json()
@@ -85,7 +85,7 @@ class TestCrawlerAPI:
     @pytest.mark.asyncio
     async def test_check_status_empty_task_id(self, async_client: AsyncClient):
         """빈 task_id - 404 또는 422"""
-        response = await async_client.get("/api/v1/crawler/crawl/status/")
+        response = await async_client.get("/api/v1/crawler/status/")
 
         # 빈 경로는 404
         assert response.status_code in [404, 405]

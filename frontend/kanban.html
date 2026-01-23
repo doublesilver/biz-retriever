@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban - Biz-Retriever</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/kanban.css">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span>🐕</span>
+            <span>Biz-Retriever Kanban</span>
+        </div>
+        <div class="navbar-actions">
+            <a href="dashboard.html" class="btn-icon" title="대시보드로 이동">
+                📊
+            </a>
+            <button class="btn-icon" id="darkModeToggle" title="다크모드">
+                🌙
+            </button>
+            <button class="btn-icon" id="refreshBtn" title="새로고침">
+                🔄
+            </button>
+            <div class="user-menu">
+                <button class="btn-icon" id="userMenuBtn">
+                    👤
+                </button>
+                <div class="dropdown-menu" id="userDropdown">
+                    <button id="logoutBtn">로그아웃</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="kanban-container">
+        <div class="kanban-board">
+            <!-- New -->
+            <div class="kanban-column" data-status="new">
+                <div class="column-header status-new">
+                    <h3>🆕 신규 공고</h3>
+                    <span class="count" id="count-new">0</span>
+                </div>
+                <div class="column-body" id="col-new">
+                    <!-- Cards will be injected here -->
+                </div>
+            </div>
+
+            <!-- Reviewing -->
+            <div class="kanban-column" data-status="reviewing">
+                <div class="column-header status-reviewing">
+                    <h3>👀 검토 중</h3>
+                    <span class="count" id="count-reviewing">0</span>
+                </div>
+                <div class="column-body" id="col-reviewing">
+                </div>
+            </div>
+
+            <!-- Bidding -->
+            <div class="kanban-column" data-status="bidding">
+                <div class="column-header status-bidding">
+                    <h3>📝 입찰 진행</h3>
+                    <span class="count" id="count-bidding">0</span>
+                </div>
+                <div class="column-body" id="col-bidding">
+                </div>
+            </div>
+
+            <!-- Completed -->
+            <div class="kanban-column" data-status="completed">
+                <div class="column-header status-completed">
+                    <h3>✅ 완료</h3>
+                    <span class="count" id="count-completed">0</span>
+                </div>
+                <div class="column-body" id="col-completed">
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- TypeScript Module -->
+    <script type="module" src="/src/modules/kanban.ts"></script>
+</body>
+
+</html>

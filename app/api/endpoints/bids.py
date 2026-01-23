@@ -73,6 +73,33 @@ async def read_bid(
     return bid
 
 
+@router.patch(
+    "/{bid_id}",
+    response_model=BidResponse,
+    summary="입찰 공고 수정 (상태/담당자 변경)",
+    responses={
+        200: {"description": "수정 성공"},
+        404: {"description": "공고를 찾을 수 없음"},
+    }
+)
+async def update_bid(
+    bid_in: BidUpdate,
+    bid_id: int = Path(..., ge=1, description="공고 ID"),
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    입찰 공고의 상태 또는 담당자를 변경합니다.
+    """
+    bid = await bid_service.get_bid(db, bid_id)
+    if not bid:
+        raise HTTPException(status_code=404, detail="Bid not found")
+    
+    # Update
+    updated_bid = await bid_service.update_bid(db, bid, bid_in)
+    return updated_bid
+
+
 @router.get("/", response_model=List[BidResponse])
 @cache(expire=60)
 async def read_bids(

@@ -26,7 +26,19 @@ class G2BCrawlerService:
         "화환", "연간단가", "취임식", "행사", "꽃", "근조", "경조사"
     ]
     
-    EXCLUDE_KEYWORDS = [
+    
+    # 필터링 키워드 (SPEC.md 기준)
+    INCLUDE_KEYWORDS_CONCESSION = [
+        "구내식당", "사용수익허가", "위탁운영", "식음료", "클럽하우스",
+        "장례식장", "급식", "식당운영", "카페운영"
+    ]
+    
+    INCLUDE_KEYWORDS_FLOWER = [
+        "화환", "연간단가", "취임식", "행사", "꽃", "근조", "경조사"
+    ]
+    
+    # Default Fallback (If DB fails or empty)
+    DEFAULT_EXCLUDE_KEYWORDS = [
         "폐기물", "단순공사", "설계용역", "철거", "해체"
     ]
     
@@ -38,13 +50,18 @@ class G2BCrawlerService:
     async def fetch_new_announcements(self, from_date: Optional[datetime] = None) -> List[Dict]:
         """
         G2B API에서 새로운 입찰 공고를 가져옵니다.
-        
-        Args:
-            from_date: 검색 시작 날짜 (기본값: 오늘)
-        
-        Returns:
-            필터링된 입찰 공고 리스트
         """
+        # Fetch Dynamic Exclude Keywords
+        try:
+            from app.db.session import AsyncSessionLocal
+            from app.services.keyword_service import keyword_service
+            async with AsyncSessionLocal() as session:
+                dynamic_excludes = await keyword_service.get_active_keywords(session)
+                exclude_keywords = list(set(self.DEFAULT_EXCLUDE_KEYWORDS + dynamic_excludes))
+        except Exception as e:
+            logger.error(f"Failed to fetch keywords: {e}")
+            exclude_keywords = self.DEFAULT_EXCLUDE_KEYWORDS
+
         # API 요청 파라미터 구성
         params = {
             "serviceKey": self.api_key,
@@ -65,24 +82,21 @@ class G2BCrawlerService:
             
             # 데이터 파싱 및 필터링
             announcements = self._parse_api_response(data)
-            filtered = [a for a in announcements if self._should_notify(a)]
+            # Pass exclude_keywords to filter
+            filtered = [a for a in announcements if self._should_notify(a, exclude_keywords)]
             
             return filtered
         
         except Exception as e:
             logger.error(f"G2B API 호출 실패: {e}", exc_info=True)
             return []
+
+    # ... (skipping _parse_api_response for brevity in replacement if unchanged, but need to be careful with replace_file)
+    # Actually I need to verify I am not replacing _parse_api_response if I use targeted replacement.
+    # But I changed fetch_new_announcements significantly. I will target the block from EXCLUDE_KEYWORDS to the end of fetch_new_announcements.
     
     def _parse_api_response(self, data: Dict) -> List[Dict]:
-        """
-        G2B API 응답을 파싱하여 표준 형식으로 변환
-        
-        Args:
-            data: API 응답 데이터
-        
-        Returns:
-            파싱된 공고 리스트
-        """
+        # ... implementation ...
         announcements = []
         items = data.get("response", {}).get("body", {}).get("items", [])
         
@@ -110,22 +124,19 @@ class G2BCrawlerService:
         except:
             return None
     
-    def _should_notify(self, announcement: Dict) -> bool:
+    def _should_notify(self, announcement: Dict, exclude_keywords: List[str] = None) -> bool:
         """
         공고가 알림 대상인지 판단 (스마트 필터링)
-        
-        Args:
-            announcement: 공고 정보
-        
-        Returns:
-            True if 알림 대상, False otherwise
         """
+        if exclude_keywords is None:
+            exclude_keywords = self.DEFAULT_EXCLUDE_KEYWORDS
+
         title = announcement["title"].lower()
         content = announcement.get("content", "").lower()
         full_text = f"{title} {content}"
         
         # 제외 키워드 체크
-        for keyword in self.EXCLUDE_KEYWORDS:
+        for keyword in exclude_keywords:
             if keyword in full_text:
                 return False
         

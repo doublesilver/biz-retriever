@@ -7,7 +7,7 @@ class DashboardModule {
     private searchInput: HTMLInputElement | null;
     private filters: {
         status?: string;
-        minPriority?: number;
+        minImportance?: number;
     } = {};
 
     constructor() {
@@ -65,21 +65,20 @@ class DashboardModule {
       <div class="bid-card" data-id="${bid.id}">
         <div class="bid-header">
           <h3>${this.escapeHtml(bid.title)}</h3>
-          <span class="priority-badge priority-${bid.priority_score}">
-            ${'⭐'.repeat(bid.priority_score)}
+          <span class="priority-badge priority-${bid.importance_score}">
+            ${'⭐'.repeat(bid.importance_score)}
           </span>
         </div>
         <div class="bid-body">
-          <p class="agency">🏛️ ${this.escapeHtml(bid.agency)}</p>
-          <p class="price">💰 ${formatCurrency(bid.base_price)}</p>
-          <p class="deadline">📅 ${formatDate(bid.deadline)}</p>
-          ${bid.ai_summary ? `<p class="summary">📝 ${this.escapeHtml(bid.ai_summary)}</p>` : ''}
+          <p class="agency">🏛️ ${this.escapeHtml(bid.agency || '')}</p>
+          <p class="price">💰 ${formatCurrency(bid.estimated_price || 0)}</p>
+          <p class="deadline">📅 ${formatDate(bid.deadline || '')}</p>
         </div>
         <div class="bid-footer">
           <span class="status status-${bid.status}">${this.getStatusText(bid.status)}</span>
-          ${bid.ai_keywords ? `
+          ${bid.keywords_matched ? `
             <div class="keywords">
-              ${bid.ai_keywords.map(kw => `<span class="keyword">${this.escapeHtml(kw)}</span>`).join('')}
+              ${bid.keywords_matched.map(kw => `<span class="keyword">${this.escapeHtml(kw)}</span>`).join('')}
             </div>
           ` : ''}
         </div>
@@ -151,7 +150,7 @@ class DashboardModule {
                 if (filter === 'all') {
                     this.filters = {};
                 } else if (filter === 'high-priority') {
-                    this.filters.minPriority = 2;
+                    this.filters.minImportance = 2;
                 }
 
                 this.loadBids();

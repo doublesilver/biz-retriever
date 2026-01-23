@@ -362,8 +362,8 @@ def rag_service():
 @pytest.fixture
 def ml_service():
     """ML 서비스 인스턴스"""
-    from app.services.ml_service import MLBidPricePredictor
-    return MLBidPricePredictor()
+    from app.services.ml_service import MLService
+    return MLService()
 
 
 @pytest.fixture

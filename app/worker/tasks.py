@@ -38,6 +38,20 @@ def process_bid_analysis(bid_id: int):
                 
                 logger.info(f"Bid {bid_id} 처리 및 저장 완료")
 
+                # Broadcast Analysis Completion
+                try:
+                    from app.core.websocket import manager
+                    import json
+                    message = json.dumps({
+                        "type": "analysis_completed",
+                        "bid_id": bid_id,
+                        "title": bid.title,
+                        "summary": bid.ai_summary
+                    })
+                    await manager.broadcast(message)
+                except Exception as e:
+                    logger.error(f"Failed to broadcast analysis: {e}")
+
     # Run async function in sync Celery worker
     async_to_sync(_process)()
 
@@ -91,6 +105,20 @@ def crawl_g2b_bids():
                         await session.commit()
                 
                 logger.info(f"새 공고 저장: {new_announcement.title} (중요도: {importance_score})")
+
+                # Broadcast New Bid
+                try:
+                    from app.core.websocket import manager
+                    import json
+                    message = json.dumps({
+                        "type": "new_bid",
+                        "bid_id": new_announcement.id,
+                        "title": new_announcement.title,
+                        "agency": new_announcement.agency
+                    })
+                    await manager.broadcast(message)
+                except Exception as e:
+                    logger.error(f"Failed to broadcast new bid: {e}")
     
     async_to_sync(_crawl)()
 

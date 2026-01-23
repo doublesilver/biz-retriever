@@ -13,6 +13,7 @@ You must follow the "Organic Documentation" lifecycle for every task. **All docu
     * **Code**: Implement the feature/fix.
     * **Test**: Verify the changes (run tests, manual check).
     * **Document**: Update `PROGRESS.md` and other docs (in Korean) to reflect the change.
+    * **Real-time Sync**: **Update documentation immediately** after each logical step to ensure seamless "baton-touching" (context handover) for the next agent.
     *   **Deploy**: Deploy the changes if applicable/requested.
 4.  **Report & Verify (Finish)**:
     *   **Post-Task Transparency**: When notifying the user of completion, **explicitly state** which rules were applied and provide evidence (e.g., "Verified `No TypeScript` rule by checking standard `package.json`").

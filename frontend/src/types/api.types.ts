@@ -13,13 +13,17 @@ export interface User {
 export interface BidAnnouncement {
     id: number;
     title: string;
+    content: string;
     agency: string;
-    base_price: number;
-    deadline: string;
-    priority_score: number;
+    url: string;
+    source: string;
+    estimated_price?: number;
+    deadline?: string;
+    importance_score: number;
     status: 'new' | 'reviewing' | 'bidding' | 'completed';
-    ai_summary?: string;
-    ai_keywords?: string[];
+    keywords_matched?: string[];
+    assigned_to?: number;
+    notes?: string;
     created_at: string;
     updated_at: string;
 }
@@ -45,5 +49,5 @@ export interface BidFilters {
     skip?: number;
     limit?: number;
     status?: string;
-    min_priority?: number;
+    min_importance?: number;
 }

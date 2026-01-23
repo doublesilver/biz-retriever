@@ -108,8 +108,29 @@ async def get_current_user(
     result = await session.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
     
+    
     if user is None:
         logger.warning(f"User not found: {email}")
         raise credentials_exception
     
     return user
+
+
+async def get_current_user_from_token(token: str) -> Union[User, None]:
+    """
+    WebSocket용 토큰 검증 함수 (Depends 사용 불가)
+    """
+    from app.db.session import AsyncSessionLocal
+    
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            return None
+    except JWTError:
+        return None
+        
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+        return user

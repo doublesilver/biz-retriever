@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>제외어 관리 - Biz-Retriever</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        .keywords-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .keywords-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+        }
+
+        .keyword-chip {
+            background: var(--bg-hover);
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .keyword-chip:hover {
+            border-color: var(--primary-color);
+        }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0;
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+
+        .btn-delete:hover {
+            color: var(--error-color);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span>🐕</span>
+            <span>Biz-Retriever Keywords</span>
+        </div>
+        <div class="navbar-actions">
+            <a href="dashboard.html" class="btn-icon" title="대시보드로 이동">📊</a>
+            <a href="kanban.html" class="btn-icon" title="칸반보드로 이동">📋</a>
+            <button class="btn-icon" id="darkModeToggle">🌙</button>
+            <button class="btn-icon" id="userMenuBtn">👤</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <section class="keywords-container">
+            <div class="section-header">
+                <h2>🚫 제외 키워드 관리</h2>
+                <p style="color:var(--text-secondary); margin-top:0.5rem;">이 키워드가 포함된 공고는 수집 시 자동으로 제외됩니다.</p>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="keywordInput" class="search-input" placeholder="새로운 제외어 입력 (예: 단순공사)"
+                    style="flex:1;">
+                <button class="btn btn-primary" id="addBtn">추가</button>
+            </div>
+
+            <div id="keywordsList" class="keywords-list">
+                <!-- Chips injected here -->
+            </div>
+
+            <div id="emptyState" class="empty-state" style="display:none; padding:2rem 0;">
+                <p>등록된 제외어가 없습니다.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script type="module" src="/src/modules/keywords.ts"></script>
+</body>
+
+</html>

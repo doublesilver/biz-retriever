@@ -78,6 +78,9 @@ def run_migrations_online() -> None:
 
     실제 DB에 연결하여 마이그레이션 적용
     """
+    import sys
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(run_async_migrations())
 
 

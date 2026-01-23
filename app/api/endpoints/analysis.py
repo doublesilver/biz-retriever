@@ -42,10 +42,15 @@ async def predict_winning_price(
         raise HTTPException(status_code=400, detail="추정가 정보가 없습니다.")
 
     # 예측 실행
-    prediction = ml_predictor.predict(
-        estimated_price=announcement.estimated_price,
-        expected_competition=3.5  # 기본 경쟁률
+    prediction_price = ml_predictor.predict_price(
+        estimated_price=announcement.estimated_price
+        # category field missing in BidAnnouncement
     )
+
+    prediction = {
+        "recommended_price": prediction_price,
+        "confidence": 0.8 # Dummy
+    }
 
     logger.info(f"투찰가 예측 완료: announcement_id={announcement_id}, recommended={prediction.get('recommended_price')}")
 

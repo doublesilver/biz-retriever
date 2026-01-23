@@ -1,4 +1,9 @@
-const API_BASE = '/api/v1';
+// Phase 3: Mock Server Port Check (Default 8003 for Mock)
+const API_BASE = '/api/v1'; // Logic: If serving from same origin.
+// But if running index.html directly or from port 8000 while API is 8003, we need full URL.
+// Since we serve static from same app, relative path '/api/v1' works IF user accesses http://localhost:8003.
+// If user accesses 8000, they will fail.
+// So I will assume user accesses the port where server is running.
 let token = localStorage.getItem('access_token');
 
 // Nodes
@@ -303,8 +308,71 @@ function openDetail(bid) {
                 <a href="${bid.url}" target="_blank" style="color: var(--primary); text-decoration: underline;">원본 공고 보기 →</a>
             </div>
         ` : ''}
+
+        <!-- Phase 3: AI Price Prediction -->
+        <div style="margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+            <h3>🤖 AI 투찰가 분석</h3>
+            <button id="predict-btn-${bid.id}" class="btn" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); margin-top: 0.5rem;">
+                💰 적정 투찰가 예측하기
+            </button>
+            <div id="prediction-result-${bid.id}" style="margin-top: 1rem; display: none;"></div>
+        </div>
     `;
     detailModal.classList.add('active');
+
+    // Add Event Listener
+    setTimeout(() => {
+        document.getElementById(`predict-btn-${bid.id}`)?.addEventListener('click', () => predictPrice(bid.id));
+    }, 0);
+}
+
+// Phase 3: AI Price Prediction Logic
+async function predictPrice(bidId) {
+    const resultDiv = document.getElementById(`prediction-result-${bidId}`);
+    const btn = document.getElementById(`predict-btn-${bidId}`);
+
+    if (!resultDiv) return;
+
+    btn.disabled = true;
+    btn.textContent = 'AI 분석 중...';
+
+    try {
+        const res = await fetch(`${API_BASE}/analysis/predict-price/${bidId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Prediction failed');
+
+        const price = data.prediction.recommended_price;
+        const confidence = data.prediction.confidence || 0.0;
+
+        // Display logic
+        let priceText = '분석 불가';
+        if (price !== null && !isNaN(price)) {
+            priceText = `${parseInt(price).toLocaleString()}원`;
+        }
+
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+            <div style="background: rgba(139, 92, 246, 0.2); border: 1px solid #8b5cf6; padding: 1rem; border-radius: 8px;">
+                <h4 style="color: #c4b5fd; margin-bottom: 0.5rem;">AI 추천 투찰가</h4>
+                <div style="font-size: 1.5rem; font-weight: bold; color: white;">
+                    ${priceText}
+                </div>
+                <div style="font-size: 0.9rem; color: #a78bfa; margin-top: 0.25rem;">
+                    (신뢰도: ${(confidence * 100).toFixed(0)}%)
+                </div>
+            </div>
+        `;
+        showToast('AI 분석 완료!', 'success');
+    } catch (e) {
+        showToast(e.message, 'error');
+        resultDiv.textContent = '분석 실패: ' + e.message;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '💰 적정 투찰가 예측하기';
+    }
 }
 
 // Toast

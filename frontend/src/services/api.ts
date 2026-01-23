@@ -116,9 +116,34 @@ class APIService {
         });
     }
 
+    static async patchBid(id: number, data: Partial<BidAnnouncement>): Promise<BidAnnouncement> {
+        return this.request<BidAnnouncement>(`/bids/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
     // Analytics APIs
     static async getAnalytics(): Promise<AnalyticsSummary> {
         return this.request<AnalyticsSummary>('/analytics/summary');
+    }
+
+    // Keyword APIs
+    static async addKeyword(keyword: string): Promise<{ message: string; id: number }> {
+        return this.request<{ message: string; id: number }>('/filters/keywords', {
+            method: 'POST',
+            body: JSON.stringify({ keyword })
+        });
+    }
+
+    static async getKeywords(activeOnly: boolean = true): Promise<{ keywords: string[] }> {
+        return this.request<{ keywords: string[] }>(`/filters/keywords?active_only=${activeOnly}`);
+    }
+
+    static async deleteKeyword(keyword: string): Promise<{ message: string }> {
+        return this.request<{ message: string }>(`/filters/keywords/${encodeURIComponent(keyword)}`, {
+            method: 'DELETE'
+        });
     }
 
     // Export API
