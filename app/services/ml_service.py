@@ -3,6 +3,7 @@ Phase 3: ML 기반 투찰가 예측 서비스
 """
 from typing import List, Dict, Optional
 from datetime import datetime
+from app.core.logging import logger
 
 
 class BidResult:
@@ -31,7 +32,7 @@ class MLBidPricePredictor:
             historical_data: 낙찰 결과 리스트
         """
         self.historical_data = historical_data
-        print(f"모델 학습 완료: {len(historical_data)}건의 데이터")
+        logger.info(f"ML 모델 학습 완료: {len(historical_data)}건의 데이터")
     
     def predict(self, estimated_price: float, expected_competition: float = 3.0) -> Dict:
         """

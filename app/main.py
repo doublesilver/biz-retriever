@@ -14,28 +14,91 @@ from app.api.api import api_router
 # Rate Limiter 설정
 limiter = Limiter(key_func=get_remote_address)
 
+tags_metadata = [
+    {
+        "name": "auth",
+        "description": "인증 관련 API (로그인, 회원가입)",
+    },
+    {
+        "name": "bids",
+        "description": "입찰 공고 CRUD 및 검색 API",
+    },
+    {
+        "name": "analytics",
+        "description": "통계 분석 및 대시보드 API",
+    },
+    {
+        "name": "export",
+        "description": "엑셀 내보내기 API (narajangteo 방식)",
+    },
+    {
+        "name": "crawler",
+        "description": "크롤링 작업 관리 API (Celery 연동)",
+    },
+    {
+        "name": "filters",
+        "description": "제외 키워드 필터 관리 API",
+    },
+    {
+        "name": "analysis",
+        "description": "AI 기반 투찰가 예측 API",
+    },
+]
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    description="입찰 정보 자동 수집 및 AI 분석 시스템",
-    version="1.0.0"
+    description="""
+# Biz-Retriever API
+
+공공 입찰 정보 자동 수집 및 AI 분석 시스템입니다.
+
+## 주요 기능
+
+* **입찰 공고 자동 수집** - G2B, 온비드 크롤링
+* **AI 기반 분석** - 중요도 평가, 투찰가 예측
+* **실시간 알림** - Slack 웹훅 연동
+* **엑셀 내보내기** - narajangteo 방식 지원
+
+## 인증
+
+Bearer Token 방식의 JWT 인증을 사용합니다.
+`Authorization: Bearer <token>` 헤더를 포함하세요.
+    """,
+    version="1.0.0",
+    openapi_tags=tags_metadata,
+    contact={
+        "name": "Biz-Retriever Support",
+        "email": "support@example.com",
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT",
+    },
 )
 
 # Rate Limiting State
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS 설정
+# CORS 설정 - 허용 도메인 구성
+cors_origins = list(settings.CORS_ORIGINS)
+if settings.PRODUCTION_DOMAIN:
+    cors_origins.append(settings.PRODUCTION_DOMAIN)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8000",
-        "http://localhost:3000", 
-        "https://your-production-domain.com"  # 실제 도메인으로 변경
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+    ],
+    max_age=600,  # preflight 캐시 10분
 )
 
 # API Router
@@ -59,7 +122,7 @@ async def startup():
     
     try:
         # Redis Cache Init
-        redis = aioredis.from_url(f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}")
+        redis = aioredis.from_url(settings.REDIS_URL)
         FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
         logger.info("✅ Redis cache initialized")
         

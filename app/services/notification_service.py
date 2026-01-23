@@ -5,6 +5,7 @@ Slack 알림 서비스
 from typing import Dict, List
 import httpx
 from app.core.config import settings
+from app.core.logging import logger
 from app.db.models import BidAnnouncement
 
 
@@ -38,7 +39,7 @@ class SlackNotificationService:
                 response.raise_for_status()
                 return True
         except Exception as e:
-            print(f"Slack 알림 전송 실패: {e}")
+            logger.error(f"Slack 알림 전송 실패: {e}", exc_info=True)
             return False
     
     def _format_message(self, announcement: BidAnnouncement) -> Dict:
@@ -138,7 +139,7 @@ class SlackNotificationService:
                 response.raise_for_status()
                 return True
         except Exception as e:
-            print(f"Slack 다이제스트 전송 실패: {e}")
+            logger.error(f"Slack 다이제스트 전송 실패: {e}", exc_info=True)
             return False
 
 

@@ -4,6 +4,7 @@
 """
 from typing import List, Dict, Optional
 from datetime import datetime
+from app.core.logging import logger
 
 
 class OnbidCrawlerService:
@@ -32,7 +33,7 @@ class OnbidCrawlerService:
         """
         # Phase 2 Implementation Placeholder
         # 실제 구현 시 Selenium으로 온비드 사이트 크롤링
-        print("온비드 크롤링 구현 예정 (Phase 2)")
+        logger.info("온비드 크롤링 구현 예정 (Phase 2)")
         return []
     
     def _should_include(self, title: str, description: str) -> bool:

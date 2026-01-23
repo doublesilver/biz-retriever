@@ -7,6 +7,7 @@ from app.services.crawler_service import g2b_crawler
 from app.services.notification_service import slack_notification
 from app.db.session import AsyncSessionLocal
 from app.db.models import BidAnnouncement
+from app.core.logging import logger
 from sqlalchemy import select
 
 @celery_app.task(name="app.worker.tasks.process_bid_analysis")
@@ -19,17 +20,17 @@ def process_bid_analysis(bid_id: int):
             # 1. Fetch Bid
             bid = await bid_service.get_bid(session, bid_id)
             if not bid:
-                print(f"Bid {bid_id} not found.")
+                logger.warning(f"Bid {bid_id} 찾을 수 없음")
                 return
 
             # 2. Analyze (Mock RAG for now if no key)
             if not bid.processed:
                 analysis_result = await rag_service.analyze_bid(bid.content)
-                print(f"Analysis for Bid {bid_id}: {analysis_result}")
+                logger.info(f"Bid {bid_id} 분석 완료: {analysis_result}")
 
                 # 3. Update Status
                 await bid_service.update_bid_processing_status(session, bid_id, True)
-                print(f"Bid {bid_id} marked as processed.")
+                logger.info(f"Bid {bid_id} 처리 완료로 표시")
 
     # Run async function in sync Celery worker
     async_to_sync(_process)()
@@ -45,7 +46,7 @@ def crawl_g2b_bids():
         async with AsyncSessionLocal() as session:
             # 1. 크롤링 실행
             announcements = await g2b_crawler.fetch_new_announcements()
-            print(f"G2B 크롤링 완료: {len(announcements)}건")
+            logger.info(f"G2B 크롤링 완료: {len(announcements)}건")
             
             if not announcements:
                 return
@@ -78,7 +79,7 @@ def crawl_g2b_bids():
                         new_announcement.is_notified = True
                         await session.commit()
                 
-                print(f"새 공고 저장: {new_announcement.title} (중요도: {importance_score})")
+                logger.info(f"새 공고 저장: {new_announcement.title} (중요도: {importance_score})")
     
     async_to_sync(_crawl)()
 
@@ -104,6 +105,6 @@ def send_morning_digest():
             
             if announcements:
                 await slack_notification.send_digest(announcements)
-                print(f"모닝 브리핑 전송 완료: {len(announcements)}건")
+                logger.info(f"모닝 브리핑 전송 완료: {len(announcements)}건")
     
     async_to_sync(_send)()

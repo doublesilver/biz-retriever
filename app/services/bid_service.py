@@ -40,7 +40,7 @@ class BidService:
             )
         
         if agency:
-            query = query.where(BidAnnouncement.agency == agency)
+            query = query.where(BidAnnouncement.agency.ilike(f"%{agency}%"))
 
         query = query.offset(skip).limit(limit)
         result = await session.execute(query)

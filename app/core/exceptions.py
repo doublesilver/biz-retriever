@@ -54,3 +54,33 @@ class WeakPasswordError(SecurityException):
 class RateLimitExceededError(SecurityException):
     """Rate Limit 초과"""
     pass
+
+
+# 파일 처리 관련 예외
+class FileProcessingError(BizRetrieverException):
+    """파일 처리 에러"""
+    pass
+
+
+# 데이터베이스 관련 예외
+class DatabaseError(BizRetrieverException):
+    """데이터베이스 에러"""
+    pass
+
+
+# 입력 검증 관련 예외
+class ValidationError(BizRetrieverException):
+    """입력 검증 에러"""
+    pass
+
+
+# 외부 API 관련 예외
+class ExternalAPIError(BizRetrieverException):
+    """외부 API 호출 에러"""
+    pass
+
+
+# AI/ML 관련 예외
+class AIAnalysisError(BizRetrieverException):
+    """AI 분석 에러"""
+    pass

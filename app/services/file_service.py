@@ -1,6 +1,8 @@
 from fastapi import UploadFile
 import io
 import PyPDF2
+from app.core.logging import logger
+
 
 class FileService:
     async def parse_pdf(self, file: UploadFile) -> str:
@@ -15,7 +17,7 @@ class FileService:
                 text += page.extract_text() + "\n"
             return text
         except Exception as e:
-            print(f"Error parsing PDF: {e}")
+            logger.error(f"PDF 파싱 에러: {e}", exc_info=True)
             return f"Error extracting text from PDF: {str(e)}"
 
     async def parse_hwp(self, file: UploadFile) -> str:

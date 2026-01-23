@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import List, Dict, Optional
 import httpx
 from app.core.config import settings
+from app.core.logging import logger
 from app.schemas.bid import BidAnnouncementCreate
 
 
@@ -69,8 +70,7 @@ class G2BCrawlerService:
             return filtered
         
         except Exception as e:
-            # 에러 로깅 (추후 Sentry 연동)
-            print(f"G2B API 에러: {e}")
+            logger.error(f"G2B API 호출 실패: {e}", exc_info=True)
             return []
     
     def _parse_api_response(self, data: Dict) -> List[Dict]:
