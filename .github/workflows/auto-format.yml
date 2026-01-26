@@ -6,6 +6,9 @@ on:
     paths:
       - '**.py'
 
+permissions:
+  contents: write  # Allow pushing formatted code back to repository
+
 jobs:
   format:
     runs-on: ubuntu-latest
