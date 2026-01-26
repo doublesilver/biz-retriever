@@ -1,0 +1,210 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: biz-retriever-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-biz_retriever}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - pi-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: biz-retriever-redis
+    restart: always
+    command: redis-server --maxmemory 200mb --maxmemory-policy allkeys-lru --save 60 1000
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - pi-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # FastAPI Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: biz-retriever-api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-biz_retriever}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SECRET_KEY=${SECRET_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - G2B_API_KEY=${G2B_API_KEY}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - ENVIRONMENT=production
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pi-network
+    deploy:
+      resources:
+        limits:
+          memory: 1200M
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Celery Worker
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: biz-retriever-worker
+    restart: always
+    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=2 --max-tasks-per-child=100
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-biz_retriever}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SECRET_KEY=${SECRET_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - G2B_API_KEY=${G2B_API_KEY}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - ENVIRONMENT=production
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+      - api
+    networks:
+      - pi-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Celery Beat (Scheduler)
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: biz-retriever-beat
+    restart: always
+    command: celery -A app.worker.celery_app beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-biz_retriever}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+      - celery-worker
+    networks:
+      - pi-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nginx Proxy Manager (Optional - 추후 도메인 연결 시 사용)
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"
+    environment:
+      DB_SQLITE_FILE: "/data/database.sqlite"
+    volumes:
+      - ./data/nginx-proxy-manager:/data
+      - ./data/letsencrypt:/etc/letsencrypt
+    networks:
+      - pi-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  pi-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  npm-data:
