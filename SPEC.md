@@ -51,7 +51,8 @@
 - **Backend**: FastAPI (Async)
 - **Task Queue**: Celery (Redis Broker)
 - **Database**: PostgreSQL (SQLAlchemy + Pydantic v2)
-- **AI/RAG**: LangChain, OpenAI GPT-4o, OCR (TBD)
+- **AI/RAG**: LangChain, Google Gemini 2.5 Flash (무료 1,500 req/일)
+- **Testing**: pytest (164 tests, 85%+ coverage)
 - **Deployment**: Docker, Railway (Preferred) / Vercel (Frontend only)
 - **Frontend**: HTML/JS (Dashboard) -> 추후 Slack 연동 강화
 

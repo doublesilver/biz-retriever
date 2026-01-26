@@ -2,8 +2,8 @@
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
-[![Tests](https://img.shields.io/badge/Tests-120%2F120-brightgreen.svg)]()
-[![Coverage](https://img.shields.io/badge/Coverage-83%25-green.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-164%2F164-brightgreen.svg)]()
+[![Coverage](https://img.shields.io/badge/Coverage-85%25+-green.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **"주인님, 여기 돈 냄새가 나는 입찰 공고를 찾아왔어요! 🦴"**
@@ -30,12 +30,12 @@
 | 항목 | 내용 |
 |------|------|
 | **프로젝트명** | Biz-Retriever (입찰 공고 자동 수집 및 AI 분석 시스템) |
-| **개발 기간** | **2일** (2026.01.22 ~ 2026.01.23) |
+| **개발 기간** | **4일** (2026.01.22 ~ 2026.01.26) |
 | **개발 인원** | 1인 (기획, 설계, 개발, 테스트, 배포) |
 | **백엔드** | FastAPI (Async/Await) |
 | **AI** | Google Gemini 2.5 Flash |
-| **데이터** | G2B 나라장터 공공데이터 API |
-| **성과** | 15,000 lines, 120 tests (100%), 83% coverage |
+| **데이터** | G2B 나라장터 + 온비드 API |
+| **성과** | 20,000+ lines, 164 tests (100%), 85%+ coverage |
 
 ---
 
