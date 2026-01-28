@@ -51,7 +51,7 @@
 - **Backend**: FastAPI (Async)
 - **Task Queue**: Celery (Redis Broker)
 - **Database**: PostgreSQL (SQLAlchemy + Pydantic v2)
-- **AI/RAG**: LangChain, Google Gemini 1.5 Flash (PDF 지원)
+- **AI/RAG**: LangChain, Google Gemini 2.5 Flash (PDF 지원)
 - **Monitoring**: Slack Handler, Prometheus/Grafana (Metrics)
 - **Testing**: pytest (165 tests)
 - **Deployment**: Raspberry Pi 5 (Docker Compose), Tailscale Funnel (Public Access)
