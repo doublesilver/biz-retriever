@@ -23,8 +23,20 @@
             <span>Biz-Retriever</span>
         </div>
         <div class="navbar-actions">
+            <a href="profile.html" class="btn-icon" title="기업 프로필 관리">
+                🏢
+            </a>
+            <a href="kanban.html" class="btn-icon" title="칸반 보드">
+                📋
+            </a>
+            <a href="keywords.html" class="btn-icon" title="제외 키워드 관리">
+                🚫
+            </a>
             <button class="btn-icon" id="darkModeToggle" title="다크모드">
                 🌙
+            </button>
+            <button class="btn-icon" id="crawlBtn" title="크롤링 시작">
+                🕷️
             </button>
             <button class="btn-icon" id="refreshBtn" title="새로고침">
                 🔄
@@ -54,15 +66,15 @@
                         <div class="stat-value" id="statTotal">-</div>
                     </div>
                     <div class="stat-card success">
-                        <div class="stat-label">신규 공고</div>
+                        <div class="stat-label">이번 주</div>
                         <div class="stat-value" id="statNew">-</div>
                     </div>
                     <div class="stat-card warning">
-                        <div class="stat-label">마감 임박</div>
+                        <div class="stat-label">중요 공고 ⭐⭐⭐</div>
                         <div class="stat-value" id="statDeadline">-</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">총 예산</div>
+                        <div class="stat-label">평균 추정가</div>
                         <div class="stat-value" id="statBudget">-</div>
                     </div>
                 </div>
@@ -108,11 +120,46 @@
         </div>
     </main>
 
+    <!-- Match Analysis Modal -->
+    <div id="matchModal" class="modal">
+        <div class="modal-backdrop" onclick="closeMatchModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔍 매칭 분석 상세</h3>
+                <button class="btn-icon modal-close" onclick="closeMatchModal()">✖️</button>
+            </div>
+            <div class="modal-body">
+                <div class="score-container">
+                    <div class="score-circle">
+                        <span id="matchScore">--</span>
+                        <span class="score-label">점</span>
+                    </div>
+                </div>
+                <div class="match-details">
+                    <h4>📝 점수 산출 내역</h4>
+                    <ul id="matchBreakdownList">
+                        <!-- Items injected by JS -->
+                    </ul>
+                </div>
+                <div class="hard-match-status">
+                    <h4>⚠️ 필수 조건 (Hard Match)</h4>
+                    <div id="hardMatchResult"></div>
+                </div>
+            </div>
+            <div class="modal-footer"
+                style="padding: 1.5rem; text-align: right; border-top: 1px solid var(--border-color);">
+                <button class="btn btn-secondary" onclick="closeMatchModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div id="toast" class="toast"></div>
 
-    <!-- TypeScript Module -->
-    <script type="module" src="/src/modules/dashboard.ts"></script>
+    <!-- JavaScript Module -->
+    <script src="/js/utils.js?v=fix1"></script>
+    <script src="/js/api.js?v=fix1"></script>
+    <script src="/js/dashboard.js?v=fix1"></script>
 </body>
 
 </html>

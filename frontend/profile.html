@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로필 관리 - Biz-Retriever</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .upload-card {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            border: 2px dashed var(--border-color);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .upload-card:hover {
+            border-color: var(--primary-color);
+            background: var(--bg-hover);
+        }
+
+        .form-info {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .license-tag {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary-color);
+            padding: 0.2rem 0.6rem;
+            border-radius: var(--radius-sm);
+            margin: 0.2rem;
+            font-size: 0.85rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .profile-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem !important;
+            }
+
+            .upload-card {
+                padding: 1.5rem;
+            }
+
+            .section-header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <a href="dashboard.html" style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🐕</span>
+                <span>Biz-Retriever</span>
+            </a>
+        </div>
+        <div class="navbar-actions">
+            <a href="dashboard.html" class="btn-icon" title="대시보드">🏠</a>
+            <a href="kanban.html" class="btn-icon" title="칸반 보드">📋</a>
+            <button class="btn-icon" id="darkModeToggle" title="다크모드">🌙</button>
+            <div class="user-menu">
+                <button class="btn-icon" id="userMenuBtn">👤</button>
+                <div class="dropdown-menu" id="userDropdown">
+                    <button id="logoutBtn">로그아웃</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard-container">
+        <div class="container">
+            <div class="section-header">
+                <h1>🏢 기업 프로필 관리</h1>
+                <p>사업자 정보를 등록하고 정밀 매칭을 위한 기초 데이터를 완성하세요.</p>
+            </div>
+
+            <div class="profile-grid">
+                <!-- Left: Upload Section -->
+                <div class="card">
+                    <h3>📷 사업자등록증 자동 추출</h3>
+                    <p class="form-info">Gemini AI가 사업자 정보를 자동으로 분석합니다.</p>
+                    <div class="upload-card" id="dropZone">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
+                        <p>사업자등록증 이미지 또는 PDF를 업로드하세요</p>
+                        <input type="file" id="certFile" hidden accept="image/*,.pdf">
+                    </div>
+                    <div id="uploadStatus" style="margin-top: 1rem; display: none;">
+                        <div class="spinner-sm"></div> <span id="statusText">분석 중...</span>
+                    </div>
+                </div>
+
+                <!-- Right: Profile Form -->
+                <div class="card">
+                    <h3>🔍 통합 기업 정보</h3>
+                    <form id="profileForm">
+                        <div class="form-group">
+                            <label>상호(법인명)</label>
+                            <input type="text" id="companyName" class="form-control" placeholder="추출 대기 중...">
+                        </div>
+                        <div class="form-group">
+                            <label>사업자등록번호</label>
+                            <input type="text" id="brn" class="form-control" placeholder="추출 대기 중...">
+                        </div>
+                        <div class="form-group">
+                            <label>대표자명</label>
+                            <input type="text" id="representative" class="form-control" placeholder="추출 대기 중...">
+                        </div>
+                        <div class="form-group">
+                            <label>사업장 주소</label>
+                            <input type="text" id="address" class="form-control" placeholder="추출 대기 중...">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label>지역 코드 (추출됨)</label>
+                                <input type="text" id="locationCode" class="form-control" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>기업 구분</label>
+                                <input type="text" id="companyType" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-block">💾 프로필 저장</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script src="/js/utils.js?v=p3"></script>
+    <script src="/js/api.js?v=p3"></script>
+    <script src="/js/profile.js?v=p3"></script>
+</body>
+
+</html>

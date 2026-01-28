@@ -1,0 +1,22 @@
+# Node modules (platform-specific binaries - ARM incompatible)
+node_modules/
+
+# TypeScript source files (not needed at runtime)
+src/
+*.ts
+tsconfig.json
+
+# Vite build artifacts (using source mode)
+dist/
+
+# Build tools config
+vite.config.ts
+package.json
+package-lock.json
+
+# IDE/Editor
+.vscode/
+.idea/
+
+# Documentation
+*.md

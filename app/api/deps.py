@@ -13,10 +13,14 @@ reusable_oauth2 = OAuth2PasswordBearer(
 )
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    from app.core.logging import logger
+    logger.info("Entering get_db dependency")
     async with AsyncSessionLocal() as session:
+        logger.info("Session created, yielding")
         try:
             yield session
         finally:
+            logger.info("Closing session")
             await session.close()
 
 async def get_current_user(

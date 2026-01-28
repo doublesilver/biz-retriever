@@ -1,7 +1,9 @@
 from typing import Dict, Any
 import os
 from app.core.config import settings
+from app.core.config import settings
 from app.core.logging import logger
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 class RAGService:
     def __init__(self):
@@ -10,7 +12,11 @@ class RAGService:
         Google Gemini API를 우선 사용하고, 없으면 OpenAI 사용
         """
         self.api_key_type = None
-        self.llm = None
+        self.client = None
+        
+        # httpx client for OpenAI fallback
+        import httpx
+        self.http_client = httpx.AsyncClient(timeout=30.0)
         
         # Gemini API 우선 사용
         if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.startswith("AIza"):
@@ -19,7 +25,7 @@ class RAGService:
                 from google.genai import types
                 
                 client = genai.Client(api_key=settings.GEMINI_API_KEY)
-                self.llm = client
+                self.client = client
                 self.api_key_type = "gemini"
                 logger.info("RAG 서비스: Google Gemini API 사용")
             except ImportError:
@@ -27,31 +33,20 @@ class RAGService:
             except Exception as e:
                 logger.error(f"Gemini 초기화 실패: {e}. OpenAI로 대체")
         
-        # Gemini가 없으면 OpenAI 사용
-        if not self.llm and settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.startswith("sk-"):
-            try:
-                from langchain_community.chat_models import ChatOpenAI
-                self.llm = ChatOpenAI(
-                    model_name="gpt-4o-mini",
-                    openai_api_key=settings.OPENAI_API_KEY,
-                    temperature=0
-                )
-                self.api_key_type = "openai"
-                logger.info("RAG 서비스: OpenAI API 사용")
-            except Exception as e:
-                logger.error(f"OpenAI 초기화 실패: {e}")
+        # Gemini가 없으면 OpenAI 확인
+        if not self.client and settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.startswith("sk-"):
+            self.api_key_type = "openai"
+            logger.info("RAG 서비스: OpenAI API 사용 (Lightweight)")
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=6)
+    )
     async def analyze_bid(self, content: str) -> Dict[str, Any]:
         """
         입찰 공고 내용을 AI로 분석하여 요약 및 키워드 추출
-        
-        Args:
-            content: 공고 내용
-            
-        Returns:
-            분석 결과 (요약, 키워드)
         """
-        if not self.llm:
+        if not self.api_key_type:
             return {
                 "summary": "AI 분석 불가: API 키가 설정되지 않았습니다.",
                 "keywords": []
@@ -70,22 +65,39 @@ class RAGService:
 """
 
         try:
+            result_text = ""
+            
             if self.api_key_type == "gemini":
                 # Gemini API 호출 (gemini-2.5-flash 모델)
-                response = self.llm.models.generate_content(
+                response = self.client.models.generate_content(
                     model='gemini-2.5-flash',
                     contents=prompt
                 )
                 result_text = response.text
-            else:
-                # OpenAI API 호출
-                from langchain_core.messages import HumanMessage, SystemMessage
-                messages = [
-                    SystemMessage(content="You are an AI assistant for analyzing public bid announcements in Korean."),
-                    HumanMessage(content=prompt)
-                ]
-                response = await self.llm.apredict_messages(messages)
-                result_text = response.content
+                
+            elif self.api_key_type == "openai":
+                # OpenAI API 호출 (Direct HTTP Request)
+                payload = {
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {"role": "system", "content": "You are an AI assistant for analyzing public bid announcements in Korean."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0
+                }
+                headers = {
+                    "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+                    "Content-Type": "application/json"
+                }
+                
+                response = await self.http_client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    json=payload,
+                    headers=headers
+                )
+                response.raise_for_status()
+                data = response.json()
+                result_text = data["choices"][0]["message"]["content"]
             
             # 간단한 파싱
             lines = result_text.strip().split('\n')

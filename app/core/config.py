@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     SLACK_CHANNEL: str = "#입찰-알림"
 
     # CORS Settings
-    CORS_ORIGINS: List[str] = ["http://localhost:8000", "http://localhost:3000"]
+    CORS_ORIGINS: List[str] = ["http://localhost:8000", "http://localhost:3000", "http://localhost:3001"]
     PRODUCTION_DOMAIN: Union[str, None] = None
 
     @property

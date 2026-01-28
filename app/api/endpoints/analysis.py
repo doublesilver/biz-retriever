@@ -60,3 +60,51 @@ async def predict_winning_price(
         "estimated_price": announcement.estimated_price,
         "prediction": prediction
     }
+
+
+@router.get("/match/{announcement_id}")
+async def check_match(
+    announcement_id: int = Path(..., ge=1, description="공고 ID (양수)"),
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    공고 매칭 가능 여부 확인 (Hard Match)
+    """
+    # 1. 공고 조회
+    result = await session.execute(
+        select(BidAnnouncement).where(BidAnnouncement.id == announcement_id)
+    )
+    bid = result.scalar_one_or_none()
+    if not bid:
+        raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
+
+    # 2. 사용자 프로필 조회
+    if not current_user.profile:
+        raise HTTPException(status_code=400, detail="사용자 프로필이 없습니다.")
+    
+    # 3. 매칭 실행
+    from app.services.matching_service import matching_service
+    match_result = matching_service.check_hard_match(current_user.profile, bid)
+    
+    # Soft Match (Only if Hard Match is successful OR for information)
+    # We allow seeing soft match score even if hard match fails, for debugging/insight
+    soft_match_result = matching_service.calculate_soft_match(current_user.profile, bid)
+    
+    # 4. 제약 조건 정보 포함
+    constraints = {
+        "region_code": bid.region_code,
+        "license_requirements": bid.license_requirements,
+        "min_performance": bid.min_performance
+    }
+    
+    return {
+        "bid_id": bid.id,
+        "is_match": match_result["is_match"],
+        "reasons": match_result["reasons"],
+        "soft_match": {
+            "score": soft_match_result["score"],
+            "breakdown": soft_match_result["breakdown"]
+        },
+        "constraints": constraints
+    }

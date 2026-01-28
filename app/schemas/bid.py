@@ -52,7 +52,10 @@ class BidResponse(BidBase):
     estimated_price: Optional[float] = None
     importance_score: int = 1
     keywords_matched: Optional[List[str]] = None
+    keywords_matched: Optional[List[str]] = None
     is_notified: bool = False
+    ai_summary: Optional[str] = None
+    ai_keywords: Optional[List[str]] = None
 
     # Phase 2 필드
     status: str = "new"
@@ -89,3 +92,11 @@ class BidStatusUpdate(BaseModel):
     """공고 상태 변경 요청"""
     status: str = Field(..., pattern="^(new|reviewing|bidding|completed)$", description="공고 상태")
     notes: Optional[str] = Field(default=None, max_length=1000, description="메모")
+
+
+class BidListResponse(BaseModel):
+    """공고 목록 응답 스키마 (페이지네이션 지원)"""
+    items: List[BidResponse]
+    total: int
+    skip: int
+    limit: int

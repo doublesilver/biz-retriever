@@ -41,7 +41,8 @@ class TestRAGService:
             mock_settings.OPENAI_API_KEY = None
 
             service = RAGService()
-            assert service.llm is None
+            assert service.client is None
+            assert service.api_key_type is None
 
     # ============================================
     # analyze_bid 테스트
@@ -72,7 +73,7 @@ class TestRAGService:
         mock_response = MagicMock()
         mock_response.text = "요약: 구내식당 위탁운영 공고\n키워드: 구내식당, 위탁운영, 입찰"
         mock_llm.models.generate_content = MagicMock(return_value=mock_response)
-        service.llm = mock_llm
+        service.client = mock_llm
         
         result = await service.analyze_bid("서울대병원 구내식당 위탁운영 입찰 공고")
         
@@ -90,7 +91,7 @@ class TestRAGService:
         mock_response = MagicMock()
         mock_response.content = "요약: 구내식당 위탁운영 공고\n키워드: 구내식당, 위탁운영, 입찰"
         mock_llm.apredict_messages = AsyncMock(return_value=mock_response)
-        service.llm = mock_llm
+        service.client = mock_llm
 
         result = await service.analyze_bid("서울대병원 구내식당 위탁운영 입찰 공고")
 
@@ -106,7 +107,7 @@ class TestRAGService:
         # 에러 발생 Mock
         mock_llm = MagicMock()
         mock_llm.models.generate_content = MagicMock(side_effect=Exception("API Error"))
-        service.llm = mock_llm
+        service.client = mock_llm
 
         result = await service.analyze_bid("테스트 내용")
 
@@ -123,7 +124,7 @@ class TestRAGService:
         mock_response = MagicMock()
         mock_response.text = "요약: 분석 결과\n키워드: 테스트, 분석, 결과"
         mock_llm.models.generate_content = MagicMock(return_value=mock_response)
-        service.llm = mock_llm
+        service.client = mock_llm
 
         result = await service.analyze_bid("테스트")
 

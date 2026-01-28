@@ -1,6 +1,6 @@
 // API Service
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '/api/v1';
 
 class APIService {
     static async request(endpoint, options = {}) {
@@ -15,6 +15,11 @@ class APIService {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
+        // Remove Content-Type if explicitly set to null/undefined (for FormData)
+        if (headers['Content-Type'] === undefined || headers['Content-Type'] === null) {
+            delete headers['Content-Type'];
+        }
+
         try {
             const response = await fetch(`${API_BASE}${endpoint}`, {
                 ...options,
@@ -24,13 +29,20 @@ class APIService {
             if (response.status === 401) {
                 // Token expired
                 localStorage.removeItem('token');
-                window.location.href = '/frontend/index.html';
+                window.location.href = '/index.html';
                 throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
             }
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || '요청 처리 중 오류가 발생했습니다.');
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    const error = await response.json();
+                    throw new Error(JSON.stringify(error) || '요청 처리 중 오류가 발생했습니다.');
+                } else {
+                    const text = await response.text();
+                    console.error('Non-JSON Error Response:', text);
+                    throw new Error(`서버 오류가 발생했습니다. (Status: ${response.status})`);
+                }
             }
 
             return await response.json();
@@ -38,6 +50,22 @@ class APIService {
             console.error('API Error:', error);
             throw error;
         }
+    }
+
+    // Crawler
+    static async triggerCrawl() {
+        return this.request('/crawler/trigger', {
+            method: 'POST'
+        });
+    }
+
+    // Analysis
+    static async predictPrice(id) {
+        return this.request(`/analysis/predict-price/${id}`);
+    }
+
+    static async checkMatch(id) {
+        return this.request(`/analysis/match/${id}`);
     }
 
     // Auth
@@ -89,6 +117,32 @@ class APIService {
         });
     }
 
+    static async patchBid(id, data) {
+        return this.request(`/bids/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+
+    // Keywords (제외 키워드)
+    static async getKeywords() {
+        return this.request('/filters/keywords');
+    }
+
+    static async addKeyword(keyword) {
+        return this.request('/filters/keywords', {
+            method: 'POST',
+            body: JSON.stringify({ keyword })
+        });
+    }
+
+    static async deleteKeyword(keyword) {
+        return this.request(`/filters/keywords/${encodeURIComponent(keyword)}`, {
+            method: 'DELETE'
+        });
+    }
+
     // Analytics
     static async getAnalytics() {
         return this.request('/analytics/summary');
@@ -121,6 +175,32 @@ class APIService {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+    }
+
+    // Profile (Phase 2)
+    static async getProfile() {
+        return this.request('/profile/');
+    }
+
+    static async updateProfile(data) {
+        return this.request('/profile/', {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
+
+    static async uploadCertificate(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        return this.request('/profile/upload-certificate', {
+            method: 'POST',
+            headers: {
+                // Content-Type: multipart/form-data is automatically set by fetch for FormData
+                'Content-Type': null
+            },
+            body: formData
+        });
     }
 }
 

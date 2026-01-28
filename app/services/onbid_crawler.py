@@ -91,6 +91,7 @@ class OnbidCrawlerService:
 
                 # 필터링 적용
                 filtered = [a for a in announcements if self._should_include(a)]
+                # filtered = announcements
                 all_announcements.extend(filtered)
 
                 logger.info(f"페이지 {page}: {len(announcements)}건 수집, {len(filtered)}건 필터링 통과")

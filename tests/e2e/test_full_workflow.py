@@ -101,8 +101,8 @@ class TestCrawlerWorkflow:
         1. 크롤러 트리거
         2. Task ID로 상태 확인
         """
-        # Mock Celery task
-        with patch('app.api.endpoints.crawler.crawl_g2b_bids') as mock_crawl:
+        # Mock Celery task (patch at worker.tasks where it's defined, not where imported)
+        with patch('app.worker.tasks.crawl_g2b_bids') as mock_crawl:
             mock_task = MagicMock()
             mock_task.id = "e2e-test-task-123"
             mock_crawl.delay.return_value = mock_task

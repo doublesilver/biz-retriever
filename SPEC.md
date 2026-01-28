@@ -51,10 +51,11 @@
 - **Backend**: FastAPI (Async)
 - **Task Queue**: Celery (Redis Broker)
 - **Database**: PostgreSQL (SQLAlchemy + Pydantic v2)
-- **AI/RAG**: LangChain, Google Gemini 2.5 Flash (무료 1,500 req/일)
-- **Testing**: pytest (164 tests, 85%+ coverage)
-- **Deployment**: Docker, Railway (Preferred) / Vercel (Frontend only)
-- **Frontend**: HTML/JS (Dashboard) -> 추후 Slack 연동 강화
+- **AI/RAG**: LangChain, Google Gemini 1.5 Flash (PDF 지원)
+- **Monitoring**: Slack Handler, Prometheus/Grafana (Metrics)
+- **Testing**: pytest (165 tests)
+- **Deployment**: Raspberry Pi 5 (Docker Compose), Tailscale Funnel (Public Access)
+- **Frontend**: HTML/JS (Dashboard, Mobile Responsive)
 
 ---
 
@@ -68,8 +69,14 @@
 - **목표**: 온비드(임대공고) 크롤링 추가 + 관리자 대시보드(Kanban) 구축.
 - **기능**: 공고별 상태 관리(관심/투찰예정/완료), 제외어 설정 UI.
 
-### Phase 3: 명견 등극 (자동화 & AI - 추후)
-- **목표**: 경쟁사 투찰가 패턴 분석 및 최적 투찰가 제안 모델 도입.
+### Phase 3: 명견 등극 (자동화 & AI - 완료)
+- **목표**: AI 기반 입찰 제약 조건 추출, 매칭 점수 산출, 자동 분석.
+- **성과**: Gemini 1.5 Flash 연동, Hard/Soft Match 엔진 구축 완료.
+
+### Phase 4-6: 안정화 및 프로덕션 (완료)
+- **안정성**: Tenacity 재시도 로직, Slack 에러 알림.
+- **보안**: Tailscale Funnel 공용 접속, UFW/Fail2Ban 설정.
+- **최적화**: 모바일 반응형 UI, PDF 수집 및 OCR 지원.
 
 ---
 

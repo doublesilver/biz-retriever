@@ -1,10 +1,7 @@
 import os
-import joblib
-import pandas as pd
-import numpy as np
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any, TYPE_CHECKING
 from app.db.models import BidResult
 from app.core.logging import logger
 from app.core.constants import (
@@ -16,72 +13,56 @@ from app.core.constants import (
 )
 from app.core.exceptions import InsufficientDataError, ModelNotTrainedError
 
+if TYPE_CHECKING:
+    import pandas as pd
+    import numpy as np
+
 class MLService:
     """
     Machine Learning Service for Bid Price Prediction
     
-    Uses Random Forest Regressor to predict winning prices based on
-    historical bid data. The model learns from past bid results to
-    estimate optimal bidding prices.
-    
-    Attributes:
-        MODEL_PATH: Path to saved model file
-        model: Trained RandomForestRegressor instance
-        
-    Example:
-        >>> ml_service = MLService()
-        >>> await ml_service.train_model(db_session)
-        >>> prediction = ml_service.predict_price(50_000_000)
+    Uses Random Forest Regressor to predict winning prices.
+    Optimized for Raspberry Pi: Uses lazy loading for heavy libraries.
     """
     
     MODEL_PATH = ML_MODEL_PATH
     
     def __init__(self):
-        """Initialize ML service and load existing model if available"""
+        """Initialize ML service"""
         self.model = None
-        self._load_model()
+        # Do not load model at startup to save memory
+        # self._load_model() 
+
+    def _get_deps(self):
+        """Lazy load heavy dependencies"""
+        try:
+            import joblib
+            import pandas as pd
+            import numpy as np
+            return joblib, pd, np
+        except ImportError as e:
+            logger.error(f"❌ ML dependencies missing: {e}")
+            raise
 
     def _load_model(self):
-        """
-        Load trained model from disk if exists
-        
-        Attempts to load a previously trained model from MODEL_PATH.
-        If no model exists, logs a warning and continues without error.
-        """
+        """Load trained model from disk if exists"""
         if os.path.exists(self.MODEL_PATH):
             try:
+                joblib, _, _ = self._get_deps()
                 self.model = joblib.load(self.MODEL_PATH)
                 logger.info(f"✅ Loaded ML model from {self.MODEL_PATH}")
+                return True
             except Exception as e:
                 logger.error(f"❌ Failed to load ML model: {e}")
-        else:
-            logger.warning("⚠️ No trained model found. Prediction will not work until training is done.")
+                return False
+        return False
 
     async def train_model(self, db: AsyncSession) -> Dict[str, float]:
-        """
-        Train ML model with historical bid data
-        
-        Fetches BidResult data from database, prepares features,
-        trains a Random Forest model, and saves it to disk.
-        
-        Args:
-            db: Async database session
-            
-        Returns:
-            Dictionary with training results:
-                - status: "success" or "skipped"
-                - samples: Number of training samples
-                - mae: Mean Absolute Error
-                - r2: R-squared score
-                
-        Raises:
-            InsufficientDataError: If fewer than ML_MIN_TRAINING_SAMPLES records
-            
-        Example:
-            >>> result = await ml_service.train_model(db)
-            >>> print(f"Trained with {result['samples']} samples")
-        """
+        """Train ML model with historical bid data"""
         logger.info("🔄 Starting model training...")
+        
+        # Lazy load deps
+        joblib, pd, np = self._get_deps()
         
         # 1. Fetch Data
         query = select(BidResult).where(
@@ -105,7 +86,7 @@ class MLService:
                 "estimated_price": bid.estimated_price,
                 "base_price": bid.base_price if bid.base_price else bid.estimated_price,
                 "winning_price": bid.winning_price,
-                "category_code": hash(bid.category) if bid.category else 0 # Simple encoding
+                "category_code": hash(bid.category) if bid.category else 0
             })
             
         df = pd.DataFrame(data)
@@ -114,7 +95,7 @@ class MLService:
         X = df[['estimated_price', 'base_price', 'category_code']]
         y = df['winning_price']
         
-        # 3. Train Model (Lazy import to save startup time if not used)
+        # 3. Train Model (Lazy import)
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.model_selection import train_test_split
         from sklearn.metrics import mean_absolute_error, r2_score
@@ -156,38 +137,21 @@ class MLService:
         base_price: Optional[float] = None, 
         category: Optional[str] = None
     ) -> Dict[str, float]:
-        """
-        Predict winning price for a bid
-        
-        Uses the trained Random Forest model to predict the likely
-        winning price based on estimated price and other features.
-        
-        Args:
-            estimated_price: Estimated/base price from bid announcement
-            base_price: Optional base price (defaults to estimated_price)
-            category: Optional category for better prediction
-            
-        Returns:
-            Dictionary with prediction results:
-                - recommended_price: Predicted winning price
-                - confidence: Model confidence (0-1)
-                
-        Raises:
-            ModelNotTrainedError: If model hasn't been trained yet
-            
-        Example:
-            >>> result = ml_service.predict_price(50_000_000)
-            >>> print(f"Recommended: {result['recommended_price']:,}원")
-        """
+        """Predict winning price for a bid"""
+        # Try to load model if not loaded
         if not self.model:
-            raise ModelNotTrainedError()
+            if not self._load_model():
+                raise ModelNotTrainedError()
+        
+        # Lazy load deps
+        _, pd, _ = self._get_deps()
             
         if not base_price:
             base_price = estimated_price
             
         category_code = hash(category) if category else 0
         
-        # Create input DataFrame (must match training feature names)
+        # Create input DataFrame
         X_new = pd.DataFrame([{
             'estimated_price': estimated_price,
             'base_price': base_price,
@@ -196,7 +160,7 @@ class MLService:
         
         prediction = self.model.predict(X_new)[0]
         
-        # Calculate confidence (simplified)
+        # Calculate confidence
         confidence = min(0.95, 0.7 + (len(self.model.estimators_) / 200))
         
         return {
@@ -205,5 +169,5 @@ class MLService:
         }
 
 ml_service = MLService()
-ml_predictor = ml_service # Alias for analysis.py
-MLBidPricePredictor = MLService # Alias for conftest.py (temporary)
+ml_predictor = ml_service
+MLBidPricePredictor = MLService

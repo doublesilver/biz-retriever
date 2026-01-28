@@ -22,7 +22,7 @@ echo ""
 
 # 컨테이너 상태
 echo "📦 컨테이너 상태:"
-docker-compose -f docker-compose.pi.yml ps
+docker compose -f docker-compose.pi.yml ps
 echo ""
 
 # CPU 온도 (라즈베리파이)

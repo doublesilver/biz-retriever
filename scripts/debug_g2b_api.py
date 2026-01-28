@@ -1,98 +1,70 @@
-"""
-G2B API 키 디버깅 스크립트
-다양한 인코딩 방식으로 API 키 테스트
-"""
+import asyncio
 import os
 import sys
-from pathlib import Path
-import urllib.parse
-
-# 프로젝트 루트를 PYTHONPATH에 추가
-ROOT_DIR = Path(__file__).parent.parent
-sys.path.insert(0, str(ROOT_DIR))
-
 import httpx
-from dotenv import load_dotenv
+from datetime import datetime
 
-# .env 로드
-load_dotenv()
+# Add the project root to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-def test_with_different_encodings():
-    """다양한 인코딩으로 API 키 테스트"""
-    api_key = os.getenv("G2B_API_KEY")
-    endpoint = os.getenv("G2B_API_ENDPOINT")
+from app.core.config import settings
+from app.services.crawler_service import g2b_crawler
+
+async def debug_crawl():
+    print("=== Direct G2B API Debug Test ===")
+    print(f"Time: {datetime.now()}")
+    print(f"API Endpoint: {settings.G2B_API_ENDPOINT}")
     
-    print("=" * 70)
-    print("🔍 G2B API 키 인코딩 테스트")
-    print("=" * 70)
-    print(f"원본 키: {api_key[:20]}...")
-    print(f"엔드포인트: {endpoint}")
-    print()
+    # Check API Key
+    api_key = os.getenv("G2B_API_KEY", settings.G2B_API_KEY)
+    print(f"API Key Length: {len(api_key)}")
+
+    # 1. Fetch raw data
+    params = {
+        "serviceKey": api_key,
+        "numOfRows": 100,
+        "pageNo": 1,
+        "inqryDiv": "1",
+        "type": "json",
+    }
     
-    from datetime import datetime, timedelta
-    
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=1)  # 1일만 조회
-    
-    # 테스트할 인코딩 방법들
-    encodings = [
-        ("원본 (Decoding)", api_key),
-        ("URL 인코딩 (Encoding)", urllib.parse.quote(api_key)),
-        ("URL 인코딩 (safe)", urllib.parse.quote_plus(api_key)),
-    ]
-    
-    for encoding_name, encoded_key in encodings:
-        print(f"\n📝 {encoding_name} 테스트")
-        print(f"   키: {encoded_key[:30]}...")
-        
-        params = {
-            "ServiceKey": encoded_key,  # 대문자 S
-            "numOfRows": "1",
-            "pageNo": "1",
-            "type": "json",
-            "inqryBgnDt": start_date.strftime("%Y%m%d0000"),
-            "inqryEndDt": end_date.strftime("%Y%m%d2359")
-        }
-        
-        try:
-            with httpx.Client(timeout=10.0) as client:
-                response = client.get(endpoint, params=params)
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            print(f"Sending request to G2B...")
+            response = await client.get(settings.G2B_API_ENDPOINT, params=params)
+            print(f"Status Code: {response.status_code}")
             
-            print(f"   📥 응답 코드: {response.status_code}")
-            
-            if response.status_code == 200:
-                try:
-                    data = response.json()
-                    if "response" in data:
-                        result_code = data["response"]["header"].get("resultCode")
-                        result_msg = data["response"]["header"].get("resultMsg")
-                        print(f"   📊 결과: {result_code} - {result_msg}")
-                        
-                        if result_code == "00":
-                            print(f"   ✅ 성공! 이 인코딩 방식을 사용하세요: {encoding_name}")
-                            return True, encoding_name, encoded_key
-                    else:
-                        print(f"   📄 응답 본문: {response.text[:100]}")
-                except Exception as e:
-                    print(f"   📄 응답 본문 (JSON 아님): {response.text[:100]}")
-            else:
-                print(f"   ❌ HTTP 오류: {response.text[:100]}")
-                
-        except Exception as e:
-            print(f"   ❌ 오류: {e}")
-    
-    print("\n" + "=" * 70)
-    print("❌ 모든 인코딩 방식 실패")
-    print()
-    print("🔧 확인사항:")
-    print("1. 공공데이터포털에서 'Decoding' 키를 사용했는지 확인")
-    print("2. 활용 신청이 '승인' 상태인지 확인")
-    print("3. API 문서에서 정확한 파라미터명 확인")
-    print("   - ServiceKey vs serviceKey")
-    print("   - 필수 파라미터 누락 여부")
-    return False, None, None
+            if response.status_code != 200:
+                print(f"❌ Error Response: {response.text[:500]}")
+                return
 
+            data = response.json()
+            
+            # 2. Inspect Body
+            body = data.get("response", {}).get("body", {})
+            items = body.get("items", [])
+            print(f"✅ Raw Data Items Count: {len(items)}")
+            
+            if len(items) > 0:
+                print("--- Sample Item ---")
+                sample = items[0]
+                print(f"Title: {sample.get('bidNtceNm')}")
+                print(f"Agency: {sample.get('ntceInsttNm')}")
+            
+            # 3. Test Parsing
+            announcements = g2b_crawler._parse_api_response(data)
+            print(f"✅ Parsed Announcements Count: {len(announcements)}")
+            
+            # 4. Test Filtering
+            # Bypass dynamic keywords for this check
+            exclude_keywords = g2b_crawler.DEFAULT_EXCLUDE_KEYWORDS
+            filtered = [a for a in announcements if g2b_crawler._should_notify(a, exclude_keywords)]
+            print(f"✅ Filtered (Include Keywords matched) Count: {len(filtered)}")
+
+    except Exception as e:
+        print(f"❌ Exception occurred: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
-    success, method, key = test_with_different_encodings()
-    sys.exit(0 if success else 1)
+    asyncio.run(debug_crawl())

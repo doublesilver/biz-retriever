@@ -10,7 +10,9 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: path.resolve(__dirname, 'index.html'),
-                dashboard: path.resolve(__dirname, 'dashboard.html')
+                dashboard: path.resolve(__dirname, 'dashboard.html'),
+                kanban: path.resolve(__dirname, 'kanban.html'),
+                keywords: path.resolve(__dirname, 'keywords.html')
             }
         }
     },

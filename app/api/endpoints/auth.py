@@ -6,6 +6,7 @@ from sqlalchemy import select
 from app.api import deps
 from app.core import security
 from app.core.exceptions import WeakPasswordError
+from app.core.logging import logger
 from app.db.models import User
 from pydantic import BaseModel, EmailStr, Field
 
@@ -185,30 +186,40 @@ async def register(
     생성된 사용자 정보 (비밀번호 제외)
     """
     # 1. Validate password strength
+    logger.info(f"Registering user: {user_in.email}")
     try:
         security.validate_password(user_in.password)
+        logger.info("Password validation passed")
     except WeakPasswordError as e:
+        logger.info(f"Password validation failed: {str(e)}")
         raise HTTPException(
             status_code=400,
             detail=str(e)
         )
 
     # 2. Check existing
+    logger.info("Checking for existing user...")
     result = await db.execute(select(User).where(User.email == user_in.email))
     if result.scalars().first():
+         logger.info("User already exists")
          raise HTTPException(
             status_code=400,
             detail="The user with this email already exists in the system.",
         )
 
     # 3. Create User
+    logger.info("Creating new user object...")
     user = User(
         email=user_in.email,
         hashed_password=security.get_password_hash(user_in.password),
         is_active=True
     )
+    logger.info("Adding user to DB session...")
     db.add(user)
+    logger.info("Committing to DB...")
     await db.commit()
+    logger.info("Refreshing user object...")
     await db.refresh(user)
 
+    logger.info("Registration successful")
     return user

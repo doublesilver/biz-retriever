@@ -23,6 +23,8 @@ class BidAnnouncement(Base, TimestampMixin):
     posted_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     url: Mapped[str] = mapped_column(String, unique=True, nullable=False)  # Original Link
     processed: Mapped[bool] = mapped_column(Boolean, default=False)  # RAG Processing Status
+    ai_summary: Mapped[Optional[str]] = mapped_column(Text)  # AI 요약
+    ai_keywords: Mapped[Optional[List[str]]] = mapped_column(JSON, default=list)  # AI 추출 키워드
 
     # Phase 1 추가 필드
     source: Mapped[str] = mapped_column(String, index=True, default="G2B")  # "G2B", "Onbid", etc.
@@ -32,6 +34,12 @@ class BidAnnouncement(Base, TimestampMixin):
     keywords_matched: Mapped[Optional[List[str]]] = mapped_column(JSON, default=list)  # 매칭된 키워드 목록
     is_notified: Mapped[bool] = mapped_column(Boolean, default=False)  # Slack 알림 여부
     crawled_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)  # 크롤링 시간
+    attachment_content: Mapped[Optional[str]] = mapped_column(Text)  # OCR/Parsed content from HWP/PDF
+
+    # Phase 3: Hard Match용 제약 조건
+    region_code: Mapped[Optional[str]] = mapped_column(String, index=True)  # 공사 현장 지역 코드 (서울: 11 등)
+    min_performance: Mapped[Optional[float]] = mapped_column(Float, default=0.0)  # 최소 실적 요건(금액)
+    license_requirements: Mapped[Optional[List[str]]] = mapped_column(JSON, default=list)  # 필요 면허 목록
 
     # Phase 2 추가 필드 (Kanban 상태 관리)
     status: Mapped[str] = mapped_column(String, default="new", index=True)  # new, reviewing, bidding, completed
@@ -73,8 +81,110 @@ class User(Base, TimestampMixin):
         lazy="selectin"
     )
 
+    # Phase 2: User -> UserProfile (1:1 관계)
+    profile: Mapped[Optional["UserProfile"]] = relationship(
+        "UserProfile",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+        lazy="selectin"
+    )
+
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}')>"
+
+
+class UserProfile(Base, TimestampMixin):
+    """
+    User Profile Model (기업 상세 정보)
+    Phase 2: 사용자 프로필 자동화 및 정밀 매칭의 기초
+    """
+    __tablename__ = "user_profiles"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False
+    )
+
+    # 기업 기본 정보
+    company_name: Mapped[Optional[str]] = mapped_column(String, index=True)  # 상호/법인명
+    brn: Mapped[Optional[str]] = mapped_column(String, unique=True, index=True)  # 사업자등록번호
+    representative: Mapped[Optional[str]] = mapped_column(String)  # 대표자명
+    address: Mapped[Optional[str]] = mapped_column(String)  # 본사 주소
+    location_code: Mapped[Optional[str]] = mapped_column(String, index=True)  # 지역 코드 (서울: 11 등)
+    company_type: Mapped[Optional[str]] = mapped_column(String)  # 기업 구분 (중소기업, 소상공인 등)
+    keywords: Mapped[Optional[List[str]]] = mapped_column(JSON, default=list)  # 관심 키워드 (Phase 3 Soft Match)
+
+    # Relationship
+    user: Mapped["User"] = relationship("User", back_populates="profile")
+    licenses: Mapped[List["UserLicense"]] = relationship(
+        "UserLicense",
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        lazy="selectin"
+    )
+    performances: Mapped[List["UserPerformance"]] = relationship(
+        "UserPerformance",
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        lazy="selectin"
+    )
+
+    def __repr__(self):
+        return f"<UserProfile(id={self.id}, company_name='{self.company_name}')>"
+
+
+class UserLicense(Base, TimestampMixin):
+    """
+    User License Model (보유 면허 정보)
+    Phase 3: Hard Match (면허 제한) 필터링에 사용
+    """
+    __tablename__ = "user_licenses"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    profile_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("user_profiles.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    license_name: Mapped[str] = mapped_column(String, index=True, nullable=False)  # 면허명
+    license_number: Mapped[Optional[str]] = mapped_column(String)  # 면허번호
+    issue_date: Mapped[Optional[datetime]] = mapped_column(DateTime)  # 취득일
+
+    # Relationship
+    profile: Mapped["UserProfile"] = relationship("UserProfile", back_populates="licenses")
+
+    def __repr__(self):
+        return f"<UserLicense(id={self.id}, name='{self.license_name}')>"
+
+
+class UserPerformance(Base, TimestampMixin):
+    """
+    User Performance Model (시공/용역 실적 정보)
+    Phase 3: Hard Match (실적 제한) 필터링에 사용
+    """
+    __tablename__ = "user_performances"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    profile_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("user_profiles.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    project_name: Mapped[str] = mapped_column(String, nullable=False)  # 프로젝트명
+    amount: Mapped[float] = mapped_column(Float, default=0.0)  # 계약금액
+    completion_date: Mapped[Optional[datetime]] = mapped_column(DateTime)  # 준공일
+
+    # Relationship
+    profile: Mapped["UserProfile"] = relationship("UserProfile", back_populates="performances")
+
+    def __repr__(self):
+        return f"<UserPerformance(id={self.id}, project='{self.project_name}', amount={self.amount})>"
 
 
 class BidResult(Base, TimestampMixin):

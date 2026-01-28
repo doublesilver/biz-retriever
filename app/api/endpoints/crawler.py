@@ -8,7 +8,6 @@ from celery.result import AsyncResult
 from app.core.security import get_current_user
 from app.core.logging import logger
 from app.db.models import User
-from app.worker.tasks import crawl_g2b_bids
 
 router = APIRouter()
 
@@ -24,7 +23,28 @@ async def trigger_manual_crawl(current_user: User = Depends(get_current_user)):
     """
     logger.info(f"수동 크롤링 트리거: user={current_user.email}")
 
-    task = crawl_g2b_bids.delay()
+    try:
+        # Lazy import to avoid startup issues and provide better error messages
+        from app.worker.tasks import crawl_g2b_bids
+
+        logger.info("Celery 태스크 호출 시도...")
+        task = crawl_g2b_bids.delay()
+        logger.info(f"Celery 태스크 생성 완료: task_id={task.id}")
+
+    except ImportError as e:
+        logger.error(f"Celery 태스크 임포트 실패: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=503,
+            detail=f"크롤링 모듈을 로드할 수 없습니다. (원인: {str(e)})"
+        )
+    except Exception as e:
+        # Catch all exceptions including kombu.exceptions.OperationalError
+        error_type = type(e).__name__
+        logger.error(f"크롤링 트리거 실패 [{error_type}]: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=503,
+            detail=f"크롤링 서비스를 시작할 수 없습니다. ({error_type}: {str(e)})"
+        )
 
     return {
         "task_id": task.id,

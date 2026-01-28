@@ -30,7 +30,13 @@ from sqlalchemy.orm import sessionmaker
 from app.db.base import Base
 
 # Global Test DB
-test_engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+from sqlalchemy.pool import StaticPool
+test_engine = create_async_engine(
+    "sqlite+aiosqlite:///:memory:", 
+    echo=False,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool
+)
 TestingSessionLocal = sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)
 
 async def override_get_db():
@@ -41,7 +47,9 @@ app.dependency_overrides[get_db] = override_get_db
 
 async def test_system():
     # Initialize DB
+    # We must bind the engine to the sessionmaker mock or ensure tables exist
     async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
     # Mock Celery Task

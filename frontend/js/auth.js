@@ -3,7 +3,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     // Check if already logged in
     if (localStorage.getItem('token')) {
-        window.location.href = '/frontend/dashboard.html';
+        window.location.href = '/dashboard.html';
         return;
     }
 
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
             utils.showToast('로그인 성공!', 'success');
 
             setTimeout(() => {
-                window.location.href = '/frontend/dashboard.html';
+                window.location.href = '/dashboard.html';
             }, 500);
         } catch (error) {
             utils.showToast(error.message || '로그인 실패', 'error');

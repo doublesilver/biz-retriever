@@ -73,10 +73,15 @@
             <span>Biz-Retriever Keywords</span>
         </div>
         <div class="navbar-actions">
-            <a href="dashboard.html" class="btn-icon" title="대시보드로 이동">📊</a>
-            <a href="kanban.html" class="btn-icon" title="칸반보드로 이동">📋</a>
-            <button class="btn-icon" id="darkModeToggle">🌙</button>
-            <button class="btn-icon" id="userMenuBtn">👤</button>
+            <a href="dashboard.html" class="btn-icon" title="대시보드">📊</a>
+            <a href="kanban.html" class="btn-icon" title="칸반 보드">📋</a>
+            <button class="btn-icon" id="darkModeToggle" title="다크모드">🌙</button>
+            <div class="user-menu">
+                <button class="btn-icon" id="userMenuBtn">👤</button>
+                <div class="dropdown-menu" id="userDropdown">
+                    <button id="logoutBtn">로그아웃</button>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -107,7 +112,10 @@
     <!-- Toast -->
     <div id="toast" class="toast"></div>
 
-    <script type="module" src="/src/modules/keywords.ts"></script>
+    <!-- JavaScript Module -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/keywords.js"></script>
 </body>
 
 </html>

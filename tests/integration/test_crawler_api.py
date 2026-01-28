@@ -23,7 +23,7 @@ class TestCrawlerAPI:
     @pytest.mark.asyncio
     async def test_trigger_crawl_success(self, authenticated_client: AsyncClient):
         """크롤링 트리거 성공"""
-        with patch('app.api.endpoints.crawler.crawl_g2b_bids') as mock_task:
+        with patch('app.worker.tasks.crawl_g2b_bids') as mock_task:
             mock_result = MagicMock()
             mock_result.id = "test-task-id-123"
             mock_task.delay.return_value = mock_result
@@ -34,6 +34,21 @@ class TestCrawlerAPI:
             data = response.json()
             assert "task_id" in data
             assert data["status"] == "started"
+
+    @pytest.mark.asyncio
+    async def test_trigger_crawl_exception(self, authenticated_client: AsyncClient):
+        """크롤링 트리거 실패 (예외 발생) - 503 Service Unavailable"""
+        with patch('app.worker.tasks.crawl_g2b_bids') as mock_task:
+            # Mock exception
+            mock_task.delay.side_effect = Exception("Redis connection failed")
+
+            response = await authenticated_client.post("/api/v1/crawler/trigger")
+
+            assert response.status_code == 503
+            data = response.json()
+            assert "detail" in data
+            assert "크롤링 서비스를 시작할 수 없습니다" in data["detail"]
+
 
     # ============================================
     # GET /crawler/status/{task_id} 테스트

@@ -6,12 +6,12 @@ GitHub 저장소의 **Settings > Secrets and variables > Actions**에서 다음 
 
 ### 1. GEMINI_API_KEY
 - **설명**: Google Gemini AI API 키
-- **값**: `AIzaSyDH7PjcBbsQiTqnpoeQzFNdRXqj_yFHTzk`
+- **값**: `YOUR_GEMINI_API_KEY`
 - **용도**: AI 분석 기능, Integration Tests
 
 ### 2. G2B_API_KEY
 - **설명**: 나라장터(G2B) 공공데이터 API 키
-- **값**: `844ea00e83f650cd8a9fe556497d225623120e0a166209989d53a3ccb42bb873`
+- **값**: `YOUR_G2B_API_KEY`
 - **용도**: 입찰 공고 크롤링, Integration Tests
 
 ### 3. SLACK_WEBHOOK_URL (선택)
@@ -39,8 +39,8 @@ gh --version
 gh auth login
 
 # Secret 추가
-gh secret set GEMINI_API_KEY -b "AIzaSyDH7PjcBbsQiTqnpoeQzFNdRXqj_yFHTzk"
-gh secret set G2B_API_KEY -b "844ea00e83f650cd8a9fe556497d225623120e0a166209989d53a3ccb42bb873"
+gh secret set GEMINI_API_KEY -b "YOUR_GEMINI_API_KEY"
+gh secret set G2B_API_KEY -b "YOUR_G2B_API_KEY"
 
 # Secret 목록 확인
 gh secret list

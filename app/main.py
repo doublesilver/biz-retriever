@@ -1,7 +1,5 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from starlette.responses import FileResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -9,6 +7,13 @@ from slowapi.errors import RateLimitExceeded
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 import os
 import time
+import sys
+import asyncio
+
+# Windows에서 asyncpg 호환성을 위한 EventLoop 정책 변경
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 
 from app.core.config import settings
 from app.core.logging import logger
@@ -38,6 +43,9 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
         # 메트릭 엔드포인트 제외
         if path in ["/metrics", "/health"]:
             return await call_next(request)
+
+        # DEBUG: Request Start
+        logger.info(f"INCOMING REQUEST: {method} {path}")
 
         # 진행 중 요청 카운터 증가
         HTTP_REQUESTS_IN_PROGRESS.labels(method=method, endpoint=path).inc()
@@ -145,9 +153,19 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(PrometheusMiddleware)
 
 # CORS 설정 - 허용 도메인 구성
-cors_origins = list(settings.CORS_ORIGINS)
+cors_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "https://leeeunseok.tail32c3e2.ts.net", # Tailscale Funnel Public Domain
+]
+
 if settings.PRODUCTION_DOMAIN:
     cors_origins.append(settings.PRODUCTION_DOMAIN)
+
+# Add internal IP for local network access (optional, can be removed for maximum security)
+cors_origins.append("http://100.75.72.6:3001")
 
 app.add_middleware(
     CORSMiddleware,
@@ -167,12 +185,8 @@ app.add_middleware(
 # API Router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-# Static Files
-static_dir = os.path.join(os.path.dirname(__file__), "static")
-if not os.path.exists(static_dir):
-    os.makedirs(static_dir)
-
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
+# Note: Static files are served by nginx (frontend container)
+# No app.mount("/static", ...) needed for API-only service
 
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
@@ -214,8 +228,13 @@ async def shutdown():
 
 @app.get("/")
 async def read_root():
-    """메인 페이지"""
-    return FileResponse(os.path.join(static_dir, "index.html"))
+    """API 루트 - 서비스 정보 반환"""
+    return {
+        "service": "Biz-Pass API",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "health": "/health"
+    }
 
 @app.get("/health")
 @limiter.limit("60/minute")  # Rate limiting: 분당 60회

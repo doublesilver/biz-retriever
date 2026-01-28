@@ -5,7 +5,7 @@ from typing import List, Optional
 from fastapi_cache.decorator import cache
 
 from app.api import deps
-from app.schemas.bid import BidCreate, BidResponse, BidUpdate
+from app.schemas.bid import BidCreate, BidResponse, BidUpdate, BidListResponse
 from app.schemas.query import BidsQueryParams, FileUploadParams
 from app.services.bid_service import bid_service
 from app.services.file_service import file_service
@@ -16,6 +16,7 @@ from app.utils.db_utils import get_object_or_404
 from app.core.constants import ALLOWED_FILE_EXTENSIONS, MAX_FILE_SIZE_BYTES
 
 router = APIRouter()
+logger.info("CORE_MODULE_LOADED: bids.py with BidListResponse")
 
 # File upload constraints (moved to constants.py)
 ALLOWED_EXTENSIONS = ALLOWED_FILE_EXTENSIONS
@@ -99,7 +100,7 @@ async def update_bid(
     return updated_bid
 
 
-@router.get("/", response_model=List[BidResponse])
+@router.get("/", response_model=BidListResponse)
 @cache(expire=60)
 async def read_bids(
     skip: int = Query(default=0, ge=0, description="건너뛸 개수"),
@@ -120,13 +121,25 @@ async def read_bids(
     if keyword:
         keyword = keyword.replace("'", "").replace('"', "").replace(";", "").strip()
 
-    return await bid_service.get_bids(
+    bids = await bid_service.get_bids(
         db,
         skip=skip,
         limit=limit,
         keyword=keyword,
         agency=agency
     )
+    
+    # [FIX] Get total count for pagination
+    from sqlalchemy import func
+    total_result = await db.execute(select(func.count(BidAnnouncement.id)))
+    total = total_result.scalar()
+
+    return {
+        "items": bids,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
 
 
 @router.post("/upload", response_model=BidResponse, status_code=status.HTTP_201_CREATED)

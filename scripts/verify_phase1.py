@@ -25,6 +25,10 @@ async def test_crawler():
                 print(f"\n{i}. {announcement['title']}")
                 print(f"   기관: {announcement.get('agency', '미확인')}")
                 print(f"   매칭 키워드: {announcement.get('keywords_matched', [])}")
+                print(f"   첨부파일 추출 여부: {'✅ 성공' if announcement.get('attachment_content') else '❌ 실패/없음'}")
+                if announcement.get('attachment_content'):
+                    cleaned_text = announcement['attachment_content'][:50].replace('\n', ' ')
+                    print(f"   추출 텍스트 (앞 50자): {cleaned_text}...")
                 print(f"   중요도: {g2b_crawler.calculate_importance_score(announcement)}/3")
         else:
             print("⚠️  필터링 조건에 맞는 공고가 없습니다.")

@@ -5,15 +5,15 @@ services:
     image: postgres:15-alpine
     restart: always
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=bizmatch
+      - POSTGRES_USER=${POSTGRES_USER:-admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_DB=${POSTGRES_DB:-biz_retriever}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -37,7 +37,9 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
+  # Backend API (nginx config references 'api')
+  api:
+    user: root
     build: .
     ports:
       - "8000:8000"
@@ -56,8 +58,9 @@ services:
       - ./logs:/app/logs
 
   celery_worker:
+    user: root
     build: .
-    command: celery -A app.worker.celery_app worker --loglevel=info
+    command: celery -A app.worker.celery_app worker --loglevel=info -Q main-queue
     env_file:
       - .env
     environment:
@@ -73,6 +76,7 @@ services:
       - ./logs:/app/logs
 
   celery_beat:
+    user: root
     build: .
     command: celery -A app.worker.celery_app beat --loglevel=info
     env_file:
@@ -88,6 +92,17 @@ services:
     volumes:
       - .:/app
       - ./logs:/app/logs
+
+  # Frontend (Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:80"
+    depends_on:
+      - api
+    restart: always
 
 volumes:
   postgres_data:
