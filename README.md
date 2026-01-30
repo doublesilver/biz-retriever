@@ -78,7 +78,7 @@ mindmap
 - ✅ **중요도 자동 채점**: ⭐⭐⭐ (1~3점) 알고리즘
 - ✅ **Slack 실시간 알림**: 중요 공고(★★ 이상) 즉시 전송
 - ✅ **모닝 브리핑**: 매일 08:30, 밤사이 수집한 공고 요약
-- ✅ **자동 스케줄**: Celery Beat으로 하루 3회 (08:00, 12:00, 18:00)
+- ✅ **자동 스케줄**: Taskiq Scheduler로 하루 3회 (08:00, 12:00, 18:00)
 
 ### 📊 Phase 2: 대시보드 & 관리
 - ✅ **웹 대시보드**: 실시간 공고 목록 + 통계
@@ -113,25 +113,27 @@ mindmap
 - ✅ **모니터링 스택**: Prometheus + Grafana + 11개 Alert 규칙 + Slack 연동
 - ✅ **HTTPS 강화**: Let's Encrypt SSL 인증서 + 6가지 보안 헤더
 - ✅ **DDoS 방어**: Nginx 3-Layer 방어 (Rate Limiting, 타임아웃, Fail2Ban)
+- ✅ **Celery → Taskiq 전환**: 메모리 70% 절감 (400MB → 120MB), Async-native 지원
+- ✅ **JWT Refresh Token**: Access Token 15분 + Refresh Token 30일 (Token Rotation)
 
 ---
 
 ## 기술 스택
 
 ### Backend
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat&logo=fastapi&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat&logo=fastapi&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-4169E1?style=flat&logo=postgresql&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-7+-DC382D?style=flat&logo=redis&logoColor=white)
-![Celery](https://img.shields.io/badge/Celery-5.3+-37814A?style=flat&logo=celery&logoColor=white)
+![Valkey](https://img.shields.io/badge/Valkey-8-DC382D?style=flat&logo=redis&logoColor=white)
+![Taskiq](https://img.shields.io/badge/Taskiq-0.11+-00C7B7?style=flat)
 
 - **Framework**: FastAPI (Async/Await 패턴)
 - **ORM**: SQLAlchemy 2.0 (Async)
 - **Migration**: Alembic
-- **Task Queue**: Celery + Redis
-- **Cache**: Redis + FastAPI-Cache2
-- **Authentication**: JWT (python-jose)
-- **Validation**: Pydantic 2.0
+- **Task Queue**: Taskiq + Valkey (70% 메모리 절감)
+- **Cache**: Valkey (Redis fork)
+- **Authentication**: JWT + Refresh Token (python-jose)
+- **Validation**: Pydantic 2.10 + Instructor AI
 
 ### AI & APIs
 ![Gemini](https://img.shields.io/badge/Gemini-2.5_Flash-4285F4?style=flat&logo=google&logoColor=white)
@@ -176,13 +178,13 @@ graph TB
     end
 
     subgraph "Task Scheduler"
-        I[Celery Beat<br/>Scheduler]
-        J[Celery Worker<br/>Async Tasks]
+        I[Taskiq Scheduler<br/>Cron Jobs]
+        J[Taskiq Worker<br/>Async Tasks]
     end
 
     subgraph "Data Layer"
         K[(PostgreSQL<br/>Main DB)]
-        L[(Redis<br/>Cache & Queue)]
+        L[(Valkey 8<br/>Cache & Queue)]
     end
 
     subgraph "External APIs"
@@ -221,8 +223,8 @@ graph TB
 
 ```mermaid
 sequenceDiagram
-    participant Scheduler as Celery Beat
-    participant Worker as Celery Worker
+    participant Scheduler as Taskiq Scheduler
+    participant Worker as Taskiq Worker
     participant G2B as G2B API
     participant DB as PostgreSQL
     participant AI as Gemini AI
@@ -443,9 +445,9 @@ async def test_analyze_bid_with_gemini(self):
 ## 로컬 실행 방법
 
 ### 요구 사항
-- Python 3.10+
+- Python 3.11+
 - PostgreSQL 14+
-- Redis 7+
+- Valkey 8+ (또는 Redis 5.0.8+)
 - G2B API 키 ([공공데이터포털](https://www.data.go.kr) 신청)
 - Google Gemini API 키 ([Google AI Studio](https://aistudio.google.com/app/apikey) 발급)
 
@@ -473,11 +475,11 @@ alembic upgrade head
 # 6. 개발 서버 실행
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-# 7. Celery Worker 실행 (별도 터미널)
-celery -A app.tasks.celery_app worker --loglevel=info
+# 7. Taskiq Worker 실행 (별도 터미널)
+taskiq worker app.worker.taskiq_app:broker --fs-discover
 
-# 8. Celery Beat 실행 (별도 터미널)
-celery -A app.tasks.celery_app beat --loglevel=info
+# 8. Taskiq Scheduler 실행 (별도 터미널)
+taskiq scheduler app.worker.taskiq_app:scheduler
 ```
 
 #### 🚀 Live Demo & Access
