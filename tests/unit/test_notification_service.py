@@ -12,9 +12,7 @@ TODO: Rewrite tests to match the current implementation:
 
 import pytest
 
-pytestmark = pytest.mark.skip(
-    reason="NotificationService API has changed, tests need to be rewritten"
-)
+pytestmark = pytest.mark.skip(reason="NotificationService API has changed, tests need to be rewritten")
 
 
 class TestNotificationService:
