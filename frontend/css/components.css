@@ -1,47 +1,55 @@
 /* Components */
 
-/* Buttons */
+/* Buttons - 정부24/홈택스 스타일 */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: var(--spacing-sm);
-    padding: 0.625rem 1.25rem;
-    font-weight: 500;
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
+    padding: 0.875rem 1.75rem;  /* 더 큰 버튼 */
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-base);
+    border-radius: var(--radius-sm);  /* 덜 둥근 모서리 */
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
     cursor: pointer;
-    border: none;
+    border: 1px solid transparent;
     outline: none;
+    letter-spacing: -0.02em;
 }
 
 .btn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--card-shadow-lg);
+    /* transform 효과 없음 - 정부 사이트 스타일 */
 }
 
 .btn:active {
-    transform: translateY(0);
+    opacity: 0.9;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .btn-primary {
     background: var(--primary);
     color: white;
+    border-color: var(--primary);
 }
 
 .btn-primary:hover {
     background: var(--primary-hover);
+    border-color: var(--primary-hover);
 }
 
 .btn-secondary {
-    background: transparent;
+    background: white;
     color: var(--text-primary);
-    border: 1px solid var(--border-color);
+    border: 1.5px solid var(--gray-300);  /* 더 명확한 테두리 */
 }
 
 .btn-secondary:hover {
-    background: var(--bg-secondary);
-    border-color: var(--primary);
+    background: var(--gray-50);
+    border-color: var(--gray-400);
 }
 
 .btn-block {
@@ -79,19 +87,20 @@
 
 .form-group input {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    padding: 0.875rem 1rem;  /* 더 큰 padding */
+    border: 1.5px solid var(--gray-300);  /* 더 명확한 테두리 */
+    border-radius: var(--radius-sm);
     background: var(--bg-primary);
     color: var(--text-primary);
-    transition: all var(--transition-fast);
+    transition: border-color var(--transition-fast);
     font-size: var(--font-size-base);
+    line-height: 1.5;
 }
 
 .form-group input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 2px rgba(0, 100, 200, 0.1);  /* 정부24 블루 */
 }
 
 .form-group input::placeholder {
@@ -131,18 +140,19 @@
     color: var(--text-secondary);
 }
 
-/* Card */
+/* Card - 정부 사이트 스타일 */
 .card {
     background: var(--bg-primary);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--card-shadow);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);  /* 명확한 테두리 */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);  /* 은은한 그림자 */
     padding: var(--spacing-xl);
-    transition: all var(--transition-base);
+    transition: box-shadow var(--transition-base);
 }
 
 .card:hover {
-    box-shadow: var(--card-shadow-lg);
-    transform: translateY(-2px);
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+    /* transform 효과 없음 */
 }
 
 /* Modal */

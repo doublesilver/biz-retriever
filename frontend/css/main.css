@@ -9,7 +9,7 @@
 
 .login-info {
     flex: 1.2;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);  /* 정부24 블루 그라데이션 */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -221,16 +221,16 @@
 }
 
 .navbar {
-    background: var(--bg-primary);
-    border-bottom: 1px solid var(--border-color);
-    padding: var(--spacing-md) var(--spacing-xl);
+    background: var(--primary);  /* 정부24 파란색 헤더 */
+    border-bottom: 2px solid var(--primary-dark);
+    padding: 1rem var(--spacing-xl);
     display: flex;
     align-items: center;
     justify-content: space-between;
     position: sticky;
     top: 0;
     z-index: var(--z-sticky);
-    box-shadow: var(--card-shadow);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);  /* 더 명확한 그림자 */
 }
 
 .navbar-brand {
@@ -238,7 +238,8 @@
     align-items: center;
     gap: var(--spacing-sm);
     font-size: var(--font-size-xl);
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
+    color: white;  /* 정부 사이트는 흰색 텍스트 */
 }
 
 .navbar-actions {
@@ -247,7 +248,7 @@
     gap: var(--spacing-md);
 }
 
-/* Stats Widgets */
+/* Stats Widgets - 정부 사이트 스타일 */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -257,16 +258,17 @@
 
 .stat-card {
     background: var(--bg-primary);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-xl);
-    box-shadow: var(--card-shadow);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-xl) 1.5rem;  /* 더 넓은 padding */
+    border: 1px solid var(--gray-200);
     border-left: 4px solid var(--primary);
-    transition: all var(--transition-base);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: box-shadow var(--transition-base);
 }
 
 .stat-card:hover {
-    box-shadow: var(--card-shadow-lg);
-    transform: translateY(-2px);
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+    /* transform 효과 제거 */
 }
 
 .stat-card.success {
