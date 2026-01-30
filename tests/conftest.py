@@ -22,6 +22,7 @@ from app.core.security import create_access_token, get_password_hash
 from app.db import session as db_session_module
 from app.db.base import Base
 from app.db.models import BidAnnouncement, User
+from app.db.repositories.bid_repository import BidRepository
 from app.main import app
 
 # Test Database URL (In-memory SQLite for fast tests)
@@ -85,6 +86,12 @@ async def test_db() -> AsyncGenerator[AsyncSession, None]:
         await conn.run_sync(Base.metadata.drop_all)
 
     await engine.dispose()
+
+
+@pytest.fixture
+async def bid_repository(test_db: AsyncSession) -> BidRepository:
+    """테스트용 BidRepository 인스턴스"""
+    return BidRepository(test_db)
 
 
 @pytest.fixture
