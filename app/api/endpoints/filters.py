@@ -25,20 +25,27 @@ class KeywordRequest(BaseModel):
 
 @router.post("/keywords")
 async def add_exclude_keyword(
-    request: KeywordRequest, db: AsyncSession = Depends(deps.get_db), current_user: User = Depends(get_current_user)
+    request: KeywordRequest,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     제외 키워드 추가 (DB 저장 + 캐시 갱신)
     """
     try:
         keyword = await keyword_service.create_keyword(db, request.keyword)
-        return {"message": f"'{keyword.word}' 제외 키워드에 추가되었습니다.", "id": keyword.id}
+        return {
+            "message": f"'{keyword.word}' 제외 키워드에 추가되었습니다.",
+            "id": keyword.id,
+        }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/keywords")
-async def get_exclude_keywords(active_only: bool = True, db: AsyncSession = Depends(deps.get_db)):
+async def get_exclude_keywords(
+    active_only: bool = True, db: AsyncSession = Depends(deps.get_db)
+):
     """
     제외 키워드 목록 조회
     """
@@ -63,7 +70,9 @@ async def remove_exclude_keyword(
     """
     success = await keyword_service.delete_keyword(db, keyword)
     if not success:
-        raise HTTPException(status_code=404, detail=f"'{keyword}'는 존재하지 않는 키워드입니다.")
+        raise HTTPException(
+            status_code=404, detail=f"'{keyword}'는 존재하지 않는 키워드입니다."
+        )
 
     logger.info(f"제외 키워드 삭제: '{keyword}' by {current_user.email}")
     return {"message": f"'{keyword}' 제외 키워드에서 삭제되었습니다."}

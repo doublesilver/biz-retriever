@@ -22,7 +22,8 @@ router = APIRouter()
 
 @router.get("/summary")
 async def get_analytics_summary(
-    session: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Dict:
     """
     대시보드 통계 요약
@@ -35,7 +36,7 @@ async def get_analytics_summary(
     cached_data = await get_cached(cache_key)
     if cached_data:
         return cached_data
-    
+
     # 전체 공고 수
     total_result = await session.execute(select(func.count(BidAnnouncement.id)))
     total_bids = total_result.scalar()
@@ -43,19 +44,25 @@ async def get_analytics_summary(
     # 이번 주 공고 수
     week_ago = datetime.utcnow() - timedelta(days=7)
     week_result = await session.execute(
-        select(func.count(BidAnnouncement.id)).where(BidAnnouncement.created_at >= week_ago)
+        select(func.count(BidAnnouncement.id)).where(
+            BidAnnouncement.created_at >= week_ago
+        )
     )
     this_week = week_result.scalar()
 
     # 높은 중요도 (⭐⭐⭐)
     high_result = await session.execute(
-        select(func.count(BidAnnouncement.id)).where(BidAnnouncement.importance_score == 3)
+        select(func.count(BidAnnouncement.id)).where(
+            BidAnnouncement.importance_score == 3
+        )
     )
     high_importance = high_result.scalar()
 
     # 평균 추정가
     avg_result = await session.execute(
-        select(func.avg(BidAnnouncement.estimated_price)).where(BidAnnouncement.estimated_price.isnot(None))
+        select(func.avg(BidAnnouncement.estimated_price)).where(
+            BidAnnouncement.estimated_price.isnot(None)
+        )
     )
     average_price = avg_result.scalar() or 0
 
@@ -67,11 +74,15 @@ async def get_analytics_summary(
         .order_by(func.count(BidAnnouncement.id).desc())
         .limit(5)
     )
-    top_agencies = [{"name": row[0], "count": row[1]} for row in top_agencies_result.all()]
+    top_agencies = [
+        {"name": row[0], "count": row[1]} for row in top_agencies_result.all()
+    ]
 
     # 출처별 분포
     source_result = await session.execute(
-        select(BidAnnouncement.source, func.count(BidAnnouncement.id).label("count")).group_by(BidAnnouncement.source)
+        select(
+            BidAnnouncement.source, func.count(BidAnnouncement.id).label("count")
+        ).group_by(BidAnnouncement.source)
     )
     by_source = {row[0]: row[1] for row in source_result.all()}
 
@@ -84,9 +95,11 @@ async def get_analytics_summary(
         "average_price": int(average_price),
         "top_agencies": top_agencies,
         "by_source": by_source,
-        "trend": {"week_growth": round((this_week / max(total_bids - this_week, 1)) * 100, 1)},
+        "trend": {
+            "week_growth": round((this_week / max(total_bids - this_week, 1)) * 100, 1)
+        },
     }
-    
+
     # Redis에 캐싱 (5분 TTL)
     await set_cached(cache_key, result, expire=300)
     return result
@@ -111,7 +124,7 @@ async def get_trends(
     cached_data = await get_cached(cache_key)
     if cached_data:
         return cached_data
-    
+
     start_date = datetime.utcnow() - timedelta(days=days)
 
     # 일별 집계
@@ -122,7 +135,9 @@ async def get_trends(
             func.count(BidAnnouncement.id).label("count"),
         )
         .where(BidAnnouncement.created_at >= start_date)
-        .group_by(func.date(BidAnnouncement.created_at), BidAnnouncement.importance_score)
+        .group_by(
+            func.date(BidAnnouncement.created_at), BidAnnouncement.importance_score
+        )
         .order_by(func.date(BidAnnouncement.created_at))
     )
 
@@ -131,7 +146,13 @@ async def get_trends(
     for row in result.all():
         date_str = str(row[0])
         if date_str not in trends:
-            trends[date_str] = {"date": date_str, "total": 0, "high": 0, "medium": 0, "low": 0}
+            trends[date_str] = {
+                "date": date_str,
+                "total": 0,
+                "high": 0,
+                "medium": 0,
+                "low": 0,
+            }
 
         score = row[1]
         count = row[2]
@@ -145,7 +166,7 @@ async def get_trends(
             trends[date_str]["low"] += count
 
     result = list(trends.values())
-    
+
     # Redis에 캐싱 (10분 TTL)
     await set_cached(cache_key, result, expire=600)
     return result
@@ -153,7 +174,8 @@ async def get_trends(
 
 @router.get("/deadline-alerts")
 async def get_deadline_alerts(
-    session: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> List[Dict]:
     """
     마감 임박 공고 목록
@@ -166,7 +188,7 @@ async def get_deadline_alerts(
     cached_data = await get_cached(cache_key)
     if cached_data:
         return cached_data
-    
+
     now = datetime.utcnow()
     tomorrow = now + timedelta(hours=24)
 
@@ -197,7 +219,7 @@ async def get_deadline_alerts(
         }
         for bid in urgent_bids
     ]
-    
+
     # Redis에 캐싱 (3분 TTL)
     await set_cached(cache_key, alerts, expire=180)
     return alerts

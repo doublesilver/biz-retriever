@@ -32,7 +32,9 @@ class NotificationService:
             return False
 
     @classmethod
-    async def notify_bid_match(cls, user: User, bid: BidAnnouncement, matched_keywords: List[str]):
+    async def notify_bid_match(
+        cls, user: User, bid: BidAnnouncement, matched_keywords: List[str]
+    ):
         """
         Notify user about a matched bid.
         """
@@ -61,8 +63,16 @@ class NotificationService:
                 bid_data = {
                     "title": bid.title,
                     "agency": bid.agency,
-                    "deadline": bid.deadline.strftime("%Y-%m-%d %H:%M") if bid.deadline else "미정",
-                    "estimated_price": f"{bid.estimated_price:,.0f}원" if bid.estimated_price else "미정",
+                    "deadline": (
+                        bid.deadline.strftime("%Y-%m-%d %H:%M")
+                        if bid.deadline
+                        else "미정"
+                    ),
+                    "estimated_price": (
+                        f"{bid.estimated_price:,.0f}원"
+                        if bid.estimated_price
+                        else "미정"
+                    ),
                     "url": bid.url,
                     "ai_summary": bid.ai_summary,
                     "keywords_matched": matched_keywords,
@@ -77,9 +87,15 @@ class NotificationService:
                 )
 
                 if success:
-                    app_logger.info(f"Email notification sent to {user.email} for bid {bid.id}")
+                    app_logger.info(
+                        f"Email notification sent to {user.email} for bid {bid.id}"
+                    )
                 else:
-                    app_logger.warning(f"Failed to send email notification to {user.email}")
+                    app_logger.warning(
+                        f"Failed to send email notification to {user.email}"
+                    )
 
             except Exception as e:
-                app_logger.error(f"Error sending email notification: {str(e)}", exc_info=True)
+                app_logger.error(
+                    f"Error sending email notification: {str(e)}", exc_info=True
+                )

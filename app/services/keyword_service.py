@@ -14,13 +14,17 @@ class KeywordService:
         """
         Get all active exclude keywords. Cached.
         """
-        result = await session.execute(select(ExcludeKeyword.word).where(ExcludeKeyword.is_active == True))
+        result = await session.execute(
+            select(ExcludeKeyword.word).where(ExcludeKeyword.is_active == True)
+        )
         return result.scalars().all()
 
     async def create_keyword(self, session: AsyncSession, word: str) -> ExcludeKeyword:
         """Add a new keyword and clear cache."""
         word = word.strip()
-        existing = await session.execute(select(ExcludeKeyword).where(ExcludeKeyword.word == word))
+        existing = await session.execute(
+            select(ExcludeKeyword).where(ExcludeKeyword.word == word)
+        )
         if existing.scalar_one_or_none():
             raise ValueError(f"Keyword '{word}' already exists.")
 
@@ -38,13 +42,17 @@ class KeywordService:
 
     async def delete_keyword(self, session: AsyncSession, word: str) -> bool:
         """Delete a keyword."""
-        result = await session.execute(delete(ExcludeKeyword).where(ExcludeKeyword.word == word))
+        result = await session.execute(
+            delete(ExcludeKeyword).where(ExcludeKeyword.word == word)
+        )
         await session.commit()
         return result.rowcount > 0
 
     async def get_all_keywords(self, session: AsyncSession) -> List[ExcludeKeyword]:
         """Get all keywords (active and inactive) for management UI."""
-        result = await session.execute(select(ExcludeKeyword).order_by(ExcludeKeyword.created_at.desc()))
+        result = await session.execute(
+            select(ExcludeKeyword).order_by(ExcludeKeyword.created_at.desc())
+        )
         return result.scalars().all()
 
 

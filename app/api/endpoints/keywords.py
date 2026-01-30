@@ -21,7 +21,10 @@ async def create_keyword(
     내 키워드 추가
     """
     # 중복 체크
-    stmt = select(UserKeyword).where(UserKeyword.user_id == current_user.id, UserKeyword.keyword == keyword_in.keyword)
+    stmt = select(UserKeyword).where(
+        UserKeyword.user_id == current_user.id,
+        UserKeyword.keyword == keyword_in.keyword,
+    )
     result = await db.execute(stmt)
     if result.scalars().first():
         raise HTTPException(status_code=400, detail="Already exists")
@@ -39,7 +42,10 @@ async def create_keyword(
 
 
 @router.get("/", response_model=List[UserKeywordResponse])
-async def read_keywords(db: AsyncSession = Depends(deps.get_db), current_user: User = Depends(deps.get_current_user)):
+async def read_keywords(
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
     """
     내 키워드 목록 조회
     """
@@ -50,12 +56,16 @@ async def read_keywords(db: AsyncSession = Depends(deps.get_db), current_user: U
 
 @router.delete("/{keyword_id}")
 async def delete_keyword(
-    keyword_id: int, db: AsyncSession = Depends(deps.get_db), current_user: User = Depends(deps.get_current_user)
+    keyword_id: int,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
 ):
     """
     키워드 삭제
     """
-    stmt = select(UserKeyword).where(UserKeyword.id == keyword_id, UserKeyword.user_id == current_user.id)
+    stmt = select(UserKeyword).where(
+        UserKeyword.id == keyword_id, UserKeyword.user_id == current_user.id
+    )
     result = await db.execute(stmt)
     keyword = result.scalars().first()
 

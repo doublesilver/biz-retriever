@@ -27,6 +27,7 @@ scheduler = TaskiqScheduler(
 # Startup/Shutdown Hooks
 # ============================================
 
+
 async def startup():
     """Taskiq 시작 시 초기화"""
     await broker.startup()

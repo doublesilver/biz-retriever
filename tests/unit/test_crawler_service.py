@@ -40,7 +40,11 @@ def test_should_notify_with_valid_keywords(crawler, sample_announcement_data):
 
 def test_should_notify_with_exclude_keywords(crawler):
     """알림 대상 판단 - 제외 키워드"""
-    announcement = {"title": "폐기물 처리 용역", "content": "폐기물 수거 및 처리", "keywords_matched": []}
+    announcement = {
+        "title": "폐기물 처리 용역",
+        "content": "폐기물 수거 및 처리",
+        "keywords_matched": [],
+    }
     result = crawler._should_notify(announcement)
     assert result == False
 

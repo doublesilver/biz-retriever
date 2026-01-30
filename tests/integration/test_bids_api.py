@@ -54,7 +54,9 @@ class TestBidsAPI:
         assert len(data) == 5
 
     @pytest.mark.asyncio
-    async def test_get_bids_with_pagination(self, async_client: AsyncClient, multiple_bids):
+    async def test_get_bids_with_pagination(
+        self, async_client: AsyncClient, multiple_bids
+    ):
         """페이지네이션"""
         response = await async_client.get("/api/v1/bids/?skip=2&limit=2")
 
@@ -129,16 +131,22 @@ class TestBidsAPI:
         files = {"file": ("test.pdf", b"fake pdf content", "application/pdf")}
         data = {"title": "테스트"}
 
-        response = await async_client.post("/api/v1/bids/upload", files=files, params=data)
+        response = await async_client.post(
+            "/api/v1/bids/upload", files=files, params=data
+        )
 
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_upload_bid_unsupported_format(self, authenticated_client: AsyncClient):
+    async def test_upload_bid_unsupported_format(
+        self, authenticated_client: AsyncClient
+    ):
         """지원하지 않는 형식 - 400"""
         files = {"file": ("test.txt", b"plain text", "text/plain")}
         data = {"title": "테스트"}
 
-        response = await authenticated_client.post("/api/v1/bids/upload", files=files, params=data)
+        response = await authenticated_client.post(
+            "/api/v1/bids/upload", files=files, params=data
+        )
 
         assert response.status_code == 400

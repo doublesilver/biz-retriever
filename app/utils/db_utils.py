@@ -15,7 +15,10 @@ T = TypeVar("T", bound=Base)
 
 
 async def get_object_or_404(
-    db: AsyncSession, model: Type[T], object_id: int, error_message: str = "Object not found"
+    db: AsyncSession,
+    model: Type[T],
+    object_id: int,
+    error_message: str = "Object not found",
 ) -> T:
     """
     Get object by ID or raise 404 error
@@ -41,7 +44,9 @@ async def get_object_or_404(
     return obj
 
 
-async def get_or_create(db: AsyncSession, model: Type[T], defaults: dict = None, **kwargs) -> Tuple[T, bool]:
+async def get_or_create(
+    db: AsyncSession, model: Type[T], defaults: dict = None, **kwargs
+) -> Tuple[T, bool]:
     """
     Get existing object or create new one
 
@@ -82,7 +87,9 @@ async def get_or_create(db: AsyncSession, model: Type[T], defaults: dict = None,
     return obj, True
 
 
-async def bulk_create(db: AsyncSession, model: Type[T], data_list: list[dict]) -> list[T]:
+async def bulk_create(
+    db: AsyncSession, model: Type[T], data_list: list[dict]
+) -> list[T]:
     """
     Bulk create objects
 

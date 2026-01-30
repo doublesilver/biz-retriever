@@ -30,9 +30,13 @@ class ProfileService:
             except Exception as e:
                 logger.error(f"Gemini 초기화 실패: {e}")
         else:
-            logger.warning("GEMINI_API_KEY가 설정되지 않아 OCR 기능을 사용할 수 없습니다.")
+            logger.warning(
+                "GEMINI_API_KEY가 설정되지 않아 OCR 기능을 사용할 수 없습니다."
+            )
 
-    async def get_profile(self, session: AsyncSession, user_id: int) -> Optional[UserProfile]:
+    async def get_profile(
+        self, session: AsyncSession, user_id: int
+    ) -> Optional[UserProfile]:
         """사용자 프로필 조회"""
         stmt = select(UserProfile).where(UserProfile.user_id == user_id)
         result = await session.execute(stmt)
@@ -56,7 +60,9 @@ class ProfileService:
         await session.refresh(profile)
         return profile
 
-    async def parse_business_certificate(self, file_content: bytes, mime_type: str = "image/jpeg") -> Dict[str, Any]:
+    async def parse_business_certificate(
+        self, file_content: bytes, mime_type: str = "image/jpeg"
+    ) -> Dict[str, Any]:
         """
         Gemini AI를 사용하여 사업자등록증 이미지/PDF에서 정보 추출
         """
@@ -84,7 +90,10 @@ class ProfileService:
             response = await asyncio.to_thread(
                 self.client.models.generate_content,
                 model="gemini-2.5-flash",
-                contents=[prompt, {"inline_data": {"mime_type": mime_type, "data": image_data}}],
+                contents=[
+                    prompt,
+                    {"inline_data": {"mime_type": mime_type, "data": image_data}},
+                ],
             )
 
             # JSON 파싱
@@ -127,7 +136,9 @@ class ProfileService:
                 return code
         return "99"  # 기타/미분류
 
-    async def get_or_create_profile(self, session: AsyncSession, user_id: int) -> UserProfile:
+    async def get_or_create_profile(
+        self, session: AsyncSession, user_id: int
+    ) -> UserProfile:
         """사용자 프로필 조회 또는 생성"""
         profile = await self.get_profile(session, user_id)
         if not profile:
@@ -139,7 +150,9 @@ class ProfileService:
 
     # License Management
 
-    async def add_license(self, session: AsyncSession, profile_id: int, license_data: Dict[str, Any]) -> UserLicense:
+    async def add_license(
+        self, session: AsyncSession, profile_id: int, license_data: Dict[str, Any]
+    ) -> UserLicense:
         """사용자 면허 추가"""
         license = UserLicense(profile_id=profile_id, **license_data)
         session.add(license)
@@ -147,9 +160,13 @@ class ProfileService:
         await session.refresh(license)
         return license
 
-    async def delete_license(self, session: AsyncSession, profile_id: int, license_id: int) -> bool:
+    async def delete_license(
+        self, session: AsyncSession, profile_id: int, license_id: int
+    ) -> bool:
         """사용자 면허 삭제"""
-        stmt = select(UserLicense).where(UserLicense.id == license_id, UserLicense.profile_id == profile_id)
+        stmt = select(UserLicense).where(
+            UserLicense.id == license_id, UserLicense.profile_id == profile_id
+        )
         result = await session.execute(stmt)
         license = result.scalar_one_or_none()
 
@@ -171,10 +188,13 @@ class ProfileService:
         await session.refresh(performance)
         return performance
 
-    async def delete_performance(self, session: AsyncSession, profile_id: int, performance_id: int) -> bool:
+    async def delete_performance(
+        self, session: AsyncSession, profile_id: int, performance_id: int
+    ) -> bool:
         """사용자 실적 삭제"""
         stmt = select(UserPerformance).where(
-            UserPerformance.id == performance_id, UserPerformance.profile_id == profile_id
+            UserPerformance.id == performance_id,
+            UserPerformance.profile_id == profile_id,
         )
         result = await session.execute(stmt)
         performance = result.scalar_one_or_none()

@@ -34,7 +34,9 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         await self.session.refresh(db_obj)
         return db_obj
 
-    async def update(self, db_obj: ModelType, obj_in: Union[UpdateSchemaType, Dict[str, Any]]) -> ModelType:
+    async def update(
+        self, db_obj: ModelType, obj_in: Union[UpdateSchemaType, Dict[str, Any]]
+    ) -> ModelType:
         obj_data = db_obj.__dict__
         if isinstance(obj_in, dict):
             update_data = obj_in

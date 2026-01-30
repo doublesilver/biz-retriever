@@ -18,13 +18,18 @@ class BidRepository(BaseRepository[BidAnnouncement, BidCreate, BidUpdate]):
         return result.scalars().first()
 
     async def get_multi_with_filters(
-        self, skip: int = 0, limit: int = 100, keyword: Optional[str] = None, agency: Optional[str] = None
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        keyword: Optional[str] = None,
+        agency: Optional[str] = None,
     ) -> List[BidAnnouncement]:
         query = select(BidAnnouncement)
 
         if keyword:
             query = query.where(
-                (BidAnnouncement.title.ilike(f"%{keyword}%")) | (BidAnnouncement.content.ilike(f"%{keyword}%"))
+                (BidAnnouncement.title.ilike(f"%{keyword}%"))
+                | (BidAnnouncement.content.ilike(f"%{keyword}%"))
             )
 
         if agency:
@@ -61,7 +66,8 @@ class BidRepository(BaseRepository[BidAnnouncement, BidCreate, BidUpdate]):
         # 2. Performance Filter (Bid req <= User cap)
         # 0 or None means no limit
         query = query.where(
-            (BidAnnouncement.min_performance <= user_performance_amount) | (BidAnnouncement.min_performance.is_(None))
+            (BidAnnouncement.min_performance <= user_performance_amount)
+            | (BidAnnouncement.min_performance.is_(None))
         )
 
         # 3. License Filter (Postgres JSON containment)
@@ -74,7 +80,9 @@ class BidRepository(BaseRepository[BidAnnouncement, BidCreate, BidUpdate]):
         # Optimization: Fetch candidates first, then filter licenses in Python
         # This avoids complex JSON SQL dialect issues for now.
 
-        result = await self.session.execute(query.order_by(BidAnnouncement.id.desc()).offset(skip).limit(limit))
+        result = await self.session.execute(
+            query.order_by(BidAnnouncement.id.desc()).offset(skip).limit(limit)
+        )
         candidates = result.scalars().all()
 
         if not user_licenses:
@@ -93,7 +101,9 @@ class BidRepository(BaseRepository[BidAnnouncement, BidCreate, BidUpdate]):
 
         return final_matches
 
-    async def update_processing_status(self, bid_id: int, processed: bool) -> Optional[BidAnnouncement]:
+    async def update_processing_status(
+        self, bid_id: int, processed: bool
+    ) -> Optional[BidAnnouncement]:
         bid = await self.get(bid_id)
         if bid:
             bid.processed = processed

@@ -65,13 +65,18 @@ class MLService:
 
         # 1. Fetch Data
         query = select(BidResult).where(
-            BidResult.winning_price.isnot(None), BidResult.estimated_price.isnot(None), BidResult.estimated_price > 0
+            BidResult.winning_price.isnot(None),
+            BidResult.estimated_price.isnot(None),
+            BidResult.estimated_price > 0,
         )
         result = await db.execute(query)
         bid_results = result.scalars().all()
 
         if not bid_results or len(bid_results) < ML_MIN_TRAINING_SAMPLES:
-            raise InsufficientDataError(required=ML_MIN_TRAINING_SAMPLES, actual=len(bid_results) if bid_results else 0)
+            raise InsufficientDataError(
+                required=ML_MIN_TRAINING_SAMPLES,
+                actual=len(bid_results) if bid_results else 0,
+            )
 
         # 2. Prepare Feature DataFrame
         data = []
@@ -79,7 +84,9 @@ class MLService:
             data.append(
                 {
                     "estimated_price": bid.estimated_price,
-                    "base_price": bid.base_price if bid.base_price else bid.estimated_price,
+                    "base_price": (
+                        bid.base_price if bid.base_price else bid.estimated_price
+                    ),
                     "winning_price": bid.winning_price,
                     "category_code": hash(bid.category) if bid.category else 0,
                 }
@@ -96,9 +103,13 @@ class MLService:
         from sklearn.metrics import mean_absolute_error, r2_score
         from sklearn.model_selection import train_test_split
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=ML_TEST_SIZE, random_state=ML_RANDOM_STATE)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=ML_TEST_SIZE, random_state=ML_RANDOM_STATE
+        )
 
-        model = RandomForestRegressor(n_estimators=ML_N_ESTIMATORS, random_state=ML_RANDOM_STATE)
+        model = RandomForestRegressor(
+            n_estimators=ML_N_ESTIMATORS, random_state=ML_RANDOM_STATE
+        )
         model.fit(X_train, y_train)
 
         # 4. Evaluate
@@ -116,7 +127,10 @@ class MLService:
         return {"status": "success", "samples": len(df), "mae": mae, "r2": r2}
 
     def predict_price(
-        self, estimated_price: float, base_price: Optional[float] = None, category: Optional[str] = None
+        self,
+        estimated_price: float,
+        base_price: Optional[float] = None,
+        category: Optional[str] = None,
     ) -> Dict[str, float]:
         """Predict winning price for a bid"""
         # Try to load model if not loaded
@@ -134,7 +148,13 @@ class MLService:
 
         # Create input DataFrame
         X_new = pd.DataFrame(
-            [{"estimated_price": estimated_price, "base_price": base_price, "category_code": category_code}]
+            [
+                {
+                    "estimated_price": estimated_price,
+                    "base_price": base_price,
+                    "category_code": category_code,
+                }
+            ]
         )
 
         prediction = self.model.predict(X_new)[0]

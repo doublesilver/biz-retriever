@@ -31,10 +31,10 @@ async def get_redis() -> aioredis.Redis:
 async def get_cached(key: str) -> Optional[Any]:
     """
     Redis에서 캐시된 데이터 조회
-    
+
     Args:
         key: 캐시 키
-    
+
     Returns:
         캐시된 데이터 (없으면 None)
     """
@@ -54,12 +54,12 @@ async def get_cached(key: str) -> Optional[Any]:
 async def set_cached(key: str, value: Any, expire: int = 300) -> bool:
     """
     Redis에 데이터 캐싱
-    
+
     Args:
         key: 캐시 키
         value: 저장할 데이터 (JSON 직렬화 가능해야 함)
         expire: TTL (초 단위, 기본 5분)
-    
+
     Returns:
         성공 여부
     """
@@ -76,10 +76,10 @@ async def set_cached(key: str, value: Any, expire: int = 300) -> bool:
 async def delete_cached(key: str) -> bool:
     """
     Redis에서 캐시 삭제
-    
+
     Args:
         key: 캐시 키
-    
+
     Returns:
         성공 여부
     """
@@ -96,10 +96,10 @@ async def delete_cached(key: str) -> bool:
 async def clear_cache_pattern(pattern: str) -> int:
     """
     패턴에 매칭되는 모든 캐시 삭제
-    
+
     Args:
         pattern: 캐시 키 패턴 (예: "bids:*")
-    
+
     Returns:
         삭제된 키 개수
     """

@@ -52,8 +52,12 @@ class Settings(BaseSettings):
 
     # Phase 1: G2B API (나라장터) - 데이터셋 개방표준 서비스
     G2B_API_KEY: Union[str, None] = None
-    G2B_API_ENDPOINT: str = "https://apis.data.go.kr/1230000/ao/PubDataOpnStdService/getDataSetOpnStdBidPblancInfo"
-    G2B_RESULT_API_ENDPOINT: str = "https://apis.data.go.kr/1230000/OpengResultService/getOpengResultInfoListSet"
+    G2B_API_ENDPOINT: str = (
+        "https://apis.data.go.kr/1230000/ao/PubDataOpnStdService/getDataSetOpnStdBidPblancInfo"
+    )
+    G2B_RESULT_API_ENDPOINT: str = (
+        "https://apis.data.go.kr/1230000/OpengResultService/getOpengResultInfoListSet"
+    )
 
     # Phase 1: Slack Notification
     SLACK_WEBHOOK_URL: Union[str, None] = None

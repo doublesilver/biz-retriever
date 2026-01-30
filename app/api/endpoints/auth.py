@@ -22,8 +22,16 @@ router = APIRouter()
 class Token(BaseModel):
     """JWT 토큰 쌍 (Access + Refresh)"""
 
-    access_token: str = Field(..., description="JWT Access Token (15분 유효)", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
-    refresh_token: str = Field(..., description="JWT Refresh Token (30일 유효)", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+    access_token: str = Field(
+        ...,
+        description="JWT Access Token (15분 유효)",
+        example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    )
+    refresh_token: str = Field(
+        ...,
+        description="JWT Refresh Token (30일 유효)",
+        example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    )
     token_type: str = Field(default="bearer", description="토큰 타입", example="bearer")
 
     model_config = {
@@ -41,13 +49,13 @@ class Token(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     """Refresh Token 요청"""
-    
+
     refresh_token: str = Field(..., description="JWT Refresh Token")
 
 
 class TokenRefreshResponse(BaseModel):
     """Token Refresh 응답"""
-    
+
     access_token: str = Field(..., description="새로 발급된 JWT Access Token")
     refresh_token: str = Field(..., description="새로 발급된 JWT Refresh Token")
     token_type: str = Field(default="bearer", description="토큰 타입")
@@ -56,12 +64,21 @@ class TokenRefreshResponse(BaseModel):
 class UserCreate(BaseModel):
     """사용자 생성 요청"""
 
-    email: EmailStr = Field(..., description="사용자 이메일", example="user@example.com")
+    email: EmailStr = Field(
+        ..., description="사용자 이메일", example="user@example.com"
+    )
     password: str = Field(
-        ..., min_length=8, description="비밀번호 (최소 8자, 대/소문자/숫자/특수문자 포함)", example="SecurePass123!"
+        ...,
+        min_length=8,
+        description="비밀번호 (최소 8자, 대/소문자/숫자/특수문자 포함)",
+        example="SecurePass123!",
     )
 
-    model_config = {"json_schema_extra": {"examples": [{"email": "newuser@example.com", "password": "SecurePass123!"}]}}
+    model_config = {
+        "json_schema_extra": {
+            "examples": [{"email": "newuser@example.com", "password": "SecurePass123!"}]
+        }
+    }
 
 
 class UserResponse(BaseModel):
@@ -73,7 +90,9 @@ class UserResponse(BaseModel):
 
     model_config = {
         "from_attributes": True,
-        "json_schema_extra": {"examples": [{"id": 1, "email": "user@example.com", "is_active": True}]},
+        "json_schema_extra": {
+            "examples": [{"id": 1, "email": "user@example.com", "is_active": True}]
+        },
     }
 
 
@@ -87,7 +106,10 @@ class UserResponse(BaseModel):
             "description": "로그인 성공",
             "content": {
                 "application/json": {
-                    "example": {"access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", "token_type": "bearer"}
+                    "example": {
+                        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "token_type": "bearer",
+                    }
                 }
             },
         },
@@ -100,20 +122,29 @@ class UserResponse(BaseModel):
                             "summary": "잘못된 인증 정보",
                             "value": {"detail": "Incorrect email or password"},
                         },
-                        "inactive_user": {"summary": "비활성화된 사용자", "value": {"detail": "Inactive user"}},
+                        "inactive_user": {
+                            "summary": "비활성화된 사용자",
+                            "value": {"detail": "Inactive user"},
+                        },
                     }
                 }
             },
         },
         429: {
             "description": "요청 제한 초과",
-            "content": {"application/json": {"example": {"detail": "Rate limit exceeded: 5 per 1 minute"}}},
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Rate limit exceeded: 5 per 1 minute"}
+                }
+            },
         },
     },
 )
 @limiter.limit("5/minute")
 async def login_access_token(
-    request: Request, db: AsyncSession = Depends(deps.get_db), form_data: OAuth2PasswordRequestForm = Depends()
+    request: Request,
+    db: AsyncSession = Depends(deps.get_db),
+    form_data: OAuth2PasswordRequestForm = Depends(),
 ) -> Any:
     """
     ## OAuth2 호환 로그인
@@ -133,7 +164,9 @@ async def login_access_token(
     result = await db.execute(select(User).where(User.email == form_data.username))
     user = result.scalars().first()
 
-    if not user or not security.verify_password(form_data.password, user.hashed_password):
+    if not user or not security.verify_password(
+        form_data.password, user.hashed_password
+    ):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
 
     if not user.is_active:
@@ -157,7 +190,15 @@ async def login_access_token(
     responses={
         201: {
             "description": "회원가입 성공",
-            "content": {"application/json": {"example": {"id": 1, "email": "newuser@example.com", "is_active": True}}},
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 1,
+                        "email": "newuser@example.com",
+                        "is_active": True,
+                    }
+                }
+            },
         },
         400: {
             "description": "검증 실패",
@@ -166,11 +207,15 @@ async def login_access_token(
                     "examples": {
                         "weak_password": {
                             "summary": "약한 비밀번호",
-                            "value": {"detail": "비밀번호는 최소 8자 이상이어야 합니다."},
+                            "value": {
+                                "detail": "비밀번호는 최소 8자 이상이어야 합니다."
+                            },
                         },
                         "duplicate_email": {
                             "summary": "중복된 이메일",
-                            "value": {"detail": "The user with this email already exists in the system."},
+                            "value": {
+                                "detail": "The user with this email already exists in the system."
+                            },
                         },
                     }
                 }
@@ -178,12 +223,18 @@ async def login_access_token(
         },
         429: {
             "description": "요청 제한 초과",
-            "content": {"application/json": {"example": {"detail": "Rate limit exceeded: 3 per 1 minute"}}},
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Rate limit exceeded: 3 per 1 minute"}
+                }
+            },
         },
     },
 )
 @limiter.limit("3/minute")
-async def register(request: Request, user_in: UserCreate, db: AsyncSession = Depends(deps.get_db)) -> Any:
+async def register(
+    request: Request, user_in: UserCreate, db: AsyncSession = Depends(deps.get_db)
+) -> Any:
     """
     ## 회원가입
 
@@ -220,7 +271,11 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
 
     # 3. Create User
     logger.info("Creating new user object...")
-    user = User(email=user_in.email, hashed_password=security.get_password_hash(user_in.password), is_active=True)
+    user = User(
+        email=user_in.email,
+        hashed_password=security.get_password_hash(user_in.password),
+        is_active=True,
+    )
     logger.info("Adding user to DB session...")
     db.add(user)
     logger.info("Committing to DB...")
@@ -239,7 +294,8 @@ async def register(request: Request, user_in: UserCreate, db: AsyncSession = Dep
     description="시스템의 모든 활성 사용자를 조회합니다. (담당자 지정용)",
 )
 async def read_users(
-    db: AsyncSession = Depends(deps.get_db), current_user: User = Depends(deps.get_current_user)
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """
     모든 활성 사용자 목록을 반환합니다.
@@ -273,7 +329,9 @@ async def login_sns(provider: str):
         client_id = settings.NAVER_CLIENT_ID
         redirect_uri = settings.NAVER_REDIRECT_URI
         auth_url = "https://nid.naver.com/oauth2.0/authorize"
-        state = secrets.token_urlsafe(32)  # CSRF protection with cryptographically secure random state
+        state = secrets.token_urlsafe(
+            32
+        )  # CSRF protection with cryptographically secure random state
         url = f"{auth_url}?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&state={state}"
         return RedirectResponse(url=url)
 
@@ -281,7 +339,12 @@ async def login_sns(provider: str):
 
 
 @router.get("/callback/{provider}")
-async def callback_sns(provider: str, code: str, state: Optional[str] = None, db: AsyncSession = Depends(deps.get_db)):
+async def callback_sns(
+    provider: str,
+    code: str,
+    state: Optional[str] = None,
+    db: AsyncSession = Depends(deps.get_db),
+):
     """
     SNS 로그인 콜백 처리
     1. 토큰 발급
@@ -310,7 +373,9 @@ async def callback_sns(provider: str, code: str, state: Optional[str] = None, db
                     "client_secret": settings.KAKAO_CLIENT_SECRET,
                 }
                 # Header content-type for Kakao
-                headers = {"Content-Type": "application/x-www-form-urlencoded;charset=utf-8"}
+                headers = {
+                    "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
+                }
                 res = await client.post(token_url, data=data, headers=headers)
                 res.raise_for_status()
                 token_data = res.json()
@@ -410,7 +475,7 @@ async def callback_sns(provider: str, code: str, state: Optional[str] = None, db
         max_age=60 * 15,  # 15 minutes (shortened for security)
         path="/",
     )
-    
+
     # Refresh Token (longer expiry)
     response.set_cookie(
         key="refresh_token",
@@ -421,7 +486,7 @@ async def callback_sns(provider: str, code: str, state: Optional[str] = None, db
         max_age=60 * 60 * 24 * 30,  # 30 days
         path="/",
     )
-    
+
     return response
 
 
@@ -438,7 +503,7 @@ async def callback_sns(provider: str, code: str, state: Optional[str] = None, db
                     "example": {
                         "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                         "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                        "token_type": "bearer"
+                        "token_type": "bearer",
                     }
                 }
             },
@@ -446,9 +511,7 @@ async def callback_sns(provider: str, code: str, state: Optional[str] = None, db
         401: {
             "description": "유효하지 않은 Refresh Token",
             "content": {
-                "application/json": {
-                    "example": {"detail": "Invalid refresh token"}
-                }
+                "application/json": {"example": {"detail": "Invalid refresh token"}}
             },
         },
     },
@@ -457,18 +520,18 @@ async def callback_sns(provider: str, code: str, state: Optional[str] = None, db
 async def refresh_token(
     request: Request,
     refresh_request: RefreshTokenRequest,
-    db: AsyncSession = Depends(deps.get_db)
+    db: AsyncSession = Depends(deps.get_db),
 ) -> Any:
     """
     ## Refresh Token으로 토큰 갱신
-    
+
     Access Token이 만료되었을 때 Refresh Token으로 새로운 토큰 쌍을 발급받습니다.
-    
+
     ### 보안 강화
     - Access Token 유효기간: 15분 (탈취 시 피해 최소화)
     - Refresh Token 유효기간: 30일
     - Refresh Token도 함께 갱신 (Rotation)
-    
+
     ### 사용 방법
     1. 로그인 시 받은 `refresh_token` 제공
     2. 새로운 `access_token`과 `refresh_token` 수령
@@ -476,12 +539,12 @@ async def refresh_token(
     """
     # Verify Refresh Token and get user
     user = await security.verify_refresh_token(refresh_request.refresh_token, db)
-    
+
     # Create new token pair
     tokens = security.create_token_pair(subject=user.email)
-    
+
     logger.info(f"Token refreshed for user: {user.email}")
-    
+
     return {
         "access_token": tokens["access_token"],
         "refresh_token": tokens["refresh_token"],

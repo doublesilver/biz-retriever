@@ -62,7 +62,10 @@ class TestFileService:
         result = await service.get_text_from_file(mock_hwp_file)
 
         # HWP 파싱 관련 메시지 (olefile 설치 여부에 따라 다름)
-        assert any(kw in result.lower() for kw in ["hwp", "olefile", "not", "error", "extracted"])
+        assert any(
+            kw in result.lower()
+            for kw in ["hwp", "olefile", "not", "error", "extracted"]
+        )
 
     @pytest.mark.asyncio
     async def test_get_text_from_file_unsupported(self, service, mock_txt_file):
@@ -97,7 +100,10 @@ class TestFileService:
         result = await service.parse_hwp(mock_hwp_file)
 
         # HWP 파싱 관련 메시지 (olefile 설치 여부에 따라 다름)
-        assert any(kw in result.lower() for kw in ["hwp", "olefile", "not", "error", "extracted", "valid"])
+        assert any(
+            kw in result.lower()
+            for kw in ["hwp", "olefile", "not", "error", "extracted", "valid"]
+        )
 
     # ============================================
     # 파일명 대소문자 테스트

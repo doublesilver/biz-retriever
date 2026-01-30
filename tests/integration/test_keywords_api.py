@@ -7,7 +7,9 @@ from app.services.keyword_service import keyword_service
 
 @pytest.mark.asyncio
 async def test_add_keyword(authenticated_client: AsyncClient, test_db: AsyncSession):
-    response = await authenticated_client.post("/api/v1/filters/keywords", json={"keyword": "test_exclude"})
+    response = await authenticated_client.post(
+        "/api/v1/filters/keywords", json={"keyword": "test_exclude"}
+    )
     assert response.status_code == 200
     assert "추가되었습니다" in response.json()["message"]
 
@@ -17,10 +19,16 @@ async def test_add_keyword(authenticated_client: AsyncClient, test_db: AsyncSess
 
 
 @pytest.mark.asyncio
-async def test_add_duplicate_keyword(authenticated_client: AsyncClient, test_db: AsyncSession):
-    await authenticated_client.post("/api/v1/filters/keywords", json={"keyword": "duplicate"})
+async def test_add_duplicate_keyword(
+    authenticated_client: AsyncClient, test_db: AsyncSession
+):
+    await authenticated_client.post(
+        "/api/v1/filters/keywords", json={"keyword": "duplicate"}
+    )
 
-    response = await authenticated_client.post("/api/v1/filters/keywords", json={"keyword": "duplicate"})
+    response = await authenticated_client.post(
+        "/api/v1/filters/keywords", json={"keyword": "duplicate"}
+    )
     assert response.status_code == 400
 
 

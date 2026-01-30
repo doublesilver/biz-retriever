@@ -39,7 +39,9 @@ class BidUpdate(BaseModel):
     posted_at: Optional[datetime] = None
     url: Optional[str] = None
     processed: Optional[bool] = None
-    status: Optional[str] = Field(default=None, pattern="^(new|reviewing|bidding|submitted|won|lost|completed)$")
+    status: Optional[str] = Field(
+        default=None, pattern="^(new|reviewing|bidding|submitted|won|lost|completed)$"
+    )
     assigned_to: Optional[int] = Field(default=None, ge=1)
     notes: Optional[str] = None
 
@@ -92,13 +94,19 @@ class BidAnnouncementCreate(BaseModel):
 class BidAssignRequest(BaseModel):
     """공고 담당자 할당 요청"""
 
-    user_id: Optional[int] = Field(None, ge=1, description="담당자 ID (None이면 할당 해제)")
+    user_id: Optional[int] = Field(
+        None, ge=1, description="담당자 ID (None이면 할당 해제)"
+    )
 
 
 class BidStatusUpdate(BaseModel):
     """공고 상태 변경 요청"""
 
-    status: str = Field(..., pattern="^(new|reviewing|bidding|submitted|won|lost|completed)$", description="공고 상태")
+    status: str = Field(
+        ...,
+        pattern="^(new|reviewing|bidding|submitted|won|lost|completed)$",
+        description="공고 상태",
+    )
     notes: Optional[str] = Field(default=None, max_length=1000, description="메모")
 
 

@@ -110,8 +110,12 @@ async def update_bid(
 async def read_bids(
     skip: int = Query(default=0, ge=0, description="건너뛸 개수"),
     limit: int = Query(default=100, ge=1, le=500, description="조회 개수 (최대 500)"),
-    keyword: Optional[str] = Query(default=None, min_length=1, max_length=100, description="검색 키워드"),
-    agency: Optional[str] = Query(default=None, min_length=1, max_length=200, description="기관명"),
+    keyword: Optional[str] = Query(
+        default=None, min_length=1, max_length=100, description="검색 키워드"
+    ),
+    agency: Optional[str] = Query(
+        default=None, min_length=1, max_length=200, description="기관명"
+    ),
     repo: BidRepository = Depends(deps.get_bid_repository),
 ):
     """
@@ -127,12 +131,14 @@ async def read_bids(
     cached_data = await get_cached(cache_key)
     if cached_data:
         return cached_data
-    
+
     # SQL Injection prevention is handled by SQLAlchemy in Repository, so explicit stripping is not needed for security,
     # but strictly speaking, stripping implementation details is good.
     # However, the previous implementation was overly aggressive (replacing common chars).
 
-    bids = await bid_service.get_bids(repo, skip=skip, limit=limit, keyword=keyword, agency=agency)
+    bids = await bid_service.get_bids(
+        repo, skip=skip, limit=limit, keyword=keyword, agency=agency
+    )
 
     # Get total count (Assuming the caller wants the total count matching filter)
     # The previous code did raw SQL execute for count on ALL bids, ignoring filters!
@@ -148,7 +154,7 @@ async def read_bids(
     total = total_result.scalar()
 
     result = {"items": bids, "total": total, "skip": skip, "limit": limit}
-    
+
     # Redis에 캐싱 (5분 TTL)
     await set_cached(cache_key, result, expire=300)
     return result
@@ -172,7 +178,7 @@ async def read_matching_bids(
     cached_data = await get_cached(cache_key)
     if cached_data:
         return cached_data
-    
+
     if not current_user.full_profile:
         # If no profile, we can't match. Return empty.
         return {"items": [], "total": 0, "skip": skip, "limit": limit}
@@ -192,8 +198,13 @@ async def read_matching_bids(
     # For MVP Phase 3, we'll just set total = 9999 or len(bids).
     # Better: return len(bids) for now, acknowledging pagination limits total visibility.
 
-    result = {"items": bids, "total": len(bids), "skip": skip, "limit": limit}  # Placeholder for actual total count
-    
+    result = {
+        "items": bids,
+        "total": len(bids),
+        "skip": skip,
+        "limit": limit,
+    }  # Placeholder for actual total count
+
     # Redis에 캐싱 (3분 TTL)
     await set_cached(cache_key, result, expire=180)
     return result
@@ -204,7 +215,9 @@ async def upload_bid(
     file: UploadFile = File(..., description="PDF 또는 HWP 파일"),
     title: str = Query(..., min_length=1, max_length=200, description="공고 제목"),
     agency: str = Query(default="Unknown", max_length=200, description="기관명"),
-    url: str = Query(default="http://uploaded.file", max_length=500, description="원본 URL"),
+    url: str = Query(
+        default="http://uploaded.file", max_length=500, description="원본 URL"
+    ),
     repo: BidRepository = Depends(deps.get_bid_repository),
     current_user: User = Depends(deps.get_current_user),
 ):
@@ -223,18 +236,24 @@ async def upload_bid(
     ext = os.path.splitext(filename)[1]
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
-            status_code=400, detail=f"지원하지 않는 파일 형식입니다. 허용: {', '.join(ALLOWED_EXTENSIONS)}"
+            status_code=400,
+            detail=f"지원하지 않는 파일 형식입니다. 허용: {', '.join(ALLOWED_EXTENSIONS)}",
         )
 
     # 파일 크기 검증
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail=f"파일 크기가 너무 큽니다. 최대 {MAX_FILE_SIZE // (1024*1024)}MB")
+        raise HTTPException(
+            status_code=400,
+            detail=f"파일 크기가 너무 큽니다. 최대 {MAX_FILE_SIZE // (1024*1024)}MB",
+        )
 
     # 파일 포인터 리셋
     await file.seek(0)
 
-    logger.info(f"파일 업로드: {filename}, size={len(content)}, user={current_user.email}")
+    logger.info(
+        f"파일 업로드: {filename}, size={len(content)}, user={current_user.email}"
+    )
 
     # 1. Extract Text
     text_content = await file_service.get_text_from_file(file)

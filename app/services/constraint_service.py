@@ -63,7 +63,9 @@ class ConstraintService:
         """
 
         try:
-            response = await asyncio.to_thread(self.model.generate_content, f"{prompt}\n{full_text}")
+            response = await asyncio.to_thread(
+                self.model.generate_content, f"{prompt}\n{full_text}"
+            )
 
             # 3. 파싱
             text_resp = response.text

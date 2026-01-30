@@ -69,7 +69,9 @@ class PaymentHistoryResponse(BaseModel):
 
 @router.post("/create", response_model=PaymentCreateResponse)
 async def create_payment(
-    request: PaymentCreateRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    request: PaymentCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Create a payment request for plan upgrade
@@ -77,25 +79,40 @@ async def create_payment(
     Returns payment data for Tosspayments frontend SDK
     """
     if not payment_service.is_configured():
-        raise HTTPException(status_code=503, detail="결제 시스템이 설정되지 않았습니다. 관리자에게 문의하세요.")
+        raise HTTPException(
+            status_code=503,
+            detail="결제 시스템이 설정되지 않았습니다. 관리자에게 문의하세요.",
+        )
 
     # Validate plan name
     if request.plan_name not in ["basic", "pro"]:
-        raise HTTPException(status_code=400, detail="유효하지 않은 플랜입니다. 'basic' 또는 'pro'를 선택하세요.")
+        raise HTTPException(
+            status_code=400,
+            detail="유효하지 않은 플랜입니다. 'basic' 또는 'pro'를 선택하세요.",
+        )
 
     # Check if already on this plan
     stmt = select(Subscription).where(Subscription.user_id == current_user.id)
     result = await db.execute(stmt)
     subscription = result.scalar_one_or_none()
 
-    if subscription and subscription.plan_name == request.plan_name and subscription.is_active:
-        raise HTTPException(status_code=400, detail=f"이미 {request.plan_name.upper()} 플랜을 사용 중입니다.")
+    if (
+        subscription
+        and subscription.plan_name == request.plan_name
+        and subscription.is_active
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=f"이미 {request.plan_name.upper()} 플랜을 사용 중입니다.",
+        )
 
     # Get plan amount
     amount = payment_service.get_plan_amount(request.plan_name)
 
     if amount == 0:
-        raise HTTPException(status_code=400, detail="무료 플랜은 결제가 필요하지 않습니다.")
+        raise HTTPException(
+            status_code=400, detail="무료 플랜은 결제가 필요하지 않습니다."
+        )
 
     # Generate order ID
     order_id = payment_service.generate_order_id(current_user.id, request.plan_name)
@@ -110,7 +127,9 @@ async def create_payment(
             customer_name=current_user.email.split("@")[0],  # Use email prefix as name
         )
 
-        logger.info(f"Payment created: user={current_user.id}, plan={request.plan_name}, order_id={order_id}")
+        logger.info(
+            f"Payment created: user={current_user.id}, plan={request.plan_name}, order_id={order_id}"
+        )
 
         return PaymentCreateResponse(**payment_data)
 
@@ -121,7 +140,9 @@ async def create_payment(
 
 @router.post("/confirm", response_model=PaymentConfirmResponse)
 async def confirm_payment(
-    request: PaymentConfirmRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    request: PaymentConfirmRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Confirm payment after user completes payment on Tosspayments UI
@@ -129,12 +150,16 @@ async def confirm_payment(
     This endpoint is called from frontend after successful payment
     """
     if not payment_service.is_configured():
-        raise HTTPException(status_code=503, detail="결제 시스템이 설정되지 않았습니다.")
+        raise HTTPException(
+            status_code=503, detail="결제 시스템이 설정되지 않았습니다."
+        )
 
     try:
         # Confirm payment with Tosspayments API
         confirmation_result = await payment_service.confirm_payment(
-            payment_key=request.paymentKey, order_id=request.orderId, amount=request.amount
+            payment_key=request.paymentKey,
+            order_id=request.orderId,
+            amount=request.amount,
         )
 
         # Extract plan name from order_id (format: BIZ-{user_id}-{PLAN}-{timestamp})
@@ -157,7 +182,9 @@ async def confirm_payment(
             subscription.is_active = True
             subscription.start_date = datetime.utcnow()
             subscription.next_billing_date = next_billing_date
-            subscription.stripe_subscription_id = request.paymentKey  # Store payment key
+            subscription.stripe_subscription_id = (
+                request.paymentKey
+            )  # Store payment key
         else:
             # Create new subscription
             subscription = Subscription(
@@ -183,7 +210,9 @@ async def confirm_payment(
 
         await db.commit()
 
-        logger.info(f"Payment confirmed: user={current_user.id}, plan={plan_name}, amount={request.amount}원")
+        logger.info(
+            f"Payment confirmed: user={current_user.id}, plan={plan_name}, amount={request.amount}원"
+        )
 
         return PaymentConfirmResponse(
             success=True,
@@ -199,18 +228,23 @@ async def confirm_payment(
 
 @router.post("/cancel")
 async def cancel_payment(
-    request: PaymentCancelRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    request: PaymentCancelRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Cancel/refund a payment
     """
     if not payment_service.is_configured():
-        raise HTTPException(status_code=503, detail="결제 시스템이 설정되지 않았습니다.")
+        raise HTTPException(
+            status_code=503, detail="결제 시스템이 설정되지 않았습니다."
+        )
 
     try:
         # Find payment in history
         stmt = select(PaymentHistory).where(
-            PaymentHistory.user_id == current_user.id, PaymentHistory.transaction_id == request.paymentKey
+            PaymentHistory.user_id == current_user.id,
+            PaymentHistory.transaction_id == request.paymentKey,
         )
         result = await db.execute(stmt)
         payment_record = result.scalar_one_or_none()
@@ -241,7 +275,9 @@ async def cancel_payment(
 
         await db.commit()
 
-        logger.info(f"Payment cancelled: user={current_user.id}, payment_key={request.paymentKey}")
+        logger.info(
+            f"Payment cancelled: user={current_user.id}, payment_key={request.paymentKey}"
+        )
 
         return {"success": True, "message": "결제가 취소되고 환불 처리되었습니다."}
 
@@ -253,7 +289,9 @@ async def cancel_payment(
 
 
 @router.get("/history", response_model=List[PaymentHistoryResponse])
-async def get_payment_history(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def get_payment_history(
+    current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
     """
     Get user's payment history
     """
@@ -293,7 +331,9 @@ async def payment_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             return {"success": False, "message": "Missing payment_key"}
 
         # Find payment in history
-        stmt = select(PaymentHistory).where(PaymentHistory.transaction_id == payment_key)
+        stmt = select(PaymentHistory).where(
+            PaymentHistory.transaction_id == payment_key
+        )
         result = await db.execute(stmt)
         payment_record = result.scalar_one_or_none()
 
@@ -310,7 +350,9 @@ async def payment_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             payment_record.status = "refunded"
 
             # Downgrade subscription if payment was cancelled
-            stmt = select(Subscription).where(Subscription.user_id == payment_record.user_id)
+            stmt = select(Subscription).where(
+                Subscription.user_id == payment_record.user_id
+            )
             result = await db.execute(stmt)
             subscription = result.scalar_one_or_none()
 
@@ -336,7 +378,11 @@ async def get_plans():
     return {
         "plans": [
             {"name": "free", "price": 0, "desc": "Free Tier (3 Hard Matches/day)"},
-            {"name": "basic", "price": 10000, "desc": "Basic Tier (50 Hard Matches/day)"},
+            {
+                "name": "basic",
+                "price": 10000,
+                "desc": "Basic Tier (50 Hard Matches/day)",
+            },
             {"name": "pro", "price": 30000, "desc": "Pro Tier (Unlimited)"},
         ]
     }

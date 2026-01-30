@@ -16,7 +16,9 @@ from app.db.models import User
 from app.db.session import get_db
 
 ALGORITHM = "HS256"
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login/access-token")
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/auth/login/access-token"
+)
 
 
 def validate_password(password: str) -> None:
@@ -49,10 +51,12 @@ def validate_password(password: str) -> None:
         raise WeakPasswordError("비밀번호에 특수문자가 포함되어야 합니다.")
 
 
-def create_access_token(subject: Union[str, Any], expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    subject: Union[str, Any], expires_delta: timedelta | None = None
+) -> str:
     """
     JWT Access Token 생성
-    
+
     기본 만료 시간: 15분 (보안 강화)
     """
     if expires_delta:
@@ -69,7 +73,7 @@ def create_access_token(subject: Union[str, Any], expires_delta: timedelta | Non
 def create_refresh_token(subject: Union[str, Any]) -> str:
     """
     JWT Refresh Token 생성
-    
+
     만료 시간: 30일
     Access Token 재발급 전용
     """
@@ -82,7 +86,7 @@ def create_refresh_token(subject: Union[str, Any]) -> str:
 def create_token_pair(subject: Union[str, Any]) -> dict[str, str]:
     """
     Access Token + Refresh Token 쌍 생성
-    
+
     Returns:
         {"access_token": "...", "refresh_token": "..."}
     """
@@ -93,7 +97,9 @@ def create_token_pair(subject: Union[str, Any]) -> dict[str, str]:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """비밀번호 검증"""
-    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    return bcrypt.checkpw(
+        plain_password.encode("utf-8"), hashed_password.encode("utf-8")
+    )
 
 
 def get_password_hash(password: str) -> str:
@@ -104,7 +110,9 @@ def get_password_hash(password: str) -> str:
     return hashed.decode("utf-8")
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_db)) -> User:
+async def get_current_user(
+    token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_db)
+) -> User:
     """
     현재 인증된 사용자 조회
 
@@ -166,14 +174,14 @@ async def get_current_user_from_token(token: str) -> Union[User, None]:
 async def verify_refresh_token(refresh_token: str, session: AsyncSession) -> User:
     """
     Refresh Token 검증 및 사용자 조회
-    
+
     Args:
         refresh_token: JWT Refresh Token
         session: DB 세션
-        
+
     Returns:
         User 객체
-        
+
     Raises:
         HTTPException: 토큰이 유효하지 않거나 만료됨
     """
@@ -182,30 +190,30 @@ async def verify_refresh_token(refresh_token: str, session: AsyncSession) -> Use
         detail="Invalid refresh token",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     try:
         payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         token_type: str = payload.get("type")
-        
+
         # Refresh Token인지 확인
         if token_type != "refresh":
             logger.warning("Token type mismatch: expected refresh, got %s", token_type)
             raise credentials_exception
-            
+
         if email is None:
             raise credentials_exception
-            
+
     except JWTError as e:
         logger.warning("Invalid refresh token: %s", e)
         raise credentials_exception
-    
+
     # 사용자 조회
     result = await session.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
-    
+
     if user is None:
         logger.warning("User not found: %s", email)
         raise credentials_exception
-    
+
     return user

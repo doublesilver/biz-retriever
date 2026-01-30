@@ -42,7 +42,10 @@ class TestBidService:
     async def test_create_bid_without_agency(self, test_db: AsyncSession):
         """기관명 없이 Bid 생성"""
         bid_in = BidCreate(
-            title="테스트 공고", content="테스트 내용", posted_at=datetime.utcnow(), url="https://example.com/test/2"
+            title="테스트 공고",
+            content="테스트 내용",
+            posted_at=datetime.utcnow(),
+            url="https://example.com/test/2",
         )
 
         result = await bid_service.create_bid(test_db, bid_in)
@@ -55,7 +58,9 @@ class TestBidService:
     # ============================================
 
     @pytest.mark.asyncio
-    async def test_get_bid_exists(self, test_db: AsyncSession, sample_bid: BidAnnouncement):
+    async def test_get_bid_exists(
+        self, test_db: AsyncSession, sample_bid: BidAnnouncement
+    ):
         """존재하는 Bid 조회"""
         result = await bid_service.get_bid(test_db, sample_bid.id)
 
@@ -82,28 +87,36 @@ class TestBidService:
         assert len(result) == 5
 
     @pytest.mark.asyncio
-    async def test_get_bids_pagination_skip(self, test_db: AsyncSession, multiple_bids: list):
+    async def test_get_bids_pagination_skip(
+        self, test_db: AsyncSession, multiple_bids: list
+    ):
         """페이지네이션 - skip"""
         result = await bid_service.get_bids(test_db, skip=2)
 
         assert len(result) == 3  # 5개 중 2개 스킵
 
     @pytest.mark.asyncio
-    async def test_get_bids_pagination_limit(self, test_db: AsyncSession, multiple_bids: list):
+    async def test_get_bids_pagination_limit(
+        self, test_db: AsyncSession, multiple_bids: list
+    ):
         """페이지네이션 - limit"""
         result = await bid_service.get_bids(test_db, limit=2)
 
         assert len(result) == 2
 
     @pytest.mark.asyncio
-    async def test_get_bids_pagination_skip_and_limit(self, test_db: AsyncSession, multiple_bids: list):
+    async def test_get_bids_pagination_skip_and_limit(
+        self, test_db: AsyncSession, multiple_bids: list
+    ):
         """페이지네이션 - skip + limit"""
         result = await bid_service.get_bids(test_db, skip=1, limit=2)
 
         assert len(result) == 2
 
     @pytest.mark.asyncio
-    async def test_get_bids_keyword_filter(self, test_db: AsyncSession, sample_bid: BidAnnouncement):
+    async def test_get_bids_keyword_filter(
+        self, test_db: AsyncSession, sample_bid: BidAnnouncement
+    ):
         """키워드 필터링"""
         result = await bid_service.get_bids(test_db, keyword="구내식당")
 
@@ -111,14 +124,18 @@ class TestBidService:
         assert any("구내식당" in bid.title for bid in result)
 
     @pytest.mark.asyncio
-    async def test_get_bids_keyword_filter_no_match(self, test_db: AsyncSession, multiple_bids: list):
+    async def test_get_bids_keyword_filter_no_match(
+        self, test_db: AsyncSession, multiple_bids: list
+    ):
         """키워드 필터링 - 매칭 없음"""
         result = await bid_service.get_bids(test_db, keyword="존재하지않는키워드xyz")
 
         assert len(result) == 0
 
     @pytest.mark.asyncio
-    async def test_get_bids_agency_filter(self, test_db: AsyncSession, sample_bid: BidAnnouncement):
+    async def test_get_bids_agency_filter(
+        self, test_db: AsyncSession, sample_bid: BidAnnouncement
+    ):
         """기관 필터링"""
         result = await bid_service.get_bids(test_db, agency="서울대")
 
@@ -130,7 +147,9 @@ class TestBidService:
     # ============================================
 
     @pytest.mark.asyncio
-    async def test_update_bid_processing_status_to_true(self, test_db: AsyncSession, sample_bid: BidAnnouncement):
+    async def test_update_bid_processing_status_to_true(
+        self, test_db: AsyncSession, sample_bid: BidAnnouncement
+    ):
         """처리 상태를 True로 업데이트"""
         assert sample_bid.processed is False
 
@@ -141,7 +160,9 @@ class TestBidService:
         assert updated_bid.processed is True
 
     @pytest.mark.asyncio
-    async def test_update_bid_processing_status_to_false(self, test_db: AsyncSession, sample_bid: BidAnnouncement):
+    async def test_update_bid_processing_status_to_false(
+        self, test_db: AsyncSession, sample_bid: BidAnnouncement
+    ):
         """처리 상태를 False로 업데이트"""
         # 먼저 True로 설정
         await bid_service.update_bid_processing_status(test_db, sample_bid.id, True)
@@ -153,7 +174,9 @@ class TestBidService:
         assert updated_bid.processed is False
 
     @pytest.mark.asyncio
-    async def test_update_bid_processing_status_nonexistent(self, test_db: AsyncSession):
+    async def test_update_bid_processing_status_nonexistent(
+        self, test_db: AsyncSession
+    ):
         """존재하지 않는 Bid 업데이트 시도"""
         # 예외가 발생하거나 None이 반환되어야 함
         result = await bid_service.update_bid_processing_status(test_db, 99999, True)

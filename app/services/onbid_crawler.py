@@ -28,7 +28,9 @@ class OnbidCrawlerService:
     BASE_URL = "https://www.onbid.co.kr"
 
     # 임대 공고 검색 URL (캠코 공매 시스템)
-    RENTAL_SEARCH_URL = "https://www.onbid.co.kr/op/cta/cltaSearch/collateralTenderSearch.do"
+    RENTAL_SEARCH_URL = (
+        "https://www.onbid.co.kr/op/cta/cltaSearch/collateralTenderSearch.do"
+    )
 
     # 매각 공고 검색 URL
     SALE_SEARCH_URL = "https://www.onbid.co.kr/op/ppa/ppaSrch/ppaSearch.do"
@@ -73,7 +75,9 @@ class OnbidCrawlerService:
             },
         )
 
-    async def fetch_rental_announcements(self, from_date: Optional[datetime] = None, max_pages: int = 5) -> List[Dict]:
+    async def fetch_rental_announcements(
+        self, from_date: Optional[datetime] = None, max_pages: int = 5
+    ) -> List[Dict]:
         """
         온비드에서 임대 공고를 수집합니다.
 
@@ -104,11 +108,15 @@ class OnbidCrawlerService:
                 # filtered = announcements
                 all_announcements.extend(filtered)
 
-                logger.info(f"페이지 {page}: {len(announcements)}건 수집, {len(filtered)}건 필터링 통과")
+                logger.info(
+                    f"페이지 {page}: {len(announcements)}건 수집, {len(filtered)}건 필터링 통과"
+                )
 
             # 중요도 점수 계산
             for announcement in all_announcements:
-                announcement["importance_score"] = self._calculate_importance(announcement)
+                announcement["importance_score"] = self._calculate_importance(
+                    announcement
+                )
 
             logger.info(f"온비드 크롤링 완료: 총 {len(all_announcements)}건 수집")
             return all_announcements
@@ -141,7 +149,9 @@ class OnbidCrawlerService:
                 "tenderType": "01",  # 01: 임대
             }
 
-            response = await self.client.post(self.RENTAL_SEARCH_URL, data=params, follow_redirects=True)
+            response = await self.client.post(
+                self.RENTAL_SEARCH_URL, data=params, follow_redirects=True
+            )
 
             if response.status_code != 200:
                 logger.warning(f"온비드 응답 오류: {response.status_code}")
@@ -346,7 +356,9 @@ class OnbidCrawlerService:
             attachments = []
             file_links = soup.select("a.file_link")
             for link in file_links:
-                attachments.append({"name": link.get_text(strip=True), "url": link.get("href", "")})
+                attachments.append(
+                    {"name": link.get_text(strip=True), "url": link.get("href", "")}
+                )
 
             return {
                 "content": content,

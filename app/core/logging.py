@@ -37,16 +37,29 @@ class SlackHandler(logging.Handler):
             payload = {
                 "text": "🚨 *Biz-Retriever Error Detected*",
                 "blocks": [
-                    {"type": "section", "text": {"type": "mrkdwn", "text": f"*{record.levelname}*: {record.msg}"}},
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*{record.levelname}*: {record.msg}",
+                        },
+                    },
                     {
                         "type": "context",
-                        "elements": [{"type": "mrkdwn", "text": f"📍 {record.name} | 🕒 {record.asctime}"}],
+                        "elements": [
+                            {
+                                "type": "mrkdwn",
+                                "text": f"📍 {record.name} | 🕒 {record.asctime}",
+                            }
+                        ],
                     },
                 ],
             }
 
             # 비동기 전송 (Fire-and-forget)
-            threading.Thread(target=self._send_payload, args=(payload,), daemon=True).start()
+            threading.Thread(
+                target=self._send_payload, args=(payload,), daemon=True
+            ).start()
 
         except Exception:
             self.handleError(record)
@@ -54,7 +67,9 @@ class SlackHandler(logging.Handler):
     def _send_payload(self, payload):
         try:
             req = Request(
-                self.webhook_url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}
+                self.webhook_url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
             )
             urlopen(req, timeout=3)
         except Exception as e:
@@ -74,7 +89,10 @@ def setup_logger(name: str = "biz_retriever") -> logging.Logger:
         return logger
 
     # 포맷 설정
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
     # 1. 콘솔 핸들러
     console_handler = logging.StreamHandler(sys.stdout)

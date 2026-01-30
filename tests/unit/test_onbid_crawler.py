@@ -88,5 +88,10 @@ def test_calculate_importance(onbid_crawler):
     assert onbid_crawler._calculate_importance(bid_high) == 3
 
     # Low Score
-    bid_low = {"title": "작은 매점", "agency": "기타기관", "estimated_price": 100000, "keywords_matched": ["매점"]}
+    bid_low = {
+        "title": "작은 매점",
+        "agency": "기타기관",
+        "estimated_price": 100000,
+        "keywords_matched": ["매점"],
+    }
     assert onbid_crawler._calculate_importance(bid_low) == 1

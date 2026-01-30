@@ -18,7 +18,8 @@ async def test_health_check(async_client: AsyncClient):
 async def test_register_user(async_client: AsyncClient):
     """사용자 등록"""
     response = await async_client.post(
-        "/api/v1/auth/register", json={"email": "newuser@example.com", "password": "StrongPass123!"}
+        "/api/v1/auth/register",
+        json={"email": "newuser@example.com", "password": "StrongPass123!"},
     )
     assert response.status_code in [200, 201]
     data = response.json()
@@ -29,7 +30,8 @@ async def test_register_user(async_client: AsyncClient):
 async def test_register_weak_password(async_client: AsyncClient):
     """약한 비밀번호로 등록 시도"""
     response = await async_client.post(
-        "/api/v1/auth/register", json={"email": "test2@example.com", "password": "weak"}  # 조건 미달
+        "/api/v1/auth/register",
+        json={"email": "test2@example.com", "password": "weak"},  # 조건 미달
     )
     # Pydantic validation error는 422 반환
     assert response.status_code == 422

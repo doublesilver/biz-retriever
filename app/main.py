@@ -58,17 +58,23 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             status_code = response.status_code
 
             # 요청 완료 메트릭 기록
-            HTTP_REQUESTS_TOTAL.labels(method=method, endpoint=path, status_code=str(status_code)).inc()
+            HTTP_REQUESTS_TOTAL.labels(
+                method=method, endpoint=path, status_code=str(status_code)
+            ).inc()
 
             return response
         except Exception as e:
             # 에러 발생 시 500으로 기록
-            HTTP_REQUESTS_TOTAL.labels(method=method, endpoint=path, status_code="500").inc()
+            HTTP_REQUESTS_TOTAL.labels(
+                method=method, endpoint=path, status_code="500"
+            ).inc()
             raise
         finally:
             # 처리 시간 기록
             duration = time.time() - start_time
-            HTTP_REQUEST_DURATION_SECONDS.labels(method=method, endpoint=path).observe(duration)
+            HTTP_REQUEST_DURATION_SECONDS.labels(method=method, endpoint=path).observe(
+                duration
+            )
 
             # 진행 중 요청 카운터 감소
             HTTP_REQUESTS_IN_PROGRESS.labels(method=method, endpoint=path).dec()
@@ -151,10 +157,17 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     """
     HTTP 예외 처리 - 사용자 친화적 메시지 반환
     """
-    logger.warning(f"HTTP Exception: {exc.status_code} - {exc.detail} - Path: {request.url.path}")
+    logger.warning(
+        f"HTTP Exception: {exc.status_code} - {exc.detail} - Path: {request.url.path}"
+    )
     return JSONResponse(
         status_code=exc.status_code,
-        content={"error": True, "status_code": exc.status_code, "message": exc.detail, "path": str(request.url.path)},
+        content={
+            "error": True,
+            "status_code": exc.status_code,
+            "message": exc.detail,
+            "path": str(request.url.path),
+        },
     )
 
 
@@ -190,7 +203,10 @@ async def general_exception_handler(request: Request, exc: Exception):
     일반 예외 처리 - 예상치 못한 서버 오류
     """
     # 개발 환경에서는 상세 오류 로그, 프로덕션에서는 제한적 정보
-    logger.error(f"Unhandled Exception: {type(exc).__name__}: {str(exc)} - Path: {request.url.path}", exc_info=True)
+    logger.error(
+        f"Unhandled Exception: {type(exc).__name__}: {str(exc)} - Path: {request.url.path}",
+        exc_info=True,
+    )
 
     # 프로덕션 환경에서는 상세 에러 정보를 숨김
     if os.getenv("ENVIRONMENT", "development") == "production":
@@ -200,12 +216,20 @@ async def general_exception_handler(request: Request, exc: Exception):
 
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"error": True, "status_code": 500, "message": error_detail, "path": str(request.url.path)},
+        content={
+            "error": True,
+            "status_code": 500,
+            "message": error_detail,
+            "path": str(request.url.path),
+        },
     )
 
 
 # TrustedHost 미들웨어 - Host 헤더 검증 (Host Header Injection 공격 방지)
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["leeeunseok.tail32c3e2.ts.net", "localhost", "127.0.0.1"])
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["leeeunseok.tail32c3e2.ts.net", "localhost", "127.0.0.1"],
+)
 
 # Prometheus 메트릭 미들웨어 등록
 app.add_middleware(PrometheusMiddleware)
@@ -270,6 +294,7 @@ async def startup():
 
         # Taskiq Init (Celery 대체)
         from app.worker.taskiq_app import startup as taskiq_startup
+
         await taskiq_startup()
         logger.info("✅ Taskiq worker initialized")
 
@@ -283,9 +308,10 @@ async def startup():
 async def shutdown():
     """애플리케이션 종료 시 정리"""
     logger.info("👋 Shutting down Biz-Retriever...")
-    
+
     # Taskiq Cleanup
     from app.worker.taskiq_app import shutdown as taskiq_shutdown
+
     await taskiq_shutdown()
     logger.info("✅ Taskiq worker stopped")
 
@@ -296,7 +322,12 @@ async def shutdown():
 @app.get("/")
 async def read_root():
     """API 루트 - 서비스 정보 반환"""
-    return {"service": "Biz-Pass API", "version": "1.0.0", "docs": "/docs", "health": "/health"}
+    return {
+        "service": "Biz-Pass API",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "health": "/health",
+    }
 
 
 @app.get("/health")

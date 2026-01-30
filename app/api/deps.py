@@ -20,7 +20,6 @@ from app.services.crawler_service import G2BCrawlerService
 from app.services.notification_service import NotificationService
 from app.services.rag_service import RAGService
 
-
 # ============================================
 # Database Session
 # ============================================
@@ -55,6 +54,7 @@ Usage:
 # Repositories
 # ============================================
 
+
 def get_bid_repository(session: DbSession) -> BidRepository:
     """Bid Repository Factory"""
     return BidRepository(session)
@@ -74,6 +74,7 @@ Usage:
 # ============================================
 # Services
 # ============================================
+
 
 def get_crawler_service() -> G2BCrawlerService:
     """G2B Crawler Service Factory"""

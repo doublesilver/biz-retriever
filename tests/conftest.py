@@ -53,13 +53,18 @@ async def test_db() -> AsyncGenerator[AsyncSession, None]:
     """
     # StaticPool로 모든 연결이 같은 in-memory DB 공유
     engine = create_async_engine(
-        TEST_DATABASE_URL, echo=False, poolclass=StaticPool, connect_args={"check_same_thread": False}
+        TEST_DATABASE_URL,
+        echo=False,
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False},
     )
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    test_session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    test_session_maker = async_sessionmaker(
+        bind=engine, class_=AsyncSession, expire_on_commit=False
+    )
 
     # Dependency override 함수
     async def override_get_db():
@@ -114,7 +119,10 @@ def exclude_keywords_sample():
 async def test_user(test_db: AsyncSession) -> User:
     """테스트용 사용자 생성"""
     user = User(
-        email="test@example.com", hashed_password=get_password_hash("TestPass123!"), is_active=True, is_superuser=False
+        email="test@example.com",
+        hashed_password=get_password_hash("TestPass123!"),
+        is_active=True,
+        is_superuser=False,
     )
     test_db.add(user)
     await test_db.commit()
@@ -126,7 +134,10 @@ async def test_user(test_db: AsyncSession) -> User:
 async def test_superuser(test_db: AsyncSession) -> User:
     """테스트용 슈퍼유저 생성"""
     user = User(
-        email="admin@example.com", hashed_password=get_password_hash("AdminPass123!"), is_active=True, is_superuser=True
+        email="admin@example.com",
+        hashed_password=get_password_hash("AdminPass123!"),
+        is_active=True,
+        is_superuser=True,
     )
     test_db.add(user)
     await test_db.commit()
@@ -152,7 +163,9 @@ def auth_headers(auth_token: str) -> dict:
 
 
 @pytest.fixture
-async def sample_bid(test_db: AsyncSession, sample_announcement_data: dict) -> BidAnnouncement:
+async def sample_bid(
+    test_db: AsyncSession, sample_announcement_data: dict
+) -> BidAnnouncement:
     """DB에 저장된 샘플 공고"""
     bid = BidAnnouncement(
         title=sample_announcement_data["title"],
@@ -297,7 +310,9 @@ def mock_openai():
     with patch("app.services.rag_service.ChatOpenAI") as mock:
         mock_llm = AsyncMock()
         mock_response = MagicMock()
-        mock_response.content = "테스트 요약 결과입니다. 주요 키워드: 테스트, 입찰, 공고"
+        mock_response.content = (
+            "테스트 요약 결과입니다. 주요 키워드: 테스트, 입찰, 공고"
+        )
         mock_llm.apredict_messages = AsyncMock(return_value=mock_response)
 
         mock.return_value = mock_llm
@@ -318,12 +333,16 @@ async def async_client(test_db: AsyncSession) -> AsyncGenerator[AsyncClient, Non
 
 
 @pytest.fixture
-async def authenticated_client(test_user: User, test_db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+async def authenticated_client(
+    test_user: User, test_db: AsyncSession
+) -> AsyncGenerator[AsyncClient, None]:
     """인증된 비동기 HTTP 클라이언트 - test_db, test_user 의존"""
     token = create_access_token(subject=test_user.email)
     headers = {"Authorization": f"Bearer {token}"}
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as client:
+    async with AsyncClient(
+        transport=transport, base_url="http://test", headers=headers
+    ) as client:
         yield client
 
 

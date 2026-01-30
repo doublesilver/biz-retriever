@@ -21,12 +21,18 @@ class RateLimiter:
 
     def __init__(self):
         try:
-            self.redis_client = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, decode_responses=True)
+            self.redis_client = redis.Redis(
+                host=settings.REDIS_HOST,
+                port=settings.REDIS_PORT,
+                decode_responses=True,
+            )
             self.enabled = True
         except Exception:
             self.enabled = False
 
-    def check_rate_limit(self, key: str, max_requests: int = 10, window_seconds: int = 60) -> bool:
+    def check_rate_limit(
+        self, key: str, max_requests: int = 10, window_seconds: int = 60
+    ) -> bool:
         """
         Check if request is within rate limit
 

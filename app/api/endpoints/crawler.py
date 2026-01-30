@@ -35,21 +35,21 @@ async def trigger_manual_crawl(current_user: deps.CurrentUser):
         return {
             "task_id": result.task_id,
             "status": "started",
-            "message": "G2B 크롤링이 시작되었습니다."
+            "message": "G2B 크롤링이 시작되었습니다.",
         }
 
     except ImportError as e:
         logger.error(f"Taskiq 태스크 임포트 실패: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=503,
-            detail=f"크롤링 모듈을 로드할 수 없습니다. (원인: {str(e)})"
+            detail=f"크롤링 모듈을 로드할 수 없습니다. (원인: {str(e)})",
         )
     except Exception as e:
         error_type = type(e).__name__
         logger.error(f"크롤링 트리거 실패 [{error_type}]: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=503,
-            detail=f"크롤링 서비스를 시작할 수 없습니다. ({error_type}: {str(e)})"
+            detail=f"크롤링 서비스를 시작할 수 없습니다. ({error_type}: {str(e)})",
         )
 
 
@@ -70,7 +70,7 @@ async def check_crawl_status(
     if not re.match(r"^[a-zA-Z0-9\-]+$", task_id):
         raise HTTPException(
             status_code=400,
-            detail="Task ID는 영문자, 숫자, 하이픈만 포함할 수 있습니다."
+            detail="Task ID는 영문자, 숫자, 하이픈만 포함할 수 있습니다.",
         )
 
     # Taskiq는 Celery의 AsyncResult 같은 기본 상태 조회 메커니즘이 없음
@@ -80,5 +80,5 @@ async def check_crawl_status(
         "task_id": task_id,
         "status": "unknown",
         "message": "Taskiq 작업 상태 조회는 별도 구현이 필요합니다. Redis 또는 DB에서 상태를 저장/조회하는 로직을 추가하세요.",
-        "note": "크롤링 결과는 DB의 BidAnnouncement 테이블을 확인하세요."
+        "note": "크롤링 결과는 DB의 BidAnnouncement 테이블을 확인하세요.",
     }

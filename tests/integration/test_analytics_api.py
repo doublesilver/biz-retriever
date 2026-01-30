@@ -21,7 +21,9 @@ class TestAnalyticsAPI:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_summary_success(self, authenticated_client: AsyncClient, multiple_bids):
+    async def test_summary_success(
+        self, authenticated_client: AsyncClient, multiple_bids
+    ):
         """통계 요약 조회 성공"""
         response = await authenticated_client.get("/api/v1/analytics/summary")
 
@@ -51,7 +53,9 @@ class TestAnalyticsAPI:
     # ============================================
 
     @pytest.mark.asyncio
-    async def test_trends_default_30_days(self, authenticated_client: AsyncClient, multiple_bids):
+    async def test_trends_default_30_days(
+        self, authenticated_client: AsyncClient, multiple_bids
+    ):
         """기본 30일 트렌드"""
         response = await authenticated_client.get("/api/v1/analytics/trends")
 
@@ -60,21 +64,27 @@ class TestAnalyticsAPI:
         assert isinstance(data, list)
 
     @pytest.mark.asyncio
-    async def test_trends_custom_days(self, authenticated_client: AsyncClient, multiple_bids):
+    async def test_trends_custom_days(
+        self, authenticated_client: AsyncClient, multiple_bids
+    ):
         """사용자 지정 기간"""
         response = await authenticated_client.get("/api/v1/analytics/trends?days=7")
 
         assert response.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_trends_invalid_days_negative(self, authenticated_client: AsyncClient):
+    async def test_trends_invalid_days_negative(
+        self, authenticated_client: AsyncClient
+    ):
         """음수 days - 422"""
         response = await authenticated_client.get("/api/v1/analytics/trends?days=-1")
 
         assert response.status_code == 422
 
     @pytest.mark.asyncio
-    async def test_trends_invalid_days_too_large(self, authenticated_client: AsyncClient):
+    async def test_trends_invalid_days_too_large(
+        self, authenticated_client: AsyncClient
+    ):
         """너무 큰 days - 422"""
         response = await authenticated_client.get("/api/v1/analytics/trends?days=1000")
 
@@ -92,7 +102,9 @@ class TestAnalyticsAPI:
     # ============================================
 
     @pytest.mark.asyncio
-    async def test_deadline_alerts_success(self, authenticated_client: AsyncClient, multiple_bids):
+    async def test_deadline_alerts_success(
+        self, authenticated_client: AsyncClient, multiple_bids
+    ):
         """마감 임박 공고 조회"""
         response = await authenticated_client.get("/api/v1/analytics/deadline-alerts")
 
@@ -108,7 +120,9 @@ class TestAnalyticsAPI:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_deadline_alerts_response_format(self, authenticated_client: AsyncClient, multiple_bids):
+    async def test_deadline_alerts_response_format(
+        self, authenticated_client: AsyncClient, multiple_bids
+    ):
         """응답 형식 확인"""
         response = await authenticated_client.get("/api/v1/analytics/deadline-alerts")
 

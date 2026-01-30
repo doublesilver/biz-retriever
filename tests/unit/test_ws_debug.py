@@ -15,7 +15,10 @@ client = TestClient(app)
 
 @pytest.mark.asyncio
 async def test_debug_ws_no_token():
-    with patch("app.api.endpoints.websocket.get_current_user_from_token", new_callable=AsyncMock) as mock_auth:
+    with patch(
+        "app.api.endpoints.websocket.get_current_user_from_token",
+        new_callable=AsyncMock,
+    ) as mock_auth:
         mock_auth.return_value = None
 
         with pytest.raises(WebSocketDisconnect) as e:

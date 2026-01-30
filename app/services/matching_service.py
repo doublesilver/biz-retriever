@@ -21,11 +21,15 @@ class MatchingService:
                 from google import genai
 
                 self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-                logger.info("MatchingService: Gemini 2.5 Flash client initialized for Semantic Search")
+                logger.info(
+                    "MatchingService: Gemini 2.5 Flash client initialized for Semantic Search"
+                )
             except Exception as e:
                 logger.error(f"Failed to initialize Gemini in MatchingService: {e}")
 
-    def check_hard_match(self, user_profile: UserProfile, bid: BidAnnouncement) -> Dict[str, Any]:
+    def check_hard_match(
+        self, user_profile: UserProfile, bid: BidAnnouncement
+    ) -> Dict[str, Any]:
         """
         Hard Match 실행
 
@@ -44,7 +48,9 @@ class MatchingService:
             if not user_profile.location_code:
                 reasons.append(f"사용자 지역 정보 없음 (공고 제한: {bid.region_code})")
             elif user_profile.location_code != bid.region_code:
-                reasons.append(f"지역 불일치 (공고: {bid.region_code}, 사용자: {user_profile.location_code})")
+                reasons.append(
+                    f"지역 불일치 (공고: {bid.region_code}, 사용자: {user_profile.location_code})"
+                )
 
         # 2. 면허 제한 확인 (License Requirements)
         if bid.license_requirements:
@@ -66,7 +72,9 @@ class MatchingService:
                     break
 
             if not has_valid_license:
-                reasons.append(f"필요 면허 미보유 (요구: {', '.join(bid.license_requirements)})")
+                reasons.append(
+                    f"필요 면허 미보유 (요구: {', '.join(bid.license_requirements)})"
+                )
 
         # 3. 실적 제한 확인 (Minimum Performance)
         if bid.min_performance and bid.min_performance > 0:
@@ -77,11 +85,15 @@ class MatchingService:
                 max_user_perf = max([p.amount for p in user_profile.performances])
 
             if max_user_perf < bid.min_performance:
-                reasons.append(f"실적 기준 미달 (요구: {bid.min_performance:,}원, 보유최대: {max_user_perf:,}원)")
+                reasons.append(
+                    f"실적 기준 미달 (요구: {bid.min_performance:,}원, 보유최대: {max_user_perf:,}원)"
+                )
 
         return {"is_match": len(reasons) == 0, "reasons": reasons}
 
-    def calculate_soft_match(self, user_profile: UserProfile, bid: BidAnnouncement) -> Dict[str, Any]:
+    def calculate_soft_match(
+        self, user_profile: UserProfile, bid: BidAnnouncement
+    ) -> Dict[str, Any]:
         """
         Soft Match 실행 (정성적 평가)
 
@@ -116,9 +128,13 @@ class MatchingService:
                 matched_in_content.append(k)
 
         if matched_in_title:
-            breakdown.append(f"제목 키워드 포함 (+{len(matched_in_title)*20}): {', '.join(matched_in_title)}")
+            breakdown.append(
+                f"제목 키워드 포함 (+{len(matched_in_title)*20}): {', '.join(matched_in_title)}"
+            )
         if matched_in_content:
-            breakdown.append(f"본문 키워드 포함 (+{len(matched_in_content)*5}): {', '.join(matched_in_content)}")
+            breakdown.append(
+                f"본문 키워드 포함 (+{len(matched_in_content)*5}): {', '.join(matched_in_content)}"
+            )
 
         score += keyword_score
 
@@ -132,14 +148,18 @@ class MatchingService:
         # 3. 중요도 점수 반영 (1~3점 -> 5, 10, 15점)
         importance_bonus = (bid.importance_score or 1) * 5
         score += importance_bonus
-        breakdown.append(f"공고 중요도({bid.importance_score}) 반영 (+{importance_bonus})")
+        breakdown.append(
+            f"공고 중요도({bid.importance_score}) 반영 (+{importance_bonus})"
+        )
 
         # 점수 보정 (0 ~ 100)
         final_score = min(max(score, 0), 100)
 
         return {"score": final_score, "breakdown": breakdown}
 
-    async def calculate_semantic_match(self, user_query: str, bid: BidAnnouncement) -> Dict[str, Any]:
+    async def calculate_semantic_match(
+        self, user_query: str, bid: BidAnnouncement
+    ) -> Dict[str, Any]:
         """
         Gemini 2.5 Flash를 사용하여 사용자의 자연어 쿼리와 입찰 공고 간의 의미적 유사도를 계산합니다.
 
@@ -181,14 +201,18 @@ class MatchingService:
         try:
             # Run blocking Gemini call in thread pool
             response = await asyncio.to_thread(
-                self.client.models.generate_content, model="gemini-2.5-flash", contents=prompt
+                self.client.models.generate_content,
+                model="gemini-2.5-flash",
+                contents=prompt,
             )
 
             # Raw response processing
             raw_text = response.text.strip()
             # Clean markdown code blocks if present
             if raw_text.startswith("```json"):
-                raw_text = raw_text.replace("```json", "", 1).replace("```", "", 1).strip()
+                raw_text = (
+                    raw_text.replace("```json", "", 1).replace("```", "", 1).strip()
+                )
             elif raw_text.startswith("```"):
                 raw_text = raw_text.replace("```", "", 1).strip()
 
@@ -203,7 +227,11 @@ class MatchingService:
                 return {"score": score, "reasoning": reasoning, "error": None}
             except json.JSONDecodeError:
                 logger.error(f"Gemini JSON Parse Error. Raw: {raw_text}")
-                return {"score": 0.0, "reasoning": f"JSON Parse Error: {raw_text[:50]}...", "error": "JSON Parse Error"}
+                return {
+                    "score": 0.0,
+                    "reasoning": f"JSON Parse Error: {raw_text[:50]}...",
+                    "error": "JSON Parse Error",
+                }
 
         except Exception as e:
             logger.error(f"Gemini Semantic Match Error: {e}")

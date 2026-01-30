@@ -15,7 +15,9 @@ class InsufficientDataError(BizRetrieverException):
     def __init__(self, required: int, actual: int):
         self.required = required
         self.actual = actual
-        super().__init__(f"Insufficient training data: required {required}, got {actual}")
+        super().__init__(
+            f"Insufficient training data: required {required}, got {actual}"
+        )
 
 
 class CrawlerError(BizRetrieverException):

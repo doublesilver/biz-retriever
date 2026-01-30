@@ -29,9 +29,21 @@ class SubscriptionService:
         Return limits for the given plan.
         """
         limits = {
-            "free": {"hard_match_limit": 3, "ai_analysis_limit": 5, "keywords_limit": 5},
-            "basic": {"hard_match_limit": 50, "ai_analysis_limit": 100, "keywords_limit": 20},
-            "pro": {"hard_match_limit": 9999, "ai_analysis_limit": 9999, "keywords_limit": 100},
+            "free": {
+                "hard_match_limit": 3,
+                "ai_analysis_limit": 5,
+                "keywords_limit": 5,
+            },
+            "basic": {
+                "hard_match_limit": 50,
+                "ai_analysis_limit": 100,
+                "keywords_limit": 20,
+            },
+            "pro": {
+                "hard_match_limit": 9999,
+                "ai_analysis_limit": 9999,
+                "keywords_limit": 100,
+            },
         }
         return limits.get(plan_name, limits["free"])
 

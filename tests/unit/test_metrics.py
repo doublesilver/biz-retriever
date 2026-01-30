@@ -27,18 +27,26 @@ class TestHTTPMetrics:
 
     def test_http_requests_total_increment(self):
         """HTTP 요청 카운터 증가"""
-        before = HTTP_REQUESTS_TOTAL.labels(method="GET", endpoint="/test", status_code="200")._value.get()
+        before = HTTP_REQUESTS_TOTAL.labels(
+            method="GET", endpoint="/test", status_code="200"
+        )._value.get()
 
-        HTTP_REQUESTS_TOTAL.labels(method="GET", endpoint="/test", status_code="200").inc()
+        HTTP_REQUESTS_TOTAL.labels(
+            method="GET", endpoint="/test", status_code="200"
+        ).inc()
 
-        after = HTTP_REQUESTS_TOTAL.labels(method="GET", endpoint="/test", status_code="200")._value.get()
+        after = HTTP_REQUESTS_TOTAL.labels(
+            method="GET", endpoint="/test", status_code="200"
+        )._value.get()
 
         assert after == before + 1
 
     def test_http_request_duration_observe(self):
         """HTTP 요청 시간 히스토그램 기록"""
         # 0.1초 기록
-        HTTP_REQUEST_DURATION_SECONDS.labels(method="GET", endpoint="/test").observe(0.1)
+        HTTP_REQUEST_DURATION_SECONDS.labels(method="GET", endpoint="/test").observe(
+            0.1
+        )
 
         # 에러 없이 실행되면 성공
 
@@ -96,11 +104,15 @@ class TestCrawlerMetrics:
 
     def test_record_announcement_collected(self):
         """공고 수집 기록"""
-        before = CRAWLER_ANNOUNCEMENTS_COLLECTED.labels(source="Onbid", importance_score="3")._value.get()
+        before = CRAWLER_ANNOUNCEMENTS_COLLECTED.labels(
+            source="Onbid", importance_score="3"
+        )._value.get()
 
         record_announcement_collected(source="Onbid", importance_score=3)
 
-        after = CRAWLER_ANNOUNCEMENTS_COLLECTED.labels(source="Onbid", importance_score="3")._value.get()
+        after = CRAWLER_ANNOUNCEMENTS_COLLECTED.labels(
+            source="Onbid", importance_score="3"
+        )._value.get()
 
         assert after == before + 1
 
@@ -147,21 +159,29 @@ class TestNotificationMetrics:
 
     def test_record_notification_sent_success(self):
         """알림 발송 성공 기록"""
-        before = NOTIFICATIONS_SENT_TOTAL.labels(channel="slack", type="important", status="success")._value.get()
+        before = NOTIFICATIONS_SENT_TOTAL.labels(
+            channel="slack", type="important", status="success"
+        )._value.get()
 
         record_notification_sent("slack", "important", success=True)
 
-        after = NOTIFICATIONS_SENT_TOTAL.labels(channel="slack", type="important", status="success")._value.get()
+        after = NOTIFICATIONS_SENT_TOTAL.labels(
+            channel="slack", type="important", status="success"
+        )._value.get()
 
         assert after == before + 1
 
     def test_record_notification_sent_failure(self):
         """알림 발송 실패 기록"""
-        before = NOTIFICATIONS_SENT_TOTAL.labels(channel="slack", type="alert", status="failure")._value.get()
+        before = NOTIFICATIONS_SENT_TOTAL.labels(
+            channel="slack", type="alert", status="failure"
+        )._value.get()
 
         record_notification_sent("slack", "alert", success=False)
 
-        after = NOTIFICATIONS_SENT_TOTAL.labels(channel="slack", type="alert", status="failure")._value.get()
+        after = NOTIFICATIONS_SENT_TOTAL.labels(
+            channel="slack", type="alert", status="failure"
+        )._value.get()
 
         assert after == before + 1
 
@@ -171,11 +191,15 @@ class TestCeleryMetrics:
 
     def test_record_celery_task(self):
         """Celery 작업 기록"""
-        before = CELERY_TASKS_TOTAL.labels(task_name="crawl_g2b", status="success")._value.get()
+        before = CELERY_TASKS_TOTAL.labels(
+            task_name="crawl_g2b", status="success"
+        )._value.get()
 
         record_celery_task("crawl_g2b", "success", duration=5.5)
 
-        after = CELERY_TASKS_TOTAL.labels(task_name="crawl_g2b", status="success")._value.get()
+        after = CELERY_TASKS_TOTAL.labels(
+            task_name="crawl_g2b", status="success"
+        )._value.get()
 
         assert after == before + 1
 

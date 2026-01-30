@@ -23,14 +23,20 @@ class TestAnalysisAPI:
     @pytest.mark.asyncio
     async def test_predict_price_not_found(self, authenticated_client: AsyncClient):
         """공고 없음 - 404"""
-        response = await authenticated_client.get("/api/v1/analysis/predict-price/99999")
+        response = await authenticated_client.get(
+            "/api/v1/analysis/predict-price/99999"
+        )
 
         assert response.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_predict_price_success(self, authenticated_client: AsyncClient, sample_bid):
+    async def test_predict_price_success(
+        self, authenticated_client: AsyncClient, sample_bid
+    ):
         """투찰가 예측 성공"""
-        response = await authenticated_client.get(f"/api/v1/analysis/predict-price/{sample_bid.id}")
+        response = await authenticated_client.get(
+            f"/api/v1/analysis/predict-price/{sample_bid.id}"
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -45,21 +51,27 @@ class TestAnalysisAPI:
         assert "confidence" in prediction
 
     @pytest.mark.asyncio
-    async def test_predict_price_invalid_id_zero(self, authenticated_client: AsyncClient):
+    async def test_predict_price_invalid_id_zero(
+        self, authenticated_client: AsyncClient
+    ):
         """ID가 0인 경우 - 422"""
         response = await authenticated_client.get("/api/v1/analysis/predict-price/0")
 
         assert response.status_code == 422
 
     @pytest.mark.asyncio
-    async def test_predict_price_invalid_id_negative(self, authenticated_client: AsyncClient):
+    async def test_predict_price_invalid_id_negative(
+        self, authenticated_client: AsyncClient
+    ):
         """음수 ID - 422"""
         response = await authenticated_client.get("/api/v1/analysis/predict-price/-1")
 
         assert response.status_code == 422
 
     @pytest.mark.asyncio
-    async def test_predict_price_no_estimated_price(self, authenticated_client: AsyncClient, test_db):
+    async def test_predict_price_no_estimated_price(
+        self, authenticated_client: AsyncClient, test_db
+    ):
         """추정가 없는 공고 - 400"""
         from datetime import datetime
 
@@ -78,7 +90,9 @@ class TestAnalysisAPI:
         await test_db.commit()
         await test_db.refresh(bid)
 
-        response = await authenticated_client.get(f"/api/v1/analysis/predict-price/{bid.id}")
+        response = await authenticated_client.get(
+            f"/api/v1/analysis/predict-price/{bid.id}"
+        )
 
         assert response.status_code == 400
         assert "추정가" in response.json()["detail"]
