@@ -6,8 +6,15 @@ Phase 8: Email notification system for bid alerts
 import os
 from typing import List, Optional
 
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Content, Email, Mail, Personalization, To
+try:
+    from sendgrid import SendGridAPIClient
+    from sendgrid.helpers.mail import Content, Email, Mail, Personalization, To
+
+    SENDGRID_AVAILABLE = True
+except ImportError:
+    SENDGRID_AVAILABLE = False
+    SendGridAPIClient = None
+    Mail = None
 
 from app.core.config import settings
 from app.core.logging import logger
@@ -19,6 +26,11 @@ class EmailService:
     """
 
     def __init__(self):
+        if not SENDGRID_AVAILABLE:
+            self.client = None
+            logger.warning("EmailService: SendGrid package not installed. Email notifications disabled.")
+            return
+
         self.api_key = os.getenv(
             "SENDGRID_API_KEY", settings.SENDGRID_API_KEY if hasattr(settings, "SENDGRID_API_KEY") else None
         )
