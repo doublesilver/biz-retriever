@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
+from app.core.cache import get_cached, set_cached
 from app.core.constants import ALLOWED_FILE_EXTENSIONS, MAX_FILE_SIZE_BYTES
 from app.core.logging import logger
 from app.db.models import BidAnnouncement, User
@@ -106,7 +107,6 @@ async def update_bid(
 
 
 @router.get("/", response_model=BidListResponse)
-# @cache(expire=300)  # TODO: Re-implement with manual Redis caching
 async def read_bids(
     skip: int = Query(default=0, ge=0, description="건너뛸 개수"),
     limit: int = Query(default=100, ge=1, le=500, description="조회 개수 (최대 500)"),
@@ -115,13 +115,19 @@ async def read_bids(
     repo: BidRepository = Depends(deps.get_bid_repository),
 ):
     """
-    Retrieve bids with optional filtering and caching (60s).
+    Retrieve bids with optional filtering and caching (5분).
 
     - **skip**: 건너뛸 개수 (기본 0)
     - **limit**: 조회 개수 (최대 500)
     - **keyword**: 제목/내용 검색 키워드
     - **agency**: 기관명 필터
     """
+    # Redis 캐시 확인 (5분 TTL)
+    cache_key = f"bids:list:{skip}:{limit}:{keyword or ''}:{agency or ''}"
+    cached_data = await get_cached(cache_key)
+    if cached_data:
+        return cached_data
+    
     # SQL Injection prevention is handled by SQLAlchemy in Repository, so explicit stripping is not needed for security,
     # but strictly speaking, stripping implementation details is good.
     # However, the previous implementation was overly aggressive (replacing common chars).
@@ -141,11 +147,14 @@ async def read_bids(
     total_result = await repo.session.execute(select(func.count(BidAnnouncement.id)))
     total = total_result.scalar()
 
-    return {"items": bids, "total": total, "skip": skip, "limit": limit}
+    result = {"items": bids, "total": total, "skip": skip, "limit": limit}
+    
+    # Redis에 캐싱 (5분 TTL)
+    await set_cached(cache_key, result, expire=300)
+    return result
 
 
 @router.get("/matched", response_model=BidListResponse)
-# @cache(expire=180)  # TODO: Re-implement with manual Redis caching
 async def read_matching_bids(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=500),
@@ -158,6 +167,12 @@ async def read_matching_bids(
     - Checks Performance Capacity
     - Checks License Requirements
     """
+    # Redis 캐시 확인 (3분 TTL - 사용자별 맞춤 데이터)
+    cache_key = f"bids:matched:{current_user.id}:{skip}:{limit}"
+    cached_data = await get_cached(cache_key)
+    if cached_data:
+        return cached_data
+    
     if not current_user.full_profile:
         # If no profile, we can't match. Return empty.
         return {"items": [], "total": 0, "skip": skip, "limit": limit}
@@ -177,7 +192,11 @@ async def read_matching_bids(
     # For MVP Phase 3, we'll just set total = 9999 or len(bids).
     # Better: return len(bids) for now, acknowledging pagination limits total visibility.
 
-    return {"items": bids, "total": len(bids), "skip": skip, "limit": limit}  # Placeholder for actual total count
+    result = {"items": bids, "total": len(bids), "skip": skip, "limit": limit}  # Placeholder for actual total count
+    
+    # Redis에 캐싱 (3분 TTL)
+    await set_cached(cache_key, result, expire=180)
+    return result
 
 
 @router.post("/upload", response_model=BidResponse, status_code=status.HTTP_201_CREATED)

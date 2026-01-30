@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import get_cached, set_cached
 from app.core.logging import logger
 from app.core.security import get_current_user
 from app.db.models import BidAnnouncement, User
@@ -20,7 +21,6 @@ router = APIRouter()
 
 
 @router.get("/summary")
-# @cache(expire=300)  # TODO: Re-implement with manual Redis caching
 async def get_analytics_summary(
     session: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ) -> Dict:
@@ -30,6 +30,12 @@ async def get_analytics_summary(
     Returns:
         전체/주간/중요 공고 수, 평균 금액, TOP 기관 등
     """
+    # Redis 캐시 확인 (5분 TTL)
+    cache_key = "analytics:summary"
+    cached_data = await get_cached(cache_key)
+    if cached_data:
+        return cached_data
+    
     # 전체 공고 수
     total_result = await session.execute(select(func.count(BidAnnouncement.id)))
     total_bids = total_result.scalar()
@@ -71,7 +77,7 @@ async def get_analytics_summary(
 
     logger.info(f"Analytics 조회: total={total_bids}, week={this_week}")
 
-    return {
+    result = {
         "total_bids": total_bids,
         "this_week": this_week,
         "high_importance": high_importance,
@@ -80,10 +86,13 @@ async def get_analytics_summary(
         "by_source": by_source,
         "trend": {"week_growth": round((this_week / max(total_bids - this_week, 1)) * 100, 1)},
     }
+    
+    # Redis에 캐싱 (5분 TTL)
+    await set_cached(cache_key, result, expire=300)
+    return result
 
 
 @router.get("/trends")
-# @cache(expire=600)  # TODO: Re-implement with manual Redis caching
 async def get_trends(
     days: int = Query(default=30, ge=1, le=365, description="조회 기간 (1-365일)"),
     session: AsyncSession = Depends(get_db),
@@ -97,6 +106,12 @@ async def get_trends(
     Returns:
         일별 공고 수 및 중요도별 분포
     """
+    # Redis 캐시 확인 (10분 TTL)
+    cache_key = f"analytics:trends:{days}"
+    cached_data = await get_cached(cache_key)
+    if cached_data:
+        return cached_data
+    
     start_date = datetime.utcnow() - timedelta(days=days)
 
     # 일별 집계
@@ -129,7 +144,11 @@ async def get_trends(
         else:
             trends[date_str]["low"] += count
 
-    return list(trends.values())
+    result = list(trends.values())
+    
+    # Redis에 캐싱 (10분 TTL)
+    await set_cached(cache_key, result, expire=600)
+    return result
 
 
 @router.get("/deadline-alerts")
@@ -142,6 +161,12 @@ async def get_deadline_alerts(
     Returns:
         24시간 이내 마감 예정 공고
     """
+    # Redis 캐시 확인 (3분 TTL - 마감 알림은 자주 업데이트)
+    cache_key = "analytics:deadline_alerts"
+    cached_data = await get_cached(cache_key)
+    if cached_data:
+        return cached_data
+    
     now = datetime.utcnow()
     tomorrow = now + timedelta(hours=24)
 
@@ -160,7 +185,7 @@ async def get_deadline_alerts(
 
     urgent_bids = result.scalars().all()
 
-    return [
+    alerts = [
         {
             "id": bid.id,
             "title": bid.title,
@@ -172,3 +197,7 @@ async def get_deadline_alerts(
         }
         for bid in urgent_bids
     ]
+    
+    # Redis에 캐싱 (3분 TTL)
+    await set_cached(cache_key, alerts, expire=180)
+    return alerts
