@@ -1,5 +1,8 @@
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, status
+from fastapi.exceptions import RequestValidationError, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -149,23 +152,94 @@ Bearer Token 방식의 JWT 인증을 사용합니다.
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# ============================================
+# Global Exception Handlers
+# ============================================
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    HTTP 예외 처리 - 사용자 친화적 메시지 반환
+    """
+    logger.warning(f"HTTP Exception: {exc.status_code} - {exc.detail} - Path: {request.url.path}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": True,
+            "status_code": exc.status_code,
+            "message": exc.detail,
+            "path": str(request.url.path)
+        }
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    요청 검증 실패 처리 - Pydantic 유효성 검사 오류
+    """
+    errors = []
+    for error in exc.errors():
+        field = " -> ".join(str(loc) for loc in error["loc"])
+        message = error["msg"]
+        errors.append(f"{field}: {message}")
+    
+    error_message = "; ".join(errors)
+    logger.warning(f"Validation Error: {error_message} - Path: {request.url.path}")
+    
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error": True,
+            "status_code": 422,
+            "message": "입력값 검증에 실패했습니다",
+            "details": errors,
+            "path": str(request.url.path)
+        }
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """
+    일반 예외 처리 - 예상치 못한 서버 오류
+    """
+    # 개발 환경에서는 상세 오류 로그, 프로덕션에서는 제한적 정보
+    logger.error(f"Unhandled Exception: {type(exc).__name__}: {str(exc)} - Path: {request.url.path}", exc_info=True)
+    
+    # 프로덕션 환경에서는 상세 에러 정보를 숨김
+    if os.getenv("ENVIRONMENT", "development") == "production":
+        error_detail = "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+    else:
+        error_detail = f"{type(exc).__name__}: {str(exc)}"
+    
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": True,
+            "status_code": 500,
+            "message": error_detail,
+            "path": str(request.url.path)
+        }
+    )
+
+# TrustedHost 미들웨어 - Host 헤더 검증 (Host Header Injection 공격 방지)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["leeeunseok.tail32c3e2.ts.net", "localhost", "127.0.0.1"]
+)
+
 # Prometheus 메트릭 미들웨어 등록
 app.add_middleware(PrometheusMiddleware)
 
 # CORS 설정 - 허용 도메인 구성
-cors_origins = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
-    "https://leeeunseok.tail32c3e2.ts.net", # Tailscale Funnel Public Domain
-]
+cors_origins = settings.CORS_ORIGINS
 
 if settings.PRODUCTION_DOMAIN:
     cors_origins.append(settings.PRODUCTION_DOMAIN)
 
-# Add internal IP for local network access (optional, can be removed for maximum security)
-cors_origins.append("http://100.75.72.6:3001")
+# Local Test Frontend
+cors_origins.append("http://localhost:8081")
 
 app.add_middleware(
     CORSMiddleware,
