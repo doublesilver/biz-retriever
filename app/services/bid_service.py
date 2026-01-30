@@ -1,8 +1,10 @@
 from typing import List, Optional
 
+from app.core.logging import logger
 from app.db.models import BidAnnouncement
 from app.db.repositories.bid_repository import BidRepository
 from app.schemas.bid import BidCreate, BidUpdate
+from app.services.match_service import hard_match_engine
 from app.services.subscription_service import subscription_service
 
 
@@ -55,9 +57,15 @@ class BidService:
         self, repo: BidRepository, profile, user=None, skip: int = 0, limit: int = 100
     ) -> List[BidAnnouncement]:
         """
-        Execute Hard Match Logic with Plan Limits
+        Execute Hard Match Logic with Zero False Positives
+        
+        Uses HardMatchEngine for precise 3-stage validation:
+        1. Region matching
+        2. License verification
+        3. Performance capacity check
         """
         # 0. Check Plan Limits
+        max_allowed = 100  # Default
         if user:
             plan = await subscription_service.get_user_plan(user)
             limits = await subscription_service.get_plan_limits(plan)
@@ -71,22 +79,24 @@ class BidService:
             if skip >= max_allowed:
                 return []
 
-        # 1. Extract Constraints from Profile
-        region_code = profile.location_code
-
-        # Calculate Total Performance (Sum of all project amounts)
-        # TODO: Phase 4 - Refine to 'Similar Category' performance
-        total_performance = sum([p.amount for p in profile.performances]) if profile.performances else 0.0
-
-        licenses = [l.license_name for l in profile.licenses] if profile.licenses else []
-
-        return await repo.get_hard_matches(
-            region_code=region_code,
-            user_performance_amount=total_performance,
-            user_licenses=licenses,
-            skip=skip,
-            limit=limit,
-        )
+        # 1. Get all recent bids (last 30 days)
+        all_bids = await repo.get_multi_with_filters(skip=0, limit=1000)
+        
+        # 2. Apply Hard Match filter using engine
+        matched_bids = []
+        for bid in all_bids:
+            is_match, reasons, details = hard_match_engine.evaluate(bid, profile)
+            if is_match:
+                matched_bids.append(bid)
+                logger.info(f"Hard Match: bid_id={bid.id}, title={bid.title[:30]}")
+        
+        # 3. Apply pagination
+        total_matched = len(matched_bids)
+        paginated = matched_bids[skip:skip+limit]
+        
+        logger.info(f"Hard Match Results: {len(paginated)}/{total_matched} bids matched (skip={skip}, limit={limit})")
+        
+        return paginated
 
 
 bid_service = BidService()

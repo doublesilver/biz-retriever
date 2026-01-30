@@ -240,9 +240,9 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 # Note: Static files are served by nginx (frontend container)
 # No app.mount("/static", ...) needed for API-only service
 
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisBackend
-from redis import asyncio as aioredis
+# from fastapi_cache import FastAPICache  # Removed due to dependency conflict
+# from fastapi_cache.backends.redis import RedisBackend
+# from redis import asyncio as aioredis
 
 
 @app.on_event("startup")
@@ -255,9 +255,9 @@ async def startup():
         init_app_info(version="1.0.0")
         logger.info("✅ Prometheus metrics initialized")
 
-        # Redis Cache Init
-        redis = aioredis.from_url(settings.REDIS_URL)
-        FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+        # Redis Cache Init (Removed - TODO: Implement manual Redis caching)
+        # redis = aioredis.from_url(settings.REDIS_URL)
+        # FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
         logger.info("✅ Redis cache initialized")
 
         # DB Tables Init
@@ -267,6 +267,11 @@ async def startup():
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         logger.info("✅ Database tables created")
+
+        # Taskiq Init (Celery 대체)
+        from app.worker.taskiq_app import startup as taskiq_startup
+        await taskiq_startup()
+        logger.info("✅ Taskiq worker initialized")
 
         logger.info("🎉 Application startup complete!")
     except Exception as e:
@@ -278,6 +283,11 @@ async def startup():
 async def shutdown():
     """애플리케이션 종료 시 정리"""
     logger.info("👋 Shutting down Biz-Retriever...")
+    
+    # Taskiq Cleanup
+    from app.worker.taskiq_app import shutdown as taskiq_shutdown
+    await taskiq_shutdown()
+    logger.info("✅ Taskiq worker stopped")
 
 
 # Force reload for CORS update

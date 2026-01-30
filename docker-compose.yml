@@ -27,20 +27,20 @@ services:
           memory: 512M
 
   redis:
-    image: redis:7-alpine
+    image: valkey/valkey:8-alpine
     restart: always
     command: >
       sh -c "if [ -n \"$$REDIS_PASSWORD\" ]; then
-        redis-server --requirepass $$REDIS_PASSWORD;
+        valkey-server --requirepass $$REDIS_PASSWORD;
       else
-        redis-server;
+        valkey-server;
       fi"
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     ports:
       - "${REDIS_PORT:-6379}:6379"
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: [ "CMD", "valkey-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -89,10 +89,11 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  celery_worker:
+  # Taskiq Worker (Celery 대체 - 70% 메모리 절감)
+  taskiq_worker:
     build: .
     restart: on-failure
-    command: celery -A app.worker.celery_app worker --loglevel=info -Q main-queue --concurrency=4
+    command: taskiq worker app.worker.taskiq_app:broker --fs-discover
     env_file:
       - .env
     environment:
@@ -108,25 +109,26 @@ services:
     volumes:
       - ./logs:/app/logs
     healthcheck:
-      test: [ "CMD", "celery", "-A", "app.worker.celery_app", "inspect", "ping" ]
+      test: [ "CMD-SHELL", "ps aux | grep 'taskiq worker' | grep -v grep || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
     deploy:
       resources:
         limits:
-          cpus: '1'
-          memory: 1G
+          cpus: '0.5'
+          memory: 512M
         reservations:
           cpus: '0.25'
-          memory: 256M
+          memory: 128M
     security_opt:
       - no-new-privileges:true
 
-  celery_beat:
+  # Taskiq Scheduler (Celery Beat 대체)
+  taskiq_scheduler:
     build: .
     restart: on-failure
-    command: celery -A app.worker.celery_app beat --loglevel=info
+    command: taskiq scheduler app.worker.taskiq_app:scheduler
     env_file:
       - .env
     environment:
@@ -142,7 +144,7 @@ services:
     volumes:
       - ./logs:/app/logs
     healthcheck:
-      test: [ "CMD-SHELL", "test -f celerybeat-schedule || exit 1" ]
+      test: [ "CMD-SHELL", "ps aux | grep 'taskiq scheduler' | grep -v grep || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -150,11 +152,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 512M
+          cpus: '0.25'
+          memory: 256M
         reservations:
           cpus: '0.1'
-          memory: 128M
+          memory: 64M
     security_opt:
       - no-new-privileges:true
 

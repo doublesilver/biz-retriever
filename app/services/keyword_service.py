@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi_cache.decorator import cache
+# from fastapi_cache.decorator import cache  # Removed due to dependency conflict
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +9,7 @@ from app.db.models import ExcludeKeyword
 
 
 class KeywordService:
-    @cache(expire=3600)  # Cache for 1 hour
+    # @cache(expire=3600)  # Cache for 1 hour - TODO: Implement manual Redis caching
     async def get_active_keywords(self, session: AsyncSession) -> List[str]:
         """
         Get all active exclude keywords. Cached.

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List
 
 from fastapi import APIRouter, Depends, Query
+# from fastapi_cache.decorator import cache  # Removed due to dependency conflict
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +20,7 @@ router = APIRouter()
 
 
 @router.get("/summary")
+# @cache(expire=300)  # TODO: Re-implement with manual Redis caching
 async def get_analytics_summary(
     session: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ) -> Dict:
@@ -81,6 +83,7 @@ async def get_analytics_summary(
 
 
 @router.get("/trends")
+# @cache(expire=600)  # TODO: Re-implement with manual Redis caching
 async def get_trends(
     days: int = Query(default=30, ge=1, le=365, description="조회 기간 (1-365일)"),
     session: AsyncSession = Depends(get_db),

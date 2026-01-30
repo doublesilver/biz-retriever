@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from fastapi import (APIRouter, Depends, File, HTTPException, Path, Query,
                      UploadFile, status)
-from fastapi_cache.decorator import cache
+# from fastapi_cache.decorator import cache  # Removed due to dependency conflict
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,8 +39,8 @@ MAX_FILE_SIZE = MAX_FILE_SIZE_BYTES
 )
 async def create_bid(
     bid_in: BidCreate,
-    repo: BidRepository = Depends(deps.get_bid_repository),
-    current_user: User = Depends(deps.get_current_user),
+    repo: deps.BidRepo,
+    current_user: deps.CurrentUser,
 ):
     """
     새로운 입찰 공고를 생성합니다.
@@ -64,8 +64,8 @@ async def create_bid(
     },
 )
 async def read_bid(
+    repo: deps.BidRepo,
     bid_id: int = Path(..., ge=1, description="공고 ID (양수)", example=1),
-    repo: BidRepository = Depends(deps.get_bid_repository),
 ):
     """
     특정 입찰 공고의 상세 정보를 조회합니다.
@@ -88,10 +88,10 @@ async def read_bid(
     },
 )
 async def update_bid(
+    repo: deps.BidRepo,
+    current_user: deps.CurrentUser,
     bid_in: BidUpdate,
     bid_id: int = Path(..., ge=1, description="공고 ID"),
-    repo: BidRepository = Depends(deps.get_bid_repository),
-    current_user: User = Depends(deps.get_current_user),
 ):
     """
     입찰 공고의 상태 또는 담당자를 변경합니다.
@@ -106,7 +106,7 @@ async def update_bid(
 
 
 @router.get("/", response_model=BidListResponse)
-@cache(expire=60)
+# @cache(expire=300)  # TODO: Re-implement with manual Redis caching
 async def read_bids(
     skip: int = Query(default=0, ge=0, description="건너뛸 개수"),
     limit: int = Query(default=100, ge=1, le=500, description="조회 개수 (최대 500)"),
@@ -145,6 +145,7 @@ async def read_bids(
 
 
 @router.get("/matched", response_model=BidListResponse)
+# @cache(expire=180)  # TODO: Re-implement with manual Redis caching
 async def read_matching_bids(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=500),

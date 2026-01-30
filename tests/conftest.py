@@ -8,9 +8,9 @@ from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-# FastAPICache for testing
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
+# FastAPICache for testing (Removed due to dependency conflict)
+# from fastapi_cache import FastAPICache
+# from fastapi_cache.backends.inmemory import InMemoryBackend
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
                                     create_async_engine)
@@ -38,10 +38,10 @@ def event_loop():
 
 @pytest.fixture(scope="function", autouse=True)
 async def init_cache():
-    """테스트용 인메모리 캐시 초기화"""
-    FastAPICache.init(InMemoryBackend(), prefix="test-cache")
+    """테스트용 인메모리 캐시 초기화 (Disabled - fastapi_cache removed)"""
+    # FastAPICache.init(InMemoryBackend(), prefix="test-cache")
     yield
-    await FastAPICache.clear()
+    # await FastAPICache.clear()
 
 
 @pytest.fixture(scope="function")

@@ -1,10 +1,30 @@
 import os
 from typing import Any, Dict
 
+import instructor
+from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
 from app.core.logging import logger
+
+
+# ============================================
+# Pydantic Models for Type-Safe AI Output
+# ============================================
+
+class BidAnalysisResult(BaseModel):
+    """
+    입찰 공고 AI 분석 결과 (타입 안전)
+    
+    Instructor를 통해 LLM 출력이 자동으로 이 스키마에 맞게 검증됩니다.
+    JSON 파싱 오류, 필드 누락, 타입 불일치 등이 자동으로 방지됩니다.
+    """
+    summary: str = Field(..., description="공고 핵심 내용을 1문장으로 요약")
+    keywords: list[str] = Field(default_factory=list, description="중요 키워드 3-5개")
+    region_code: str | None = Field(None, description="공사/용역 현장 지역 (광역시도명 또는 '전국')")
+    license_requirements: list[str] = Field(default_factory=list, description="필요한 면허/자격 목록")
+    min_performance: float = Field(default=0.0, description="실적 제한 금액 (숫자, 없으면 0)")
 
 
 class RAGService:
@@ -45,81 +65,84 @@ class RAGService:
     async def analyze_bid(self, content: str) -> Dict[str, Any]:
         """
         입찰 공고 내용을 AI로 분석하여 요약 및 키워드 추출
+        
+        Instructor를 사용하여 타입 안전한 출력 보장:
+        - JSON 파싱 오류 자동 방지
+        - Pydantic 검증 통과 보장
+        - 필드 누락/타입 불일치 자동 재시도
         """
         if not self.api_key_type:
-            return {"summary": "AI 분석 불가: API 키가 설정되지 않았습니다.", "keywords": []}
+            return {
+                "summary": "AI 분석 불가: API 키가 설정되지 않았습니다.",
+                "keywords": [],
+                "region_code": None,
+                "license_requirements": [],
+                "min_performance": 0.0,
+            }
 
-        prompt = f"""다음 입찰 공고를 분석하여 JSON 형식으로 응답하라.
+        prompt = f"""다음 입찰 공고를 분석하세요:
 
-공고 내용:
 {content}
 
 필수 추출 항목:
 1. summary: 핵심 내용을 1문장으로 요약
-2. keywords: 중요 키워드 3~5개 (리스트)
-3. region_code: 공사/용역 현장 지역 (서울, 경기, 부산 등 광역시도 명칭. 전국이면 "전국")
-4. license_requirements: 참여에 필요한 면허/자격 목록 (리스트). 없으면 빈 리스트.
-5. min_performance: 실적 제한 금액 (숫자만, 없으면 0). "최근 3년 10억 이상" -> 1000000000
-
-응답 예시:
-{{
-    "summary": "서울시청 구내식당 위탁운영 사업자 선정",
-    "keywords": ["구내식당", "위탁운영", "급식"],
-    "region_code": "서울",
-    "license_requirements": ["식품접객업", "위생관리용역업"],
-    "min_performance": 500000000
-}}
+2. keywords: 중요 키워드 3-5개
+3. region_code: 공사/용역 현장 지역 (광역시도명 또는 '전국')
+4. license_requirements: 필요한 면허/자격 목록
+5. min_performance: 실적 제한 금액 (숫자, 없으면 0)
 """
 
         try:
-            result_json = {}
-
             if self.api_key_type == "gemini":
-                # Gemini API (JSON Mode)
-                from google.genai import types
-
-                response = self.client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=prompt,
-                    config=types.GenerateContentConfig(response_mime_type="application/json"),
+                # Instructor + Gemini (Type-Safe)
+                from google import genai
+                
+                gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+                
+                # Instructor로 Gemini 클라이언트 래핑
+                instructor_client = instructor.from_gemini(
+                    client=gemini_client,
+                    mode=instructor.Mode.GEMINI_JSON
                 )
-                import json
-
-                result_json = json.loads(response.text)
+                
+                # Pydantic 모델로 자동 검증된 응답 받기
+                result: BidAnalysisResult = instructor_client.chat.completions.create(
+                    model="gemini-2.0-flash-exp",
+                    response_model=BidAnalysisResult,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                
+                # Pydantic 모델을 dict로 변환
+                return result.model_dump()
 
             elif self.api_key_type == "openai":
-                # OpenAI API (JSON Mode)
-                payload = {
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {"role": "system", "content": "You are an AI assistant. Respond in JSON only."},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "temperature": 0,
-                    "response_format": {"type": "json_object"},
-                }
-                headers = {"Authorization": f"Bearer {settings.OPENAI_API_KEY}", "Content-Type": "application/json"}
-
-                response = await self.http_client.post(
-                    "https://api.openai.com/v1/chat/completions", json=payload, headers=headers
+                # Instructor + OpenAI (Type-Safe)
+                from openai import AsyncOpenAI
+                
+                openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+                
+                # Instructor로 OpenAI 클라이언트 래핑
+                instructor_client = instructor.from_openai(openai_client)
+                
+                # Pydantic 모델로 자동 검증된 응답 받기
+                result: BidAnalysisResult = await instructor_client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    response_model=BidAnalysisResult,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0,
                 )
-                response.raise_for_status()
-                data = response.json()
-                import json
-
-                result_json = json.loads(data["choices"][0]["message"]["content"])
-
-            return {
-                "summary": result_json.get("summary", "분석 실패"),
-                "keywords": result_json.get("keywords", []),
-                "region_code": result_json.get("region_code"),
-                "license_requirements": result_json.get("license_requirements", []),
-                "min_performance": float(result_json.get("min_performance", 0) or 0),
-            }
+                
+                return result.model_dump()
 
         except Exception as e:
             logger.error(f"AI 분석 중 오류 발생: {e}", exc_info=True)
-            return {"summary": f"분석 실패: {str(e)[:50]}", "keywords": []}
+            return {
+                "summary": f"분석 실패: {str(e)[:50]}",
+                "keywords": [],
+                "region_code": None,
+                "license_requirements": [],
+                "min_performance": 0.0,
+            }
 
 
 rag_service = RAGService()

@@ -20,21 +20,37 @@ router = APIRouter()
 
 
 class Token(BaseModel):
-    """JWT 액세스 토큰"""
+    """JWT 토큰 쌍 (Access + Refresh)"""
 
-    access_token: str = Field(..., description="JWT 액세스 토큰", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+    access_token: str = Field(..., description="JWT Access Token (15분 유효)", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+    refresh_token: str = Field(..., description="JWT Refresh Token (30일 유효)", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
     token_type: str = Field(default="bearer", description="토큰 타입", example="bearer")
 
     model_config = {
         "json_schema_extra": {
             "examples": [
                 {
-                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4MDk1NDEsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ...",
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                     "token_type": "bearer",
                 }
             ]
         }
     }
+
+
+class RefreshTokenRequest(BaseModel):
+    """Refresh Token 요청"""
+    
+    refresh_token: str = Field(..., description="JWT Refresh Token")
+
+
+class TokenRefreshResponse(BaseModel):
+    """Token Refresh 응답"""
+    
+    access_token: str = Field(..., description="새로 발급된 JWT Access Token")
+    refresh_token: str = Field(..., description="새로 발급된 JWT Refresh Token")
+    token_type: str = Field(default="bearer", description="토큰 타입")
 
 
 class UserCreate(BaseModel):
@@ -123,10 +139,11 @@ async def login_access_token(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
-    # 2. Create Token
-    access_token = security.create_access_token(subject=user.email)
+    # 2. Create Token Pair (Access + Refresh)
+    tokens = security.create_token_pair(subject=user.email)
     return {
-        "access_token": access_token,
+        "access_token": tokens["access_token"],
+        "refresh_token": tokens["refresh_token"],
         "token_type": "bearer",
     }
 
@@ -376,8 +393,8 @@ async def callback_sns(provider: str, code: str, state: Optional[str] = None, db
 
         await db.commit()
 
-    # Create JWT
-    access_token = security.create_access_token(subject=user.email)
+    # Create JWT Token Pair
+    tokens = security.create_token_pair(subject=user.email)
 
     # Redirect to Frontend with token in HttpOnly cookie (NOT in URL)
     redirect_url = f"{settings.FRONTEND_URL}/dashboard.html?login=success"
@@ -386,11 +403,87 @@ async def callback_sns(provider: str, code: str, state: Optional[str] = None, db
     # Set HttpOnly cookie for security (prevents XSS token theft)
     response.set_cookie(
         key="access_token",
-        value=access_token,
+        value=tokens["access_token"],
         httponly=True,
         secure=True,  # Only send over HTTPS
         samesite="lax",
-        max_age=60 * 60 * 24 * 8,  # 8 days
+        max_age=60 * 15,  # 15 minutes (shortened for security)
         path="/",
     )
+    
+    # Refresh Token (longer expiry)
+    response.set_cookie(
+        key="refresh_token",
+        value=tokens["refresh_token"],
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=60 * 60 * 24 * 30,  # 30 days
+        path="/",
+    )
+    
     return response
+
+
+@router.post(
+    "/refresh",
+    response_model=TokenRefreshResponse,
+    summary="토큰 갱신",
+    description="Refresh Token으로 새로운 Access Token과 Refresh Token을 발급받습니다.",
+    responses={
+        200: {
+            "description": "토큰 갱신 성공",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "token_type": "bearer"
+                    }
+                }
+            },
+        },
+        401: {
+            "description": "유효하지 않은 Refresh Token",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Invalid refresh token"}
+                }
+            },
+        },
+    },
+)
+@limiter.limit("10/minute")
+async def refresh_token(
+    request: Request,
+    refresh_request: RefreshTokenRequest,
+    db: AsyncSession = Depends(deps.get_db)
+) -> Any:
+    """
+    ## Refresh Token으로 토큰 갱신
+    
+    Access Token이 만료되었을 때 Refresh Token으로 새로운 토큰 쌍을 발급받습니다.
+    
+    ### 보안 강화
+    - Access Token 유효기간: 15분 (탈취 시 피해 최소화)
+    - Refresh Token 유효기간: 30일
+    - Refresh Token도 함께 갱신 (Rotation)
+    
+    ### 사용 방법
+    1. 로그인 시 받은 `refresh_token` 제공
+    2. 새로운 `access_token`과 `refresh_token` 수령
+    3. 기존 Refresh Token 폐기
+    """
+    # Verify Refresh Token and get user
+    user = await security.verify_refresh_token(refresh_request.refresh_token, db)
+    
+    # Create new token pair
+    tokens = security.create_token_pair(subject=user.email)
+    
+    logger.info(f"Token refreshed for user: {user.email}")
+    
+    return {
+        "access_token": tokens["access_token"],
+        "refresh_token": tokens["refresh_token"],
+        "token_type": "bearer",
+    }
