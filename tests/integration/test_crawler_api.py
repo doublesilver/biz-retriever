@@ -1,8 +1,10 @@
 """
 Crawler API 통합 테스트
 """
+
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from httpx import AsyncClient
 
 
@@ -23,7 +25,7 @@ class TestCrawlerAPI:
     @pytest.mark.asyncio
     async def test_trigger_crawl_success(self, authenticated_client: AsyncClient):
         """크롤링 트리거 성공"""
-        with patch('app.worker.tasks.crawl_g2b_bids') as mock_task:
+        with patch("app.worker.tasks.crawl_g2b_bids") as mock_task:
             mock_result = MagicMock()
             mock_result.id = "test-task-id-123"
             mock_task.delay.return_value = mock_result
@@ -38,7 +40,7 @@ class TestCrawlerAPI:
     @pytest.mark.asyncio
     async def test_trigger_crawl_exception(self, authenticated_client: AsyncClient):
         """크롤링 트리거 실패 (예외 발생) - 503 Service Unavailable"""
-        with patch('app.worker.tasks.crawl_g2b_bids') as mock_task:
+        with patch("app.worker.tasks.crawl_g2b_bids") as mock_task:
             # Mock exception
             mock_task.delay.side_effect = Exception("Redis connection failed")
 
@@ -49,7 +51,6 @@ class TestCrawlerAPI:
             assert "detail" in data
             assert "크롤링 서비스를 시작할 수 없습니다" in data["detail"]
 
-
     # ============================================
     # GET /crawler/status/{task_id} 테스트
     # ============================================
@@ -57,7 +58,7 @@ class TestCrawlerAPI:
     @pytest.mark.asyncio
     async def test_check_status_success(self, async_client: AsyncClient):
         """작업 상태 확인"""
-        with patch('app.api.endpoints.crawler.AsyncResult') as mock_async_result:
+        with patch("app.api.endpoints.crawler.AsyncResult") as mock_async_result:
             mock_task = MagicMock()
             mock_task.state = "PENDING"
             mock_task.ready.return_value = False
@@ -74,7 +75,7 @@ class TestCrawlerAPI:
     @pytest.mark.asyncio
     async def test_check_status_completed(self, async_client: AsyncClient):
         """완료된 작업 상태 확인"""
-        with patch('app.api.endpoints.crawler.AsyncResult') as mock_async_result:
+        with patch("app.api.endpoints.crawler.AsyncResult") as mock_async_result:
             mock_task = MagicMock()
             mock_task.state = "SUCCESS"
             mock_task.ready.return_value = True

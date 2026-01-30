@@ -1,12 +1,14 @@
+import logging
+from typing import List, Optional
 
 import httpx
-import logging
-from typing import Optional, List
-from app.db.models import User, BidAnnouncement, UserProfile
-from app.services.email_service import email_service
+
 from app.core.logging import logger as app_logger
+from app.db.models import BidAnnouncement, User, UserProfile
+from app.services.email_service import email_service
 
 logger = logging.getLogger(__name__)
+
 
 class NotificationService:
     @staticmethod
@@ -63,23 +65,21 @@ class NotificationService:
                     "estimated_price": f"{bid.estimated_price:,.0f}원" if bid.estimated_price else "미정",
                     "url": bid.url,
                     "ai_summary": bid.ai_summary,
-                    "keywords_matched": matched_keywords
+                    "keywords_matched": matched_keywords,
                 }
-                
+
                 # Get user name from profile or email
-                user_name = profile.company_name or user.email.split('@')[0]
-                
+                user_name = profile.company_name or user.email.split("@")[0]
+
                 # Send email alert
                 success = await email_service.send_bid_alert(
-                    to_email=user.email,
-                    user_name=user_name,
-                    bid_data=bid_data
+                    to_email=user.email, user_name=user_name, bid_data=bid_data
                 )
-                
+
                 if success:
                     app_logger.info(f"Email notification sent to {user.email} for bid {bid.id}")
                 else:
                     app_logger.warning(f"Failed to send email notification to {user.email}")
-                    
+
             except Exception as e:
                 app_logger.error(f"Error sending email notification: {str(e)}", exc_info=True)

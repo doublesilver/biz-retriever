@@ -2,24 +2,25 @@
 대시보드 분석 API
 통계 및 인사이트 제공
 """
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+
 from datetime import datetime, timedelta
 from typing import Dict, List
 
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.logging import logger
+from app.core.security import get_current_user
 from app.db.models import BidAnnouncement, User
 from app.db.session import get_db
-from app.core.security import get_current_user
-from app.core.logging import logger
 
 router = APIRouter()
 
 
 @router.get("/summary")
 async def get_analytics_summary(
-    session: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    session: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ) -> Dict:
     """
     대시보드 통계 요약
@@ -34,48 +35,35 @@ async def get_analytics_summary(
     # 이번 주 공고 수
     week_ago = datetime.utcnow() - timedelta(days=7)
     week_result = await session.execute(
-        select(func.count(BidAnnouncement.id))
-        .where(BidAnnouncement.created_at >= week_ago)
+        select(func.count(BidAnnouncement.id)).where(BidAnnouncement.created_at >= week_ago)
     )
     this_week = week_result.scalar()
 
     # 높은 중요도 (⭐⭐⭐)
     high_result = await session.execute(
-        select(func.count(BidAnnouncement.id))
-        .where(BidAnnouncement.importance_score == 3)
+        select(func.count(BidAnnouncement.id)).where(BidAnnouncement.importance_score == 3)
     )
     high_importance = high_result.scalar()
 
     # 평균 추정가
     avg_result = await session.execute(
-        select(func.avg(BidAnnouncement.estimated_price))
-        .where(BidAnnouncement.estimated_price.isnot(None))
+        select(func.avg(BidAnnouncement.estimated_price)).where(BidAnnouncement.estimated_price.isnot(None))
     )
     average_price = avg_result.scalar() or 0
 
     # TOP 기관 (공고 많은 순)
     top_agencies_result = await session.execute(
-        select(
-            BidAnnouncement.agency,
-            func.count(BidAnnouncement.id).label('count')
-        )
+        select(BidAnnouncement.agency, func.count(BidAnnouncement.id).label("count"))
         .where(BidAnnouncement.agency.isnot(None))
         .group_by(BidAnnouncement.agency)
         .order_by(func.count(BidAnnouncement.id).desc())
         .limit(5)
     )
-    top_agencies = [
-        {"name": row[0], "count": row[1]}
-        for row in top_agencies_result.all()
-    ]
+    top_agencies = [{"name": row[0], "count": row[1]} for row in top_agencies_result.all()]
 
     # 출처별 분포
     source_result = await session.execute(
-        select(
-            BidAnnouncement.source,
-            func.count(BidAnnouncement.id).label('count')
-        )
-        .group_by(BidAnnouncement.source)
+        select(BidAnnouncement.source, func.count(BidAnnouncement.id).label("count")).group_by(BidAnnouncement.source)
     )
     by_source = {row[0]: row[1] for row in source_result.all()}
 
@@ -88,9 +76,7 @@ async def get_analytics_summary(
         "average_price": int(average_price),
         "top_agencies": top_agencies,
         "by_source": by_source,
-        "trend": {
-            "week_growth": round((this_week / max(total_bids - this_week, 1)) * 100, 1)
-        }
+        "trend": {"week_growth": round((this_week / max(total_bids - this_week, 1)) * 100, 1)},
     }
 
 
@@ -98,7 +84,7 @@ async def get_analytics_summary(
 async def get_trends(
     days: int = Query(default=30, ge=1, le=365, description="조회 기간 (1-365일)"),
     session: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> List[Dict]:
     """
     공고 트렌드 데이터 (일별)
@@ -113,9 +99,9 @@ async def get_trends(
     # 일별 집계
     result = await session.execute(
         select(
-            func.date(BidAnnouncement.created_at).label('date'),
+            func.date(BidAnnouncement.created_at).label("date"),
             BidAnnouncement.importance_score,
-            func.count(BidAnnouncement.id).label('count')
+            func.count(BidAnnouncement.id).label("count"),
         )
         .where(BidAnnouncement.created_at >= start_date)
         .group_by(func.date(BidAnnouncement.created_at), BidAnnouncement.importance_score)
@@ -145,8 +131,7 @@ async def get_trends(
 
 @router.get("/deadline-alerts")
 async def get_deadline_alerts(
-    session: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    session: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ) -> List[Dict]:
     """
     마감 임박 공고 목록
@@ -164,7 +149,7 @@ async def get_deadline_alerts(
                 BidAnnouncement.deadline.isnot(None),
                 BidAnnouncement.deadline > now,
                 BidAnnouncement.deadline <= tomorrow,
-                BidAnnouncement.status.in_(["new", "reviewing", "bidding"])
+                BidAnnouncement.status.in_(["new", "reviewing", "bidding"]),
             )
         )
         .order_by(BidAnnouncement.deadline)
@@ -180,7 +165,7 @@ async def get_deadline_alerts(
             "deadline": bid.deadline.isoformat(),
             "hours_left": int((bid.deadline - now).total_seconds() / 3600),
             "importance_score": bid.importance_score,
-            "url": bid.url
+            "url": bid.url,
         }
         for bid in urgent_bids
     ]

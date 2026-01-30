@@ -1,18 +1,19 @@
+import re
 from datetime import datetime, timedelta
 from typing import Any, Union
-import re
-from jose import jwt, JWTError
+
 import bcrypt
-from fastapi import HTTPException, status, Depends
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
+from jose import JWTError, jwt
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.exceptions import WeakPasswordError
 from app.core.logging import logger
-from app.db.session import get_db
 from app.db.models import User
+from app.db.session import get_db
 
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login/access-token")
@@ -21,29 +22,29 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login
 def validate_password(password: str) -> None:
     """
     비밀번호 정책 검증
-    
+
     정책:
     - 최소 8자 이상
     - 대문자, 소문자, 숫자, 특수문자 각 1개 이상
-    
+
     Args:
         password: 검증할 비밀번호
-    
+
     Raises:
         WeakPasswordError: 정책에 맞지 않는 비밀번호
     """
     if len(password) < 8:
         raise WeakPasswordError("비밀번호는 최소 8자 이상이어야 합니다.")
-    
-    if not re.search(r'[A-Z]', password):
+
+    if not re.search(r"[A-Z]", password):
         raise WeakPasswordError("비밀번호에 대문자가 포함되어야 합니다.")
-    
-    if not re.search(r'[a-z]', password):
+
+    if not re.search(r"[a-z]", password):
         raise WeakPasswordError("비밀번호에 소문자가 포함되어야 합니다.")
-    
-    if not re.search(r'[0-9]', password):
+
+    if not re.search(r"[0-9]", password):
         raise WeakPasswordError("비밀번호에 숫자가 포함되어야 합니다.")
-    
+
     if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
         raise WeakPasswordError("비밀번호에 특수문자가 포함되어야 합니다.")
 
@@ -54,7 +55,7 @@ def create_access_token(subject: Union[str, Any], expires_delta: timedelta = Non
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+
     to_encode = {"exp": expire, "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -73,20 +74,17 @@ def get_password_hash(password: str) -> str:
     return hashed.decode("utf-8")
 
 
-async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    session: AsyncSession = Depends(get_db)
-) -> User:
+async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_db)) -> User:
     """
     현재 인증된 사용자 조회
-    
+
     Args:
         token: JWT 토큰
         session: DB 세션
-    
+
     Returns:
         User 객체
-    
+
     Raises:
         HTTPException: 인증 실패 시
     """
@@ -95,7 +93,7 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
@@ -104,15 +102,14 @@ async def get_current_user(
     except JWTError:
         logger.warning("Invalid JWT token")
         raise credentials_exception
-    
+
     result = await session.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
-    
-    
+
     if user is None:
         logger.warning(f"User not found: {email}")
         raise credentials_exception
-    
+
     return user
 
 
@@ -121,7 +118,7 @@ async def get_current_user_from_token(token: str) -> Union[User, None]:
     WebSocket용 토큰 검증 함수 (Depends 사용 불가)
     """
     from app.db.session import AsyncSessionLocal
-    
+
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
@@ -129,7 +126,7 @@ async def get_current_user_from_token(token: str) -> Union[User, None]:
             return None
     except JWTError:
         return None
-        
+
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(User).where(User.email == email))
         user = result.scalar_one_or_none()

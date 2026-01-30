@@ -1,12 +1,15 @@
-from typing import Generic, TypeVar, Type, Optional, List, Any, Union, Dict
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+
 from pydantic import BaseModel
+from sqlalchemy import delete, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.db.base import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
+
 
 class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def __init__(self, model: Type[ModelType], session: AsyncSession):
@@ -18,9 +21,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         result = await self.session.execute(query)
         return result.scalars().first()
 
-    async def get_multi(
-        self, skip: int = 0, limit: int = 100
-    ) -> List[ModelType]:
+    async def get_multi(self, skip: int = 0, limit: int = 100) -> List[ModelType]:
         query = select(self.model).offset(skip).limit(limit)
         result = await self.session.execute(query)
         return result.scalars().all()
@@ -33,19 +34,17 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         await self.session.refresh(db_obj)
         return db_obj
 
-    async def update(
-        self, db_obj: ModelType, obj_in: Union[UpdateSchemaType, Dict[str, Any]]
-    ) -> ModelType:
+    async def update(self, db_obj: ModelType, obj_in: Union[UpdateSchemaType, Dict[str, Any]]) -> ModelType:
         obj_data = db_obj.__dict__
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
             update_data = obj_in.model_dump(exclude_unset=True)
-            
+
         for field in obj_data:
             if field in update_data:
                 setattr(db_obj, field, update_data[field])
-                
+
         self.session.add(db_obj)
         await self.session.commit()
         await self.session.refresh(db_obj)

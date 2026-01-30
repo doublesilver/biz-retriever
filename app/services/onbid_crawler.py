@@ -2,11 +2,13 @@
 온비드(Onbid) 크롤러 서비스
 캠코(한국자산관리공사) 온비드 사이트에서 임대/매각 공고 수집
 """
+
+import re
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
 import httpx
 from bs4 import BeautifulSoup
-import re
 
 from app.core.config import settings
 from app.core.logging import logger
@@ -33,20 +35,32 @@ class OnbidCrawlerService:
 
     # 임대 타겟 키워드
     RENTAL_KEYWORDS = [
-        "식당", "카페", "매점", "구내식당", "클럽하우스",
-        "편의점", "휴게소", "푸드코트", "커피숍", "식음료",
-        "위탁운영", "임대", "운영권"
+        "식당",
+        "카페",
+        "매점",
+        "구내식당",
+        "클럽하우스",
+        "편의점",
+        "휴게소",
+        "푸드코트",
+        "커피숍",
+        "식음료",
+        "위탁운영",
+        "임대",
+        "운영권",
     ]
 
     # 제외 키워드
-    EXCLUDE_KEYWORDS = [
-        "폐기물", "철거", "해체", "단순공사", "청소용역"
-    ]
+    EXCLUDE_KEYWORDS = ["폐기물", "철거", "해체", "단순공사", "청소용역"]
 
     # 우선 기관 (가중치 적용)
     PRIORITY_AGENCIES = [
-        "한국도로공사", "한국철도공사", "인천국제공항공사",
-        "한국공항공사", "한국토지주택공사", "서울교통공사"
+        "한국도로공사",
+        "한국철도공사",
+        "인천국제공항공사",
+        "한국공항공사",
+        "한국토지주택공사",
+        "서울교통공사",
     ]
 
     def __init__(self):
@@ -56,14 +70,10 @@ class OnbidCrawlerService:
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
-            }
+            },
         )
 
-    async def fetch_rental_announcements(
-        self,
-        from_date: Optional[datetime] = None,
-        max_pages: int = 5
-    ) -> List[Dict]:
+    async def fetch_rental_announcements(self, from_date: Optional[datetime] = None, max_pages: int = 5) -> List[Dict]:
         """
         온비드에서 임대 공고를 수집합니다.
 
@@ -131,11 +141,7 @@ class OnbidCrawlerService:
                 "tenderType": "01",  # 01: 임대
             }
 
-            response = await self.client.post(
-                self.RENTAL_SEARCH_URL,
-                data=params,
-                follow_redirects=True
-            )
+            response = await self.client.post(self.RENTAL_SEARCH_URL, data=params, follow_redirects=True)
 
             if response.status_code != 200:
                 logger.warning(f"온비드 응답 오류: {response.status_code}")
@@ -340,10 +346,7 @@ class OnbidCrawlerService:
             attachments = []
             file_links = soup.select("a.file_link")
             for link in file_links:
-                attachments.append({
-                    "name": link.get_text(strip=True),
-                    "url": link.get("href", "")
-                })
+                attachments.append({"name": link.get_text(strip=True), "url": link.get("href", "")})
 
             return {
                 "content": content,

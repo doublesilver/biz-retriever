@@ -2,11 +2,13 @@
 E2E (End-to-End) 테스트
 전체 사용자 워크플로우 테스트
 """
+
+import json
+from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from httpx import AsyncClient
-from datetime import datetime, timedelta
-from unittest.mock import patch, MagicMock, AsyncMock
-import json
 
 pytestmark = pytest.mark.asyncio
 
@@ -25,28 +27,16 @@ class TestUserWorkflow:
         5. 공고 상태 변경
         """
         # 1. 회원가입
-        register_data = {
-            "email": f"e2e_user_{datetime.now().timestamp()}@example.com",
-            "password": "SecurePass123!"
-        }
-        response = await async_client.post(
-            "/api/v1/auth/register",
-            json=register_data
-        )
+        register_data = {"email": f"e2e_user_{datetime.now().timestamp()}@example.com", "password": "SecurePass123!"}
+        response = await async_client.post("/api/v1/auth/register", json=register_data)
         assert response.status_code == 201
         user_data = response.json()
         assert user_data["email"] == register_data["email"]
         assert user_data["is_active"] is True
 
         # 2. 로그인
-        login_data = {
-            "username": register_data["email"],
-            "password": register_data["password"]
-        }
-        response = await async_client.post(
-            "/api/v1/auth/login/access-token",
-            data=login_data
-        )
+        login_data = {"username": register_data["email"], "password": register_data["password"]}
+        response = await async_client.post("/api/v1/auth/login/access-token", data=login_data)
         assert response.status_code == 200
         token_data = response.json()
         assert "access_token" in token_data
@@ -56,10 +46,7 @@ class TestUserWorkflow:
         auth_headers = {"Authorization": f"Bearer {token_data['access_token']}"}
 
         # 3. 공고 목록 조회
-        response = await async_client.get(
-            "/api/v1/bids/",
-            headers=auth_headers
-        )
+        response = await async_client.get("/api/v1/bids/", headers=auth_headers)
         assert response.status_code == 200
         bids = response.json()
         assert isinstance(bids, list)
@@ -70,22 +57,15 @@ class TestUserWorkflow:
             "content": "E2E 테스트를 위한 공고입니다.",
             "agency": "테스트 기관",
             "url": f"https://example.com/e2e-test-{datetime.now().timestamp()}",
-            "posted_at": datetime.now().isoformat()
+            "posted_at": datetime.now().isoformat(),
         }
-        response = await async_client.post(
-            "/api/v1/bids/",
-            json=bid_data,
-            headers=auth_headers
-        )
+        response = await async_client.post("/api/v1/bids/", json=bid_data, headers=auth_headers)
         assert response.status_code == 201
         created_bid = response.json()
         bid_id = created_bid["id"]
 
         # 5. 공고 상세 조회
-        response = await async_client.get(
-            f"/api/v1/bids/{bid_id}",
-            headers=auth_headers
-        )
+        response = await async_client.get(f"/api/v1/bids/{bid_id}", headers=auth_headers)
         assert response.status_code == 200
         bid_detail = response.json()
         assert bid_detail["title"] == bid_data["title"]
@@ -102,7 +82,7 @@ class TestCrawlerWorkflow:
         2. Task ID로 상태 확인
         """
         # Mock Celery task (patch at worker.tasks where it's defined, not where imported)
-        with patch('app.worker.tasks.crawl_g2b_bids') as mock_crawl:
+        with patch("app.worker.tasks.crawl_g2b_bids") as mock_crawl:
             mock_task = MagicMock()
             mock_task.id = "e2e-test-task-123"
             mock_crawl.delay.return_value = mock_task
@@ -116,7 +96,7 @@ class TestCrawlerWorkflow:
             assert result["status"] == "started"
 
         # Mock AsyncResult for status check
-        with patch('app.api.endpoints.crawler.AsyncResult') as mock_async_result:
+        with patch("app.api.endpoints.crawler.AsyncResult") as mock_async_result:
             mock_result = MagicMock()
             mock_result.state = "PENDING"
             mock_result.ready.return_value = False
@@ -187,7 +167,7 @@ class TestFilterWorkflow:
         2. 제외 키워드 추가
         3. 제외 키워드 삭제
         """
-        with patch('app.api.endpoints.filters.keyword_service') as mock_service:
+        with patch("app.api.endpoints.filters.keyword_service") as mock_service:
             # Mock 설정
             mock_service.get_active_keywords = AsyncMock(return_value=["keyword1"])
             mock_keyword = AsyncMock()
@@ -201,16 +181,11 @@ class TestFilterWorkflow:
             assert response.status_code == 200
 
             # 2. 제외 키워드 추가
-            response = await authenticated_client.post(
-                "/api/v1/filters/keywords",
-                json={"keyword": "e2e_test_keyword"}
-            )
+            response = await authenticated_client.post("/api/v1/filters/keywords", json={"keyword": "e2e_test_keyword"})
             assert response.status_code in [200, 201]
 
             # 3. 제외 키워드 삭제
-            response = await authenticated_client.delete(
-                "/api/v1/filters/keywords/e2e_test_keyword"
-            )
+            response = await authenticated_client.delete("/api/v1/filters/keywords/e2e_test_keyword")
             assert response.status_code in [200, 204]
 
 
@@ -260,30 +235,21 @@ class TestSearchWorkflow:
 
     async def test_search_by_keyword(self, authenticated_client: AsyncClient):
         """키워드 검색 테스트"""
-        response = await authenticated_client.get(
-            "/api/v1/bids/",
-            params={"keyword": "식당"}
-        )
+        response = await authenticated_client.get("/api/v1/bids/", params={"keyword": "식당"})
         assert response.status_code == 200
         bids = response.json()
         assert isinstance(bids, list)
 
     async def test_search_by_agency(self, authenticated_client: AsyncClient):
         """기관별 검색 테스트"""
-        response = await authenticated_client.get(
-            "/api/v1/bids/",
-            params={"agency": "한국"}
-        )
+        response = await authenticated_client.get("/api/v1/bids/", params={"agency": "한국"})
         assert response.status_code == 200
         bids = response.json()
         assert isinstance(bids, list)
 
     async def test_search_with_pagination(self, authenticated_client: AsyncClient):
         """페이지네이션 테스트"""
-        response = await authenticated_client.get(
-            "/api/v1/bids/",
-            params={"skip": 0, "limit": 10}
-        )
+        response = await authenticated_client.get("/api/v1/bids/", params={"skip": 0, "limit": 10})
         assert response.status_code == 200
         bids = response.json()
         assert isinstance(bids, list)
@@ -301,17 +267,13 @@ class TestErrorHandling:
     async def test_401_unauthorized(self, async_client: AsyncClient):
         """401 인증 에러 테스트"""
         response = await async_client.post(
-            "/api/v1/bids/",
-            json={"title": "test", "content": "test", "url": "http://test.com"}
+            "/api/v1/bids/", json={"title": "test", "content": "test", "url": "http://test.com"}
         )
         assert response.status_code == 401
 
     async def test_422_validation_error(self, async_client: AsyncClient):
         """422 검증 에러 테스트"""
-        response = await async_client.post(
-            "/api/v1/auth/register",
-            json={"email": "invalid-email", "password": "weak"}
-        )
+        response = await async_client.post("/api/v1/auth/register", json={"email": "invalid-email", "password": "weak"})
         assert response.status_code == 422
 
     async def test_400_duplicate_email(self, async_client: AsyncClient):
@@ -319,14 +281,8 @@ class TestErrorHandling:
         email = f"duplicate_{datetime.now().timestamp()}@example.com"
 
         # 첫 번째 등록
-        await async_client.post(
-            "/api/v1/auth/register",
-            json={"email": email, "password": "SecurePass123!"}
-        )
+        await async_client.post("/api/v1/auth/register", json={"email": email, "password": "SecurePass123!"})
 
         # 두 번째 등록 (중복)
-        response = await async_client.post(
-            "/api/v1/auth/register",
-            json={"email": email, "password": "SecurePass123!"}
-        )
+        response = await async_client.post("/api/v1/auth/register", json={"email": email, "password": "SecurePass123!"})
         assert response.status_code == 400

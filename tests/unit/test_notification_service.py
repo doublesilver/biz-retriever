@@ -1,12 +1,14 @@
 """
 Slack 알림 서비스 단위 테스트
 """
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timedelta
 
-from app.services.notification_service import SlackNotificationService
+from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from app.db.models import BidAnnouncement
+from app.services.notification_service import SlackNotificationService
 
 
 class TestSlackNotificationService:
@@ -38,7 +40,7 @@ class TestSlackNotificationService:
     @pytest.mark.asyncio
     async def test_send_bid_notification_success(self, service, mock_announcement):
         """Slack 알림 전송 성공"""
-        with patch('app.services.notification_service.httpx.AsyncClient') as mock_client:
+        with patch("app.services.notification_service.httpx.AsyncClient") as mock_client:
             mock_response = AsyncMock()
             mock_response.raise_for_status = MagicMock()
 
@@ -57,7 +59,7 @@ class TestSlackNotificationService:
     @pytest.mark.asyncio
     async def test_send_bid_notification_failure_network_error(self, service, mock_announcement):
         """네트워크 에러 시 False 반환"""
-        with patch('app.services.notification_service.httpx.AsyncClient') as mock_client:
+        with patch("app.services.notification_service.httpx.AsyncClient") as mock_client:
             mock_instance = AsyncMock()
             mock_instance.__aenter__.return_value = mock_instance
             mock_instance.__aexit__.return_value = None
@@ -72,8 +74,9 @@ class TestSlackNotificationService:
     @pytest.mark.asyncio
     async def test_send_bid_notification_failure_http_error(self, service, mock_announcement):
         """HTTP 에러 시 False 반환"""
-        with patch('app.services.notification_service.httpx.AsyncClient') as mock_client:
+        with patch("app.services.notification_service.httpx.AsyncClient") as mock_client:
             import httpx
+
             mock_response = AsyncMock()
             mock_response.raise_for_status = MagicMock(
                 side_effect=httpx.HTTPStatusError("Error", request=MagicMock(), response=MagicMock())
@@ -147,7 +150,7 @@ class TestSlackNotificationService:
         """다이제스트 전송 성공"""
         announcements = [mock_announcement]
 
-        with patch('app.services.notification_service.httpx.AsyncClient') as mock_client:
+        with patch("app.services.notification_service.httpx.AsyncClient") as mock_client:
             mock_response = AsyncMock()
             mock_response.raise_for_status = MagicMock()
 
@@ -181,7 +184,7 @@ class TestSlackNotificationService:
             ann.importance_score = i + 1  # 1, 2, 3
             announcements.append(ann)
 
-        with patch('app.services.notification_service.httpx.AsyncClient') as mock_client:
+        with patch("app.services.notification_service.httpx.AsyncClient") as mock_client:
             mock_response = AsyncMock()
             mock_response.raise_for_status = MagicMock()
 
@@ -210,7 +213,7 @@ class TestSlackNotificationService:
             ann.importance_score = 2
             announcements.append(ann)
 
-        with patch('app.services.notification_service.httpx.AsyncClient') as mock_client:
+        with patch("app.services.notification_service.httpx.AsyncClient") as mock_client:
             mock_response = AsyncMock()
             mock_response.raise_for_status = MagicMock()
 

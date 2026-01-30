@@ -1,14 +1,16 @@
 from typing import Any, List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
-from app.db.models import User
-from app.services.profile_service import profile_service
-from app.db.session import get_db
 from app.core.logging import logger
+from app.db.models import User
+from app.db.session import get_db
+from app.services.profile_service import profile_service
 
 router = APIRouter()
+
 
 @router.get("/", response_model=dict)
 async def get_my_profile(
@@ -22,10 +24,10 @@ async def get_my_profile(
     if not profile:
         # 빈 프로필 초기화 가능성 고려
         return {"id": None, "company_name": None, "user_id": current_user.id}
-    
+
     # 관계형 데이터(License, Performance) 포함
     plan = current_user.subscription.plan_name if current_user.subscription else "free"
-    
+
     return {
         "id": profile.id,
         "company_name": profile.company_name,
@@ -45,8 +47,9 @@ async def get_my_profile(
         "is_slack_enabled": profile.is_slack_enabled,
         "licenses": [{"name": l.license_name, "number": l.license_number} for l in profile.licenses],
         "performances": [{"project": p.project_name, "amount": p.amount} for p in profile.performances],
-        "plan_name": plan
+        "plan_name": plan,
     }
+
 
 @router.post("/upload-certificate", response_model=dict)
 async def upload_business_certificate(
@@ -58,46 +61,31 @@ async def upload_business_certificate(
     사업자등록증 이미지 업로드 및 AI 파싱 실행
     """
     if not (file.content_type.startswith("image/") or file.content_type == "application/pdf"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="이미지 또는 PDF 파일만 업로드 가능합니다."
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="이미지 또는 PDF 파일만 업로드 가능합니다.")
 
     try:
         content = await file.read()
         # AI 파싱 실행
-        extracted_data = await profile_service.parse_business_certificate(
-            content, 
-            mime_type=file.content_type
-        )
-        
+        extracted_data = await profile_service.parse_business_certificate(content, mime_type=file.content_type)
+
         # 추출된 데이터로 프로필 업데이트 (기본 정보 자동 채우기)
-        profile = await profile_service.create_or_update_profile(
-            db, 
-            current_user.id, 
-            extracted_data
-        )
-        
+        profile = await profile_service.create_or_update_profile(db, current_user.id, extracted_data)
+
         return {
             "message": "사업자등록증 파싱 및 프로필 업데이트 완료",
             "data": extracted_data,
-            "profile_id": profile.id
+            "profile_id": profile.id,
         }
     except Exception as e:
         logger.error(f"Profile upload error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-from app.schemas.profile import (
-    UserProfileUpdate, 
-    UserProfileResponse,
-    UserLicenseCreate,
-    UserLicenseResponse,
-    UserPerformanceCreate,
-    UserPerformanceResponse
-)
+
+from app.schemas.profile import (UserLicenseCreate, UserLicenseResponse,
+                                 UserPerformanceCreate,
+                                 UserPerformanceResponse, UserProfileResponse,
+                                 UserProfileUpdate)
+
 
 @router.put("/", response_model=UserProfileResponse)
 async def update_profile(
@@ -110,16 +98,13 @@ async def update_profile(
     """
     # dict로 변환하여 서비스에 전달
     update_data = profile_in.model_dump(exclude_unset=True)
-    
-    profile = await profile_service.create_or_update_profile(
-        db, 
-        current_user.id, 
-        update_data
-    )
+
+    profile = await profile_service.create_or_update_profile(db, current_user.id, update_data)
     return profile
 
 
 # License Management Endpoints
+
 
 @router.post("/licenses", response_model=UserLicenseResponse, status_code=status.HTTP_201_CREATED)
 async def add_license(
@@ -161,13 +146,14 @@ async def delete_license(
     profile = await profile_service.get_profile(db, current_user.id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
-    
+
     success = await profile_service.delete_license(db, profile.id, license_id)
     if not success:
         raise HTTPException(status_code=404, detail="License not found")
 
 
 # Performance Management Endpoints
+
 
 @router.post("/performances", response_model=UserPerformanceResponse, status_code=status.HTTP_201_CREATED)
 async def add_performance(
@@ -209,8 +195,7 @@ async def delete_performance(
     profile = await profile_service.get_profile(db, current_user.id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
-    
+
     success = await profile_service.delete_performance(db, profile.id, performance_id)
     if not success:
         raise HTTPException(status_code=404, detail="Performance not found")
-

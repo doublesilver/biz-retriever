@@ -1,8 +1,10 @@
 """
 Bid API 통합 테스트
 """
-import pytest
+
 from datetime import datetime
+
+import pytest
 from httpx import AsyncClient
 
 
@@ -101,7 +103,7 @@ class TestBidsAPI:
             "title": "테스트 공고",
             "content": "테스트 내용",
             "posted_at": datetime.utcnow().isoformat(),
-            "url": "https://example.com/test"
+            "url": "https://example.com/test",
         }
 
         response = await async_client.post("/api/v1/bids/", json=bid_data)
@@ -111,10 +113,7 @@ class TestBidsAPI:
     @pytest.mark.asyncio
     async def test_create_bid_invalid_data(self, authenticated_client: AsyncClient):
         """유효하지 않은 데이터 - 422"""
-        bid_data = {
-            "title": "",  # 빈 제목
-            "content": "내용"
-        }
+        bid_data = {"title": "", "content": "내용"}  # 빈 제목
 
         response = await authenticated_client.post("/api/v1/bids/", json=bid_data)
 
@@ -130,11 +129,7 @@ class TestBidsAPI:
         files = {"file": ("test.pdf", b"fake pdf content", "application/pdf")}
         data = {"title": "테스트"}
 
-        response = await async_client.post(
-            "/api/v1/bids/upload",
-            files=files,
-            params=data
-        )
+        response = await async_client.post("/api/v1/bids/upload", files=files, params=data)
 
         assert response.status_code == 401
 
@@ -144,10 +139,6 @@ class TestBidsAPI:
         files = {"file": ("test.txt", b"plain text", "text/plain")}
         data = {"title": "테스트"}
 
-        response = await authenticated_client.post(
-            "/api/v1/bids/upload",
-            files=files,
-            params=data
-        )
+        response = await authenticated_client.post("/api/v1/bids/upload", files=files, params=data)
 
         assert response.status_code == 400

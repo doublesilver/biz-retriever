@@ -1,21 +1,24 @@
-import json
 import asyncio
-from typing import Dict, Any, List, Optional
+import json
+from typing import Any, Dict, List, Optional
+
 import google.generativeai as genai
+
 from app.core.config import settings
 from app.core.logging import logger
 from app.db.models import BidAnnouncement
+
 
 class ConstraintService:
     """
     제약 조건 추출 서비스 (Phase 3 Hard Match)
     Gemini AI를 사용하여 입찰 공고 텍스트/첨부파일에서 핵심 제약 조건(지역, 면허, 실적)을 추출
     """
-    
+
     def __init__(self):
         if settings.GEMINI_API_KEY:
             genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            self.model = genai.GenerativeModel("gemini-2.5-flash")
         else:
             self.model = None
             logger.warning("GEMINI_API_KEY Missing in ConstraintService")
@@ -30,8 +33,8 @@ class ConstraintService:
         # 1. 대상 텍스트 수집 (제목 + 본문 + 첨부파일 내용)
         full_text = f"제목: {bid.title}\n발주처: {bid.agency}\n본문: {bid.content}\n"
         if bid.attachment_content:
-            full_text += f"\n첨부파일 내용 (일부): {bid.attachment_content[:10000]}" # 10k chars limit
-            
+            full_text += f"\n첨부파일 내용 (일부): {bid.attachment_content[:10000]}"  # 10k chars limit
+
         # 2. Gemini 호출
         prompt = """
         당신은 입찰 공고 분석 전문가입니다. 다음 공고 텍스트에서 '입찰 참가 자격'과 관련된 핵심 제약 조건을 JSON으로 추출하세요.
@@ -58,31 +61,29 @@ class ConstraintService:
         
         [공고 텍스트]
         """
-        
+
         try:
-            response = await asyncio.to_thread(
-                self.model.generate_content,
-                f"{prompt}\n{full_text}"
-            )
-            
+            response = await asyncio.to_thread(self.model.generate_content, f"{prompt}\n{full_text}")
+
             # 3. 파싱
             text_resp = response.text
             if "```json" in text_resp:
                 text_resp = text_resp.split("```json")[1].split("```")[0]
             elif "```" in text_resp:
                 text_resp = text_resp.split("```")[1].split("```")[0]
-                
+
             data = json.loads(text_resp.strip())
-            
+
             # Validation
             data["region_code"] = str(data.get("region_code", "00"))
             data["license_requirements"] = list(data.get("license_requirements", []))
             data["min_performance"] = float(data.get("min_performance", 0.0))
-            
+
             return data
-            
+
         except Exception as e:
             logger.error(f"Constraint extraction failed for Bid {bid.id}: {e}")
             return {}
+
 
 constraint_service = ConstraintService()

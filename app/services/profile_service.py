@@ -1,12 +1,14 @@
-import json
 import asyncio
-from typing import Optional, Dict, Any
+import json
+from typing import Any, Dict, Optional
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import UserProfile, UserLicense, UserPerformance
 from app.core.config import settings
 from app.core.logging import logger
+from app.db.models import UserLicense, UserPerformance, UserProfile
+
 
 class ProfileService:
     """
@@ -20,6 +22,7 @@ class ProfileService:
         if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.startswith("AIza"):
             try:
                 from google import genai
+
                 self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
                 logger.info("ProfileService: Google Gemini API 초기화 완료")
             except ImportError:
@@ -36,14 +39,11 @@ class ProfileService:
         return result.scalar_one_or_none()
 
     async def create_or_update_profile(
-        self, 
-        session: AsyncSession, 
-        user_id: int, 
-        profile_data: Dict[str, Any]
+        self, session: AsyncSession, user_id: int, profile_data: Dict[str, Any]
     ) -> UserProfile:
         """사용자 프로필 생성 또는 수정"""
         profile = await self.get_profile(session, user_id)
-        
+
         if profile:
             for key, value in profile_data.items():
                 if hasattr(profile, key):
@@ -51,7 +51,7 @@ class ProfileService:
         else:
             profile = UserProfile(user_id=user_id, **profile_data)
             session.add(profile)
-            
+
         await session.commit()
         await session.refresh(profile)
         return profile
@@ -77,16 +77,14 @@ class ProfileService:
 
         try:
             import base64
+
             # Gemini 멀티모달 호출 (google.genai 방식)
             image_data = base64.standard_b64encode(file_content).decode("utf-8")
 
             response = await asyncio.to_thread(
                 self.client.models.generate_content,
-                model='gemini-2.5-flash',
-                contents=[
-                    prompt,
-                    {"inline_data": {"mime_type": mime_type, "data": image_data}}
-                ]
+                model="gemini-2.5-flash",
+                contents=[prompt, {"inline_data": {"mime_type": mime_type, "data": image_data}}],
             )
 
             # JSON 파싱
@@ -106,10 +104,23 @@ class ProfileService:
     def match_location_code(self, address: str) -> str:
         """주소 기반 지역 코드 매칭 (Fallback용)"""
         location_map = {
-            "서울": "11", "부산": "26", "대구": "27", "인천": "28",
-            "광주": "29", "대전": "30", "울산": "31", "세종": "36",
-            "경기": "41", "강원": "42", "충북": "43", "충남": "44",
-            "전북": "45", "전남": "46", "경북": "47", "경남": "48", "제주": "49"
+            "서울": "11",
+            "부산": "26",
+            "대구": "27",
+            "인천": "28",
+            "광주": "29",
+            "대전": "30",
+            "울산": "31",
+            "세종": "36",
+            "경기": "41",
+            "강원": "42",
+            "충북": "43",
+            "충남": "44",
+            "전북": "45",
+            "전남": "46",
+            "경북": "47",
+            "경남": "48",
+            "제주": "49",
         }
         for city, code in location_map.items():
             if city in address:
@@ -127,13 +138,8 @@ class ProfileService:
         return profile
 
     # License Management
-    
-    async def add_license(
-        self, 
-        session: AsyncSession, 
-        profile_id: int, 
-        license_data: Dict[str, Any]
-    ) -> UserLicense:
+
+    async def add_license(self, session: AsyncSession, profile_id: int, license_data: Dict[str, Any]) -> UserLicense:
         """사용자 면허 추가"""
         license = UserLicense(profile_id=profile_id, **license_data)
         session.add(license)
@@ -141,20 +147,12 @@ class ProfileService:
         await session.refresh(license)
         return license
 
-    async def delete_license(
-        self, 
-        session: AsyncSession, 
-        profile_id: int, 
-        license_id: int
-    ) -> bool:
+    async def delete_license(self, session: AsyncSession, profile_id: int, license_id: int) -> bool:
         """사용자 면허 삭제"""
-        stmt = select(UserLicense).where(
-            UserLicense.id == license_id,
-            UserLicense.profile_id == profile_id
-        )
+        stmt = select(UserLicense).where(UserLicense.id == license_id, UserLicense.profile_id == profile_id)
         result = await session.execute(stmt)
         license = result.scalar_one_or_none()
-        
+
         if license:
             await session.delete(license)
             await session.commit()
@@ -162,12 +160,9 @@ class ProfileService:
         return False
 
     # Performance Management
-    
+
     async def add_performance(
-        self, 
-        session: AsyncSession, 
-        profile_id: int, 
-        performance_data: Dict[str, Any]
+        self, session: AsyncSession, profile_id: int, performance_data: Dict[str, Any]
     ) -> UserPerformance:
         """사용자 실적 추가"""
         performance = UserPerformance(profile_id=profile_id, **performance_data)
@@ -176,24 +171,19 @@ class ProfileService:
         await session.refresh(performance)
         return performance
 
-    async def delete_performance(
-        self, 
-        session: AsyncSession, 
-        profile_id: int, 
-        performance_id: int
-    ) -> bool:
+    async def delete_performance(self, session: AsyncSession, profile_id: int, performance_id: int) -> bool:
         """사용자 실적 삭제"""
         stmt = select(UserPerformance).where(
-            UserPerformance.id == performance_id,
-            UserPerformance.profile_id == profile_id
+            UserPerformance.id == performance_id, UserPerformance.profile_id == profile_id
         )
         result = await session.execute(stmt)
         performance = result.scalar_one_or_none()
-        
+
         if performance:
             await session.delete(performance)
             await session.commit()
             return True
         return False
+
 
 profile_service = ProfileService()

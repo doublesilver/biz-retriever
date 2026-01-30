@@ -1,8 +1,11 @@
 from typing import Optional
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from sqlalchemy import select
-from app.db.models import Subscription, User
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.logging import logger
+from app.db.models import Subscription, User
+
 
 class SubscriptionService:
     def __init__(self):
@@ -15,10 +18,10 @@ class SubscriptionService:
         """
         if not user.subscription:
             return "free"
-        
+
         if not user.subscription.is_active:
             return "free"
-            
+
         return user.subscription.plan_name
 
     async def get_plan_limits(self, plan_name: str) -> dict:
@@ -26,21 +29,9 @@ class SubscriptionService:
         Return limits for the given plan.
         """
         limits = {
-            "free": {
-                "hard_match_limit": 3,
-                "ai_analysis_limit": 5,
-                "keywords_limit": 5
-            },
-            "basic": {
-                "hard_match_limit": 50,
-                "ai_analysis_limit": 100,
-                "keywords_limit": 20
-            },
-            "pro": {
-                "hard_match_limit": 9999,
-                "ai_analysis_limit": 9999,
-                "keywords_limit": 100
-            }
+            "free": {"hard_match_limit": 3, "ai_analysis_limit": 5, "keywords_limit": 5},
+            "basic": {"hard_match_limit": 50, "ai_analysis_limit": 100, "keywords_limit": 20},
+            "pro": {"hard_match_limit": 9999, "ai_analysis_limit": 9999, "keywords_limit": 100},
         }
         return limits.get(plan_name, limits["free"])
 
@@ -54,8 +45,9 @@ class SubscriptionService:
         plan = await self.get_user_plan(user)
         limits = await self.get_plan_limits(plan)
         limit = limits["hard_match_limit"]
-        
+
         # This method might be utility to get the limit number
         return limit
+
 
 subscription_service = SubscriptionService()

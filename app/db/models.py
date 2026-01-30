@@ -1,7 +1,10 @@
 from datetime import datetime
-from typing import Optional, List, TYPE_CHECKING
-from sqlalchemy import String, Text, Boolean, DateTime, Integer, Float, JSON, ForeignKey
+from typing import TYPE_CHECKING, List, Optional
+
+from sqlalchemy import (JSON, Boolean, DateTime, Float, ForeignKey, Integer,
+                        String, Text)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.db.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -13,6 +16,7 @@ class BidAnnouncement(Base, TimestampMixin):
     Model for Bid Announcements (입찰 공고)
     Biz-Retriever Phase 1: 크롤링 및 자동 필터링 지원
     """
+
     __tablename__ = "bid_announcements"
 
     # 기본 필드
@@ -44,9 +48,7 @@ class BidAnnouncement(Base, TimestampMixin):
     # Phase 2 추가 필드 (Kanban 상태 관리)
     status: Mapped[str] = mapped_column(String, default="new", index=True)  # new, reviewing, bidding, completed
     assigned_to: Mapped[Optional[int]] = mapped_column(
-        Integer,
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )  # 담당자
     notes: Mapped[Optional[str]] = mapped_column(Text)  # 메모
 
@@ -55,7 +57,7 @@ class BidAnnouncement(Base, TimestampMixin):
         "User",
         back_populates="assigned_bids",
         foreign_keys=[assigned_to],
-        lazy="selectin"  # Async 지원을 위한 eager loading
+        lazy="selectin",  # Async 지원을 위한 eager loading
     )
 
     def __repr__(self):
@@ -66,6 +68,7 @@ class User(Base, TimestampMixin):
     """
     User Model (사용자)
     """
+
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -82,29 +85,16 @@ class User(Base, TimestampMixin):
         "UserProfile", back_populates="user", uselist=False, lazy="selectin", cascade="all, delete-orphan"
     )
     assigned_bids: Mapped[List["BidAnnouncement"]] = relationship(
-        back_populates="assignee",
-        cascade="all, delete-orphan",
-        lazy="selectin"
+        back_populates="assignee", cascade="all, delete-orphan", lazy="selectin"
     )
-    
+
     # Billing Relationships (Phase 3)
     subscription: Mapped[Optional["Subscription"]] = relationship(
-        "Subscription",
-        back_populates="user",
-        uselist=False,
-        cascade="all, delete-orphan",
-        lazy="selectin"
+        "Subscription", back_populates="user", uselist=False, cascade="all, delete-orphan", lazy="selectin"
     )
-    payments: Mapped[List["PaymentHistory"]] = relationship(
-        "PaymentHistory",
-        back_populates="user",
-        lazy="selectin"
-    )
+    payments: Mapped[List["PaymentHistory"]] = relationship("PaymentHistory", back_populates="user", lazy="selectin")
     keywords: Mapped[List["UserKeyword"]] = relationship(
-        "UserKeyword",
-        back_populates="user",
-        cascade="all, delete-orphan",
-        lazy="selectin"
+        "UserKeyword", back_populates="user", cascade="all, delete-orphan", lazy="selectin"
     )
 
     def __repr__(self):
@@ -116,14 +106,12 @@ class UserProfile(Base, TimestampMixin):
     User Profile Model (기업 상세 정보)
     Phase 2: 사용자 프로필 자동화 및 정밀 매칭의 기초
     """
+
     __tablename__ = "user_profiles"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("users.id", ondelete="CASCADE"),
-        unique=True,
-        nullable=False
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
     )
 
     # 기업 기본 정보
@@ -150,16 +138,10 @@ class UserProfile(Base, TimestampMixin):
     # Relationship
     user: Mapped["User"] = relationship("User", back_populates="full_profile")
     licenses: Mapped[List["UserLicense"]] = relationship(
-        "UserLicense",
-        back_populates="profile",
-        cascade="all, delete-orphan",
-        lazy="selectin"
+        "UserLicense", back_populates="profile", cascade="all, delete-orphan", lazy="selectin"
     )
     performances: Mapped[List["UserPerformance"]] = relationship(
-        "UserPerformance",
-        back_populates="profile",
-        cascade="all, delete-orphan",
-        lazy="selectin"
+        "UserPerformance", back_populates="profile", cascade="all, delete-orphan", lazy="selectin"
     )
 
     def __repr__(self):
@@ -171,14 +153,11 @@ class UserLicense(Base, TimestampMixin):
     User License Model (보유 면허 정보)
     Phase 3: Hard Match (면허 제한) 필터링에 사용
     """
+
     __tablename__ = "user_licenses"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    profile_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("user_profiles.id", ondelete="CASCADE"),
-        nullable=False
-    )
+    profile_id: Mapped[int] = mapped_column(Integer, ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False)
 
     license_name: Mapped[str] = mapped_column(String, index=True, nullable=False)  # 면허명
     license_number: Mapped[Optional[str]] = mapped_column(String)  # 면허번호
@@ -196,14 +175,11 @@ class UserPerformance(Base, TimestampMixin):
     User Performance Model (시공/용역 실적 정보)
     Phase 3: Hard Match (실적 제한) 필터링에 사용
     """
+
     __tablename__ = "user_performances"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    profile_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("user_profiles.id", ondelete="CASCADE"),
-        nullable=False
-    )
+    profile_id: Mapped[int] = mapped_column(Integer, ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False)
 
     project_name: Mapped[str] = mapped_column(String, nullable=False)  # 프로젝트명
     amount: Mapped[float] = mapped_column(Float, default=0.0)  # 계약금액
@@ -221,16 +197,14 @@ class BidResult(Base, TimestampMixin):
     낙찰 결과 모델
     입찰 공고의 낙찰 결과를 저장하여 ML 모델 학습에 활용
     """
+
     __tablename__ = "bid_results"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
     # 원본 공고 연결
     bid_announcement_id: Mapped[Optional[int]] = mapped_column(
-        Integer,
-        ForeignKey("bid_announcements.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True
+        Integer, ForeignKey("bid_announcements.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
     # 공고 기본 정보 (공고가 삭제되어도 결과는 보존)
@@ -264,9 +238,7 @@ class BidResult(Base, TimestampMixin):
 
     # Relationship
     bid_announcement: Mapped[Optional["BidAnnouncement"]] = relationship(
-        "BidAnnouncement",
-        foreign_keys=[bid_announcement_id],
-        lazy="selectin"
+        "BidAnnouncement", foreign_keys=[bid_announcement_id], lazy="selectin"
     )
 
     def __repr__(self):
@@ -285,6 +257,7 @@ class CrawlerLog(Base, TimestampMixin):
     크롤러 실행 로그
     크롤링 히스토리 및 통계 추적
     """
+
     __tablename__ = "crawler_logs"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -328,6 +301,7 @@ class ExcludeKeyword(Base, TimestampMixin):
     제외 키워드 모델
     크롤링 필터링 시 사용되는 제외어 관리
     """
+
     __tablename__ = "exclude_keywords"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -343,20 +317,18 @@ class UserKeyword(Base, TimestampMixin):
     User Keyword Model (Dynamic Targeting)
     Phase 3: 사용자 정의 키워드 (Hardcode Replacement)
     """
+
     __tablename__ = "user_keywords"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    
+
     keyword: Mapped[str] = mapped_column(String, index=True, nullable=False)
-    category: Mapped[str] = mapped_column(String, default="include") # include, exclude
+    category: Mapped[str] = mapped_column(String, default="include")  # include, exclude
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    
+
     # Relationship
     user: Mapped["User"] = relationship("User", back_populates="keywords")
 
@@ -369,24 +341,22 @@ class Subscription(Base, TimestampMixin):
     Subscription Model (구독 관리)
     Phase 3: Billing System
     """
+
     __tablename__ = "subscriptions"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        unique=True
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True
     )
-    
+
     plan_name: Mapped[str] = mapped_column(String, default="free")  # free, basic, pro
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     start_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     next_billing_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    
+
     # Stripe/Payment Gateway IDs
     stripe_subscription_id: Mapped[Optional[str]] = mapped_column(String, index=True)
-    
+
     # Relationship
     user: Mapped["User"] = relationship("User", back_populates="subscription")
 
@@ -395,22 +365,19 @@ class PaymentHistory(Base, TimestampMixin):
     """
     Payment History Model (결제 이력)
     """
+
     __tablename__ = "payment_history"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    
+
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     currency: Mapped[str] = mapped_column(String, default="KRW")
     status: Mapped[str] = mapped_column(String, default="pending")  # pending, paid, failed, refunded
     payment_method: Mapped[str] = mapped_column(String, default="card")
     transaction_id: Mapped[Optional[str]] = mapped_column(String, index=True)
-    
+
     # Relationship
     user: Mapped["User"] = relationship("User", back_populates="payments")
-

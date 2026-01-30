@@ -1,32 +1,25 @@
 """
 Prometheus 메트릭 단위 테스트
 """
-import pytest
-import time
+
 import asyncio
+import time
 from unittest.mock import AsyncMock
+
+import pytest
 from prometheus_client import REGISTRY
 
-from app.core.metrics import (
-    HTTP_REQUESTS_TOTAL,
-    HTTP_REQUEST_DURATION_SECONDS,
-    HTTP_REQUESTS_IN_PROGRESS,
-    CRAWLER_RUNS_TOTAL,
-    CRAWLER_ANNOUNCEMENTS_COLLECTED,
-    CACHE_HITS_TOTAL,
-    CACHE_MISSES_TOTAL,
-    NOTIFICATIONS_SENT_TOTAL,
-    CELERY_TASKS_TOTAL,
-    track_request_metrics,
-    track_crawler_run,
-    record_cache_hit,
-    record_cache_miss,
-    record_notification_sent,
-    record_celery_task,
-    record_announcement_collected,
-    init_app_info,
-    APP_INFO,
-)
+from app.core.metrics import (APP_INFO, CACHE_HITS_TOTAL, CACHE_MISSES_TOTAL,
+                              CELERY_TASKS_TOTAL,
+                              CRAWLER_ANNOUNCEMENTS_COLLECTED,
+                              CRAWLER_RUNS_TOTAL,
+                              HTTP_REQUEST_DURATION_SECONDS,
+                              HTTP_REQUESTS_IN_PROGRESS, HTTP_REQUESTS_TOTAL,
+                              NOTIFICATIONS_SENT_TOTAL, init_app_info,
+                              record_announcement_collected, record_cache_hit,
+                              record_cache_miss, record_celery_task,
+                              record_notification_sent, track_crawler_run,
+                              track_request_metrics)
 
 
 class TestHTTPMetrics:
@@ -34,34 +27,24 @@ class TestHTTPMetrics:
 
     def test_http_requests_total_increment(self):
         """HTTP 요청 카운터 증가"""
-        before = HTTP_REQUESTS_TOTAL.labels(
-            method="GET", endpoint="/test", status_code="200"
-        )._value.get()
+        before = HTTP_REQUESTS_TOTAL.labels(method="GET", endpoint="/test", status_code="200")._value.get()
 
-        HTTP_REQUESTS_TOTAL.labels(
-            method="GET", endpoint="/test", status_code="200"
-        ).inc()
+        HTTP_REQUESTS_TOTAL.labels(method="GET", endpoint="/test", status_code="200").inc()
 
-        after = HTTP_REQUESTS_TOTAL.labels(
-            method="GET", endpoint="/test", status_code="200"
-        )._value.get()
+        after = HTTP_REQUESTS_TOTAL.labels(method="GET", endpoint="/test", status_code="200")._value.get()
 
         assert after == before + 1
 
     def test_http_request_duration_observe(self):
         """HTTP 요청 시간 히스토그램 기록"""
         # 0.1초 기록
-        HTTP_REQUEST_DURATION_SECONDS.labels(
-            method="GET", endpoint="/test"
-        ).observe(0.1)
+        HTTP_REQUEST_DURATION_SECONDS.labels(method="GET", endpoint="/test").observe(0.1)
 
         # 에러 없이 실행되면 성공
 
     def test_http_requests_in_progress_gauge(self):
         """진행 중인 요청 게이지"""
-        gauge = HTTP_REQUESTS_IN_PROGRESS.labels(
-            method="POST", endpoint="/api/test"
-        )
+        gauge = HTTP_REQUESTS_IN_PROGRESS.labels(method="POST", endpoint="/api/test")
 
         gauge.inc()
         assert gauge._value.get() >= 1
@@ -103,29 +86,21 @@ class TestCrawlerMetrics:
 
     def test_crawler_runs_total(self):
         """크롤링 실행 카운터"""
-        before = CRAWLER_RUNS_TOTAL.labels(
-            source="G2B", status="success"
-        )._value.get()
+        before = CRAWLER_RUNS_TOTAL.labels(source="G2B", status="success")._value.get()
 
         CRAWLER_RUNS_TOTAL.labels(source="G2B", status="success").inc()
 
-        after = CRAWLER_RUNS_TOTAL.labels(
-            source="G2B", status="success"
-        )._value.get()
+        after = CRAWLER_RUNS_TOTAL.labels(source="G2B", status="success")._value.get()
 
         assert after == before + 1
 
     def test_record_announcement_collected(self):
         """공고 수집 기록"""
-        before = CRAWLER_ANNOUNCEMENTS_COLLECTED.labels(
-            source="Onbid", importance_score="3"
-        )._value.get()
+        before = CRAWLER_ANNOUNCEMENTS_COLLECTED.labels(source="Onbid", importance_score="3")._value.get()
 
         record_announcement_collected(source="Onbid", importance_score=3)
 
-        after = CRAWLER_ANNOUNCEMENTS_COLLECTED.labels(
-            source="Onbid", importance_score="3"
-        )._value.get()
+        after = CRAWLER_ANNOUNCEMENTS_COLLECTED.labels(source="Onbid", importance_score="3")._value.get()
 
         assert after == before + 1
 
@@ -172,29 +147,21 @@ class TestNotificationMetrics:
 
     def test_record_notification_sent_success(self):
         """알림 발송 성공 기록"""
-        before = NOTIFICATIONS_SENT_TOTAL.labels(
-            channel="slack", type="important", status="success"
-        )._value.get()
+        before = NOTIFICATIONS_SENT_TOTAL.labels(channel="slack", type="important", status="success")._value.get()
 
         record_notification_sent("slack", "important", success=True)
 
-        after = NOTIFICATIONS_SENT_TOTAL.labels(
-            channel="slack", type="important", status="success"
-        )._value.get()
+        after = NOTIFICATIONS_SENT_TOTAL.labels(channel="slack", type="important", status="success")._value.get()
 
         assert after == before + 1
 
     def test_record_notification_sent_failure(self):
         """알림 발송 실패 기록"""
-        before = NOTIFICATIONS_SENT_TOTAL.labels(
-            channel="slack", type="alert", status="failure"
-        )._value.get()
+        before = NOTIFICATIONS_SENT_TOTAL.labels(channel="slack", type="alert", status="failure")._value.get()
 
         record_notification_sent("slack", "alert", success=False)
 
-        after = NOTIFICATIONS_SENT_TOTAL.labels(
-            channel="slack", type="alert", status="failure"
-        )._value.get()
+        after = NOTIFICATIONS_SENT_TOTAL.labels(channel="slack", type="alert", status="failure")._value.get()
 
         assert after == before + 1
 
@@ -204,15 +171,11 @@ class TestCeleryMetrics:
 
     def test_record_celery_task(self):
         """Celery 작업 기록"""
-        before = CELERY_TASKS_TOTAL.labels(
-            task_name="crawl_g2b", status="success"
-        )._value.get()
+        before = CELERY_TASKS_TOTAL.labels(task_name="crawl_g2b", status="success")._value.get()
 
         record_celery_task("crawl_g2b", "success", duration=5.5)
 
-        after = CELERY_TASKS_TOTAL.labels(
-            task_name="crawl_g2b", status="success"
-        )._value.get()
+        after = CELERY_TASKS_TOTAL.labels(task_name="crawl_g2b", status="success")._value.get()
 
         assert after == before + 1
 

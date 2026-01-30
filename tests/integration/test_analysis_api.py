@@ -1,6 +1,7 @@
 """
 Analysis API 통합 테스트
 """
+
 import pytest
 from httpx import AsyncClient
 
@@ -29,9 +30,7 @@ class TestAnalysisAPI:
     @pytest.mark.asyncio
     async def test_predict_price_success(self, authenticated_client: AsyncClient, sample_bid):
         """투찰가 예측 성공"""
-        response = await authenticated_client.get(
-            f"/api/v1/analysis/predict-price/{sample_bid.id}"
-        )
+        response = await authenticated_client.get(f"/api/v1/analysis/predict-price/{sample_bid.id}")
 
         assert response.status_code == 200
         data = response.json()
@@ -62,8 +61,9 @@ class TestAnalysisAPI:
     @pytest.mark.asyncio
     async def test_predict_price_no_estimated_price(self, authenticated_client: AsyncClient, test_db):
         """추정가 없는 공고 - 400"""
-        from app.db.models import BidAnnouncement
         from datetime import datetime
+
+        from app.db.models import BidAnnouncement
 
         # 추정가 없는 공고 생성
         bid = BidAnnouncement(
@@ -72,7 +72,7 @@ class TestAnalysisAPI:
             agency="테스트 기관",
             posted_at=datetime.utcnow(),
             url="https://example.com/no-price",
-            estimated_price=None  # 추정가 없음
+            estimated_price=None,  # 추정가 없음
         )
         test_db.add(bid)
         await test_db.commit()

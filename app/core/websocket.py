@@ -1,11 +1,15 @@
 from typing import List
+
 from fastapi import WebSocket
+
 from app.core.logging import logger
+
 
 class ConnectionManager:
     """
     Manages WebSocket connections for real-time notifications.
     """
+
     def __init__(self):
         self.active_connections: List[WebSocket] = []
 
@@ -27,7 +31,7 @@ class ConnectionManager:
             return
 
         logger.info(f"Broadcasting message to {len(self.active_connections)} clients: {message}")
-        
+
         # Iterate over a copy to avoid modification issues during iteration
         for connection in list(self.active_connections):
             try:
@@ -35,6 +39,7 @@ class ConnectionManager:
             except Exception as e:
                 logger.error(f"Failed to send message to client: {e}")
                 self.disconnect(connection)
+
 
 # Singleton instance
 manager = ConnectionManager()

@@ -1,4 +1,5 @@
 from typing import List, Union
+
 from pydantic import AnyHttpUrl, validator
 from pydantic_settings import BaseSettings
 
@@ -7,6 +8,7 @@ class Settings(BaseSettings):
     """
     Application Settings
     """
+
     PROJECT_NAME: str = "Biz-Retriever Backend"
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str
@@ -56,12 +58,12 @@ class Settings(BaseSettings):
     # Phase 1: Slack Notification
     SLACK_WEBHOOK_URL: Union[str, None] = None
     SLACK_CHANNEL: str = "#입찰-알림"
-    
+
     # Phase 8: Email Notification (SendGrid)
     SENDGRID_API_KEY: Union[str, None] = None
     SENDGRID_FROM_EMAIL: str = "noreply@biz-retriever.com"
     SENDGRID_FROM_NAME: str = "Biz-Retriever"
-    
+
     # Phase 3: Payment Gateway (Tosspayments)
     TOSSPAYMENTS_SECRET_KEY: Union[str, None] = None
     TOSSPAYMENTS_CLIENT_KEY: Union[str, None] = None
@@ -89,12 +91,12 @@ class Settings(BaseSettings):
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         """Construct SQLAlchemy Database URI"""
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-    
+
     @property
     def DATABASE_URL(self) -> str:
         """Alias for SQLALCHEMY_DATABASE_URI (used by Alembic)"""
         return self.SQLALCHEMY_DATABASE_URI
-    
+
     @property
     def CELERY_BROKER_URL(self) -> str:
         """Construct Celery Broker URL"""
@@ -108,5 +110,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+
 
 settings = Settings()

@@ -1,15 +1,15 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query, status
-from app.core.websocket import manager
-from app.core.security import get_current_user_from_token
+from fastapi import (APIRouter, Depends, Query, WebSocket, WebSocketDisconnect,
+                     status)
+
 from app.core.logging import logger
+from app.core.security import get_current_user_from_token
+from app.core.websocket import manager
 
 router = APIRouter()
 
+
 @router.websocket("/notifications")
-async def websocket_endpoint(
-    websocket: WebSocket,
-    token: str = Query(...)
-):
+async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
     """
     WebSocket Endpoint for real-time notifications.
     Clients must connect with ?token={access_token}
@@ -25,17 +25,17 @@ async def websocket_endpoint(
 
         # Connect
         await manager.connect(websocket)
-        
+
         try:
             while True:
                 # Keep connection alive and listen for messages (optional)
                 # For now, we only push notifications (server -> client)
                 data = await websocket.receive_text()
                 # logger.info(f"Received message from client: {data}")
-                
+
         except WebSocketDisconnect:
             manager.disconnect(websocket)
-            
+
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
         try:

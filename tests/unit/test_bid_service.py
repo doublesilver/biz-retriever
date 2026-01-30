@@ -1,13 +1,15 @@
 """
 Bid 서비스 단위 테스트
 """
-import pytest
+
 from datetime import datetime
+
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.bid_service import bid_service
-from app.schemas.bid import BidCreate
 from app.db.models import BidAnnouncement
+from app.schemas.bid import BidCreate
+from app.services.bid_service import bid_service
 
 
 class TestBidService:
@@ -25,7 +27,7 @@ class TestBidService:
             content="테스트 내용입니다.",
             agency="테스트 기관",
             posted_at=datetime.utcnow(),
-            url="https://example.com/test/1"
+            url="https://example.com/test/1",
         )
 
         result = await bid_service.create_bid(test_db, bid_in)
@@ -40,10 +42,7 @@ class TestBidService:
     async def test_create_bid_without_agency(self, test_db: AsyncSession):
         """기관명 없이 Bid 생성"""
         bid_in = BidCreate(
-            title="테스트 공고",
-            content="테스트 내용",
-            posted_at=datetime.utcnow(),
-            url="https://example.com/test/2"
+            title="테스트 공고", content="테스트 내용", posted_at=datetime.utcnow(), url="https://example.com/test/2"
         )
 
         result = await bid_service.create_bid(test_db, bid_in)

@@ -1,9 +1,11 @@
-import pytest
 import os
 from unittest.mock import AsyncMock, MagicMock
-from app.services.ml_service import MLService
-from app.db.models import BidResult
+
+import pytest
+
 from app.core.exceptions import InsufficientDataError, ModelNotTrainedError
+from app.db.models import BidResult
+from app.services.ml_service import MLService
 
 
 @pytest.fixture
@@ -47,12 +49,11 @@ async def test_train_and_predict_flow(ml_service, mock_db_session):
     dummy_data = []
     for i in range(20):
         est = 10000 + (i * 1000)
-        dummy_data.append(BidResult(
-            winning_price=est * 0.95,  # 95% winning rate
-            estimated_price=est,
-            base_price=est,
-            category="Test"
-        ))
+        dummy_data.append(
+            BidResult(
+                winning_price=est * 0.95, estimated_price=est, base_price=est, category="Test"  # 95% winning rate
+            )
+        )
 
     result_mock = MagicMock()
     result_mock.scalars().all.return_value = dummy_data
@@ -65,11 +66,7 @@ async def test_train_and_predict_flow(ml_service, mock_db_session):
     assert metrics["r2"] > 0.8  # Synthetic data should have good fit
 
     # 2. Predict
-    result = ml_service.predict_price(
-        estimated_price=20000,
-        base_price=20000,
-        category="Test"
-    )
+    result = ml_service.predict_price(estimated_price=20000, base_price=20000, category="Test")
 
     assert result is not None
     assert "recommended_price" in result
@@ -94,12 +91,7 @@ async def test_predict_returns_required_fields(ml_service, mock_db_session):
     dummy_data = []
     for i in range(20):
         est = 10000 + (i * 1000)
-        dummy_data.append(BidResult(
-            winning_price=est * 0.95,
-            estimated_price=est,
-            base_price=est,
-            category="Test"
-        ))
+        dummy_data.append(BidResult(winning_price=est * 0.95, estimated_price=est, base_price=est, category="Test"))
 
     result_mock = MagicMock()
     result_mock.scalars().all.return_value = dummy_data

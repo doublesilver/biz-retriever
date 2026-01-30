@@ -14,17 +14,19 @@ API 성능 및 동시 접속 테스트
     locust -f tests/load/locustfile.py --host=http://localhost:8000 \
         BidBrowserUser
 """
-from locust import HttpUser, task, between, events
-from locust.runners import MasterRunner
+
+import json
 import random
 import string
-import json
 import time
+
+from locust import HttpUser, between, events, task
+from locust.runners import MasterRunner
 
 
 def random_email():
     """랜덤 이메일 생성"""
-    suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+    suffix = "".join(random.choices(string.ascii_lowercase + string.digits, k=8))
     return f"loadtest_{suffix}@example.com"
 
 
@@ -40,6 +42,7 @@ class BizRetrieverUser(HttpUser):
     - 공고 상세 조회
     - 검색
     """
+
     wait_time = between(1, 3)  # 요청 간 1~3초 대기
 
     def on_start(self):
@@ -50,9 +53,7 @@ class BizRetrieverUser(HttpUser):
 
         # 회원가입
         response = self.client.post(
-            "/api/v1/auth/register",
-            json={"email": self.email, "password": self.password},
-            name="회원가입"
+            "/api/v1/auth/register", json={"email": self.email, "password": self.password}, name="회원가입"
         )
 
         if response.status_code == 201:
@@ -60,7 +61,7 @@ class BizRetrieverUser(HttpUser):
             response = self.client.post(
                 "/api/v1/auth/login/access-token",
                 data={"username": self.email, "password": self.password},
-                name="로그인"
+                name="로그인",
             )
             if response.status_code == 200:
                 self.token = response.json()["access_token"]
@@ -76,10 +77,7 @@ class BizRetrieverUser(HttpUser):
     def browse_bids(self):
         """공고 목록 조회 (가장 빈번한 작업)"""
         self.client.get(
-            "/api/v1/bids/",
-            params={"skip": 0, "limit": 20},
-            headers=self.auth_headers,
-            name="공고 목록 조회"
+            "/api/v1/bids/", params={"skip": 0, "limit": 20}, headers=self.auth_headers, name="공고 목록 조회"
         )
 
     @task(5)
@@ -91,7 +89,7 @@ class BizRetrieverUser(HttpUser):
             "/api/v1/bids/",
             params={"keyword": keyword, "skip": 0, "limit": 20},
             headers=self.auth_headers,
-            name="키워드 검색"
+            name="키워드 검색",
         )
 
     @task(3)
@@ -99,10 +97,7 @@ class BizRetrieverUser(HttpUser):
         """공고 상세 조회"""
         bid_id = random.randint(1, 100)
         with self.client.get(
-            f"/api/v1/bids/{bid_id}",
-            headers=self.auth_headers,
-            name="공고 상세 조회",
-            catch_response=True
+            f"/api/v1/bids/{bid_id}", headers=self.auth_headers, name="공고 상세 조회", catch_response=True
         ) as response:
             if response.status_code == 404:
                 response.success()  # 404는 정상으로 처리
@@ -110,11 +105,7 @@ class BizRetrieverUser(HttpUser):
     @task(2)
     def view_analytics(self):
         """통계 조회"""
-        self.client.get(
-            "/api/v1/analytics/summary",
-            headers=self.auth_headers,
-            name="대시보드 요약"
-        )
+        self.client.get("/api/v1/analytics/summary", headers=self.auth_headers, name="대시보드 요약")
 
     @task(1)
     def health_check(self):
@@ -128,6 +119,7 @@ class HeavyUser(HttpUser):
     - 빠른 요청
     - 대량 데이터 조회
     """
+
     wait_time = between(0.1, 0.5)  # 빠른 요청
 
     def on_start(self):
@@ -137,13 +129,9 @@ class HeavyUser(HttpUser):
         self.token = None
 
         # 회원가입 및 로그인
-        self.client.post(
-            "/api/v1/auth/register",
-            json={"email": self.email, "password": self.password}
-        )
+        self.client.post("/api/v1/auth/register", json={"email": self.email, "password": self.password})
         response = self.client.post(
-            "/api/v1/auth/login/access-token",
-            data={"username": self.email, "password": self.password}
+            "/api/v1/auth/login/access-token", data={"username": self.email, "password": self.password}
         )
         if response.status_code == 200:
             self.token = response.json()["access_token"]
@@ -158,32 +146,19 @@ class HeavyUser(HttpUser):
     def bulk_read(self):
         """대량 조회"""
         self.client.get(
-            "/api/v1/bids/",
-            params={"skip": 0, "limit": 100},
-            headers=self.auth_headers,
-            name="대량 공고 조회 (100건)"
+            "/api/v1/bids/", params={"skip": 0, "limit": 100}, headers=self.auth_headers, name="대량 공고 조회 (100건)"
         )
 
     @task(3)
     def rapid_search(self):
         """빠른 연속 검색"""
         for keyword in ["식당", "카페", "위탁"]:
-            self.client.get(
-                "/api/v1/bids/",
-                params={"keyword": keyword},
-                headers=self.auth_headers,
-                name="연속 검색"
-            )
+            self.client.get("/api/v1/bids/", params={"keyword": keyword}, headers=self.auth_headers, name="연속 검색")
 
     @task(2)
     def analytics_heavy(self):
         """분석 API 호출"""
-        self.client.get(
-            "/api/v1/analytics/trends",
-            params={"days": 30},
-            headers=self.auth_headers,
-            name="30일 트렌드"
-        )
+        self.client.get("/api/v1/analytics/trends", params={"days": 30}, headers=self.auth_headers, name="30일 트렌드")
 
 
 class AnonymousUser(HttpUser):
@@ -193,6 +168,7 @@ class AnonymousUser(HttpUser):
     - 메트릭 조회
     - 공개 API
     """
+
     wait_time = between(2, 5)
 
     @task(5)
@@ -218,6 +194,7 @@ class AdminUser(HttpUser):
     - 필터 관리
     - 엑셀 내보내기
     """
+
     wait_time = between(3, 10)
 
     def on_start(self):
@@ -227,13 +204,9 @@ class AdminUser(HttpUser):
         self.token = None
 
         # 회원가입 및 로그인
-        self.client.post(
-            "/api/v1/auth/register",
-            json={"email": self.email, "password": self.password}
-        )
+        self.client.post("/api/v1/auth/register", json={"email": self.email, "password": self.password})
         response = self.client.post(
-            "/api/v1/auth/login/access-token",
-            data={"username": self.email, "password": self.password}
+            "/api/v1/auth/login/access-token", data={"username": self.email, "password": self.password}
         )
         if response.status_code == 200:
             self.token = response.json()["access_token"]
@@ -247,38 +220,22 @@ class AdminUser(HttpUser):
     @task(3)
     def check_crawler_status(self):
         """크롤러 상태 확인"""
-        self.client.get(
-            "/api/v1/crawler/status",
-            headers=self.auth_headers,
-            name="[Admin] 크롤러 상태"
-        )
+        self.client.get("/api/v1/crawler/status", headers=self.auth_headers, name="[Admin] 크롤러 상태")
 
     @task(2)
     def view_filters(self):
         """필터 목록 조회"""
-        self.client.get(
-            "/api/v1/filters/exclusions",
-            headers=self.auth_headers,
-            name="[Admin] 필터 목록"
-        )
+        self.client.get("/api/v1/filters/exclusions", headers=self.auth_headers, name="[Admin] 필터 목록")
 
     @task(1)
     def export_excel(self):
         """엑셀 내보내기"""
-        self.client.get(
-            "/api/v1/export/excel",
-            headers=self.auth_headers,
-            name="[Admin] 엑셀 내보내기"
-        )
+        self.client.get("/api/v1/export/excel", headers=self.auth_headers, name="[Admin] 엑셀 내보내기")
 
     @task(1)
     def view_websocket_stats(self):
         """WebSocket 통계"""
-        self.client.get(
-            "/api/v1/realtime/ws/stats",
-            headers=self.auth_headers,
-            name="[Admin] WebSocket 통계"
-        )
+        self.client.get("/api/v1/realtime/ws/stats", headers=self.auth_headers, name="[Admin] WebSocket 통계")
 
 
 # 테스트 결과 리포팅

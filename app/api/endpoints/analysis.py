@@ -1,16 +1,19 @@
 """
 AI 분석 API 엔드포인트 (Phase 3)
 """
+
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, Path
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.security import get_current_user
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.logging import logger
-from app.db.models import User, BidAnnouncement
+from app.core.security import get_current_user
+from app.db.models import BidAnnouncement, User
 from app.db.session import get_db
 from app.services.ml_service import ml_predictor
-from sqlalchemy import select
-import asyncio
 
 router = APIRouter()
 
@@ -19,7 +22,7 @@ router = APIRouter()
 async def predict_winning_price(
     announcement_id: int = Path(..., ge=1, description="공고 ID (양수)"),
     session: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     AI 투찰가 예측 (Phase 6.2)
@@ -28,9 +31,7 @@ async def predict_winning_price(
     logger.info(f"AI 투찰가 예측 요청: announcement_id={announcement_id}, user={current_user.email}")
 
     # 1. 공고 조회
-    result = await session.execute(
-        select(BidAnnouncement).where(BidAnnouncement.id == announcement_id)
-    )
+    result = await session.execute(select(BidAnnouncement).where(BidAnnouncement.id == announcement_id))
     announcement = result.scalar_one_or_none()
 
     if not announcement:
@@ -44,17 +45,17 @@ async def predict_winning_price(
         # ML 서비스 호출 (ml_predictor는 ml_service.py의 인스턴스)
         prediction = ml_predictor.predict_price(
             estimated_price=announcement.estimated_price,
-            base_price=None, # 나중에 DB 필드 추가 시 연동
-            category=None    # 공고 카테고리 정보가 있을 경우 추가
+            base_price=None,  # 나중에 DB 필드 추가 시 연동
+            category=None,  # 공고 카테고리 정보가 있을 경우 추가
         )
-        
+
         return {
             "announcement_id": announcement_id,
             "announcement_title": announcement.title,
             "estimated_price": announcement.estimated_price,
             "recommended_price": prediction["recommended_price"],
             "confidence": prediction["confidence"],
-            "prediction_reason": "과거 유사 공고의 낙찰가 분포를 분석한 결과입니다."
+            "prediction_reason": "과거 유사 공고의 낙찰가 분포를 분석한 결과입니다.",
         }
     except Exception as e:
         logger.error(f"Prediction Error: {e}")
@@ -67,7 +68,7 @@ async def predict_winning_price(
             "recommended_price": fallback_price,
             "confidence": 0.5,
             "prediction_reason": "충분한 학습 데이터가 없어 기본 요율(88%)을 적용했습니다.",
-            "is_fallback": True
+            "is_fallback": True,
         }
 
 
@@ -75,15 +76,13 @@ async def predict_winning_price(
 async def check_match(
     announcement_id: int = Path(..., ge=1, description="공고 ID (양수)"),
     session: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     공고 매칭 가능 여부 확인 (Hard Match)
     """
     # 1. 공고 조회
-    result = await session.execute(
-        select(BidAnnouncement).where(BidAnnouncement.id == announcement_id)
-    )
+    result = await session.execute(select(BidAnnouncement).where(BidAnnouncement.id == announcement_id))
     bid = result.scalar_one_or_none()
     if not bid:
         raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
@@ -91,31 +90,29 @@ async def check_match(
     # 2. 사용자 프로필 조회
     if not current_user.full_profile:
         raise HTTPException(status_code=400, detail="사용자 프로필이 없습니다.")
-    
+
     # 3. 매칭 실행
     from app.services.matching_service import matching_service
+
     match_result = matching_service.check_hard_match(current_user.full_profile, bid)
-    
+
     # Soft Match (Only if Hard Match is successful OR for information)
     # We allow seeing soft match score even if hard match fails, for debugging/insight
     soft_match_result = matching_service.calculate_soft_match(current_user.full_profile, bid)
-    
+
     # 4. 제약 조건 정보 포함
     constraints = {
         "region_code": bid.region_code,
         "license_requirements": bid.license_requirements,
-        "min_performance": bid.min_performance
+        "min_performance": bid.min_performance,
     }
-    
+
     return {
         "bid_id": bid.id,
         "is_match": match_result["is_match"],
         "reasons": match_result["reasons"],
-        "soft_match": {
-            "score": soft_match_result["score"],
-            "breakdown": soft_match_result["breakdown"]
-        },
-        "constraints": constraints
+        "soft_match": {"score": soft_match_result["score"], "breakdown": soft_match_result["breakdown"]},
+        "constraints": constraints,
     }
 
 
@@ -126,59 +123,57 @@ class SmartSearchRequest(BaseModel):
 
 @router.post("/smart-search")
 async def smart_search(
-    request: SmartSearchRequest,
-    session: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    request: SmartSearchRequest, session: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """
     자연어 AI 스마트 검색
     - 사용자의 검색 의도를 분석하여 가장 관련성 높은 공고 순으로 정렬
     """
     logger.info(f"Smart Search: query='{request.query}', user={current_user.email}")
-    
+
     try:
         # 1. 최근 공고 30개 가져오기 (성능을 위해 제한)
         stmt = select(BidAnnouncement).order_by(BidAnnouncement.created_at.desc()).limit(30)
         result = await session.execute(stmt)
         bids = result.scalars().all()
-        
+
         if not bids:
             return {"results": []}
-            
+
         # 2. 각 공고에 대해 시맨틱 점수 계산
         from app.services.matching_service import matching_service
-        
+
         if not matching_service.client:
             logger.warning("Gemini client is not initialized in MatchingService")
             return {"error": "Gemini Client Not Initialized", "results": []}
 
         scored_results = []
-        
+
         # 병렬 처리를 위해 task 리스트 생성
         tasks = [matching_service.calculate_semantic_match(request.query, bid) for bid in bids]
         results = await asyncio.gather(*tasks)
-        
+
         for bid, result in zip(bids, results):
             # result is {"score": float, "error": str}
-            scored_results.append({
-                "id": bid.id,
-                "title": bid.title,
-                "agency": bid.agency,
-                "relevance_score": result["score"],
-                "error": result.get("error"), # Debug info
-                "created_at": bid.created_at
-            })
-            
+            scored_results.append(
+                {
+                    "id": bid.id,
+                    "title": bid.title,
+                    "agency": bid.agency,
+                    "relevance_score": result["score"],
+                    "error": result.get("error"),  # Debug info
+                    "created_at": bid.created_at,
+                }
+            )
+
         # 3. 점수 순으로 정렬 및 제한
         scored_results.sort(key=lambda x: x["relevance_score"], reverse=True)
-        top_results = scored_results[:request.limit]
-        
-        return {
-            "query": request.query,
-            "results": top_results
-        }
+        top_results = scored_results[: request.limit]
+
+        return {"query": request.query, "results": top_results}
     except Exception as e:
         import traceback
+
         error_msg = f"Smart Search Error: {str(e)}\n{traceback.format_exc()}"
         logger.error(error_msg)
         return {"error": str(e), "traceback": traceback.format_exc(), "results": []}

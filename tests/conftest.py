@@ -1,26 +1,28 @@
 """
 pytest 설정 및 Fixtures
 """
-import pytest
+
 import asyncio
-from typing import AsyncGenerator
 from datetime import datetime, timedelta
+from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.pool import StaticPool
-from httpx import AsyncClient, ASGITransport
 
-from app.core.config import settings
-from app.core.security import get_password_hash, create_access_token
-from app.db.base import Base
-from app.db.models import User, BidAnnouncement
-from app.main import app
-from app.api import deps
-from app.db import session as db_session_module
-
+import pytest
 # FastAPICache for testing
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
+                                    create_async_engine)
+from sqlalchemy.pool import StaticPool
+
+from app.api import deps
+from app.core.config import settings
+from app.core.security import create_access_token, get_password_hash
+from app.db import session as db_session_module
+from app.db.base import Base
+from app.db.models import BidAnnouncement, User
+from app.main import app
 
 # Test Database URL (In-memory SQLite for fast tests)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -51,20 +53,13 @@ async def test_db() -> AsyncGenerator[AsyncSession, None]:
     """
     # StaticPool로 모든 연결이 같은 in-memory DB 공유
     engine = create_async_engine(
-        TEST_DATABASE_URL,
-        echo=False,
-        poolclass=StaticPool,
-        connect_args={"check_same_thread": False}
+        TEST_DATABASE_URL, echo=False, poolclass=StaticPool, connect_args={"check_same_thread": False}
     )
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    test_session_maker = async_sessionmaker(
-        bind=engine,
-        class_=AsyncSession,
-        expire_on_commit=False
-    )
+    test_session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
     # Dependency override 함수
     async def override_get_db():
@@ -100,7 +95,7 @@ def sample_announcement_data():
         "keywords_matched": ["구내식당", "위탁운영"],
         "posted_at": datetime.utcnow(),
         "deadline": datetime.utcnow() + timedelta(days=7),
-        "importance_score": 2
+        "importance_score": 2,
     }
 
 
@@ -114,14 +109,12 @@ def exclude_keywords_sample():
 # 사용자 및 인증 관련 Fixtures
 # ============================================
 
+
 @pytest.fixture
 async def test_user(test_db: AsyncSession) -> User:
     """테스트용 사용자 생성"""
     user = User(
-        email="test@example.com",
-        hashed_password=get_password_hash("TestPass123!"),
-        is_active=True,
-        is_superuser=False
+        email="test@example.com", hashed_password=get_password_hash("TestPass123!"), is_active=True, is_superuser=False
     )
     test_db.add(user)
     await test_db.commit()
@@ -133,10 +126,7 @@ async def test_user(test_db: AsyncSession) -> User:
 async def test_superuser(test_db: AsyncSession) -> User:
     """테스트용 슈퍼유저 생성"""
     user = User(
-        email="admin@example.com",
-        hashed_password=get_password_hash("AdminPass123!"),
-        is_active=True,
-        is_superuser=True
+        email="admin@example.com", hashed_password=get_password_hash("AdminPass123!"), is_active=True, is_superuser=True
     )
     test_db.add(user)
     await test_db.commit()
@@ -160,6 +150,7 @@ def auth_headers(auth_token: str) -> dict:
 # 샘플 공고 Fixtures
 # ============================================
 
+
 @pytest.fixture
 async def sample_bid(test_db: AsyncSession, sample_announcement_data: dict) -> BidAnnouncement:
     """DB에 저장된 샘플 공고"""
@@ -173,7 +164,7 @@ async def sample_bid(test_db: AsyncSession, sample_announcement_data: dict) -> B
         keywords_matched=sample_announcement_data["keywords_matched"],
         posted_at=sample_announcement_data["posted_at"],
         deadline=sample_announcement_data["deadline"],
-        importance_score=sample_announcement_data["importance_score"]
+        importance_score=sample_announcement_data["importance_score"],
     )
     test_db.add(bid)
     await test_db.commit()
@@ -194,9 +185,9 @@ async def multiple_bids(test_db: AsyncSession) -> list:
             source="G2B" if i % 2 == 0 else "Onbid",
             estimated_price=100000000 + i * 10000000,
             posted_at=datetime.utcnow() - timedelta(days=i),
-            deadline=datetime.utcnow() + timedelta(days=7-i),
+            deadline=datetime.utcnow() + timedelta(days=7 - i),
             importance_score=(i % 3) + 1,  # 1, 2, 3 순환
-            keywords_matched=["키워드1", "키워드2"] if i % 2 == 0 else []
+            keywords_matched=["키워드1", "키워드2"] if i % 2 == 0 else [],
         )
         test_db.add(bid)
         bids.append(bid)
@@ -211,6 +202,7 @@ async def multiple_bids(test_db: AsyncSession) -> list:
 # ============================================
 # Mock Fixtures
 # ============================================
+
 
 @pytest.fixture
 def mock_redis():
@@ -253,7 +245,7 @@ def mock_httpx_client():
 @pytest.fixture
 def mock_slack_webhook():
     """Slack Webhook Mock"""
-    with patch('app.services.notification_service.httpx.AsyncClient') as mock:
+    with patch("app.services.notification_service.httpx.AsyncClient") as mock:
         mock_response = AsyncMock()
         mock_response.status_code = 200
         mock_response.raise_for_status = MagicMock()
@@ -270,7 +262,7 @@ def mock_slack_webhook():
 @pytest.fixture
 def mock_g2b_api():
     """G2B API Mock"""
-    with patch('app.services.crawler_service.httpx.AsyncClient') as mock:
+    with patch("app.services.crawler_service.httpx.AsyncClient") as mock:
         mock_response = AsyncMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
@@ -284,7 +276,7 @@ def mock_g2b_api():
                             "bidNtceDt": "202501201000",
                             "bidClseDt": "202501271800",
                             "bidNtceUrl": "https://g2b.example.com/bid/1",
-                            "presmptPrce": "100000000"
+                            "presmptPrce": "100000000",
                         }
                     ]
                 }
@@ -302,7 +294,7 @@ def mock_g2b_api():
 @pytest.fixture
 def mock_openai():
     """OpenAI API Mock"""
-    with patch('app.services.rag_service.ChatOpenAI') as mock:
+    with patch("app.services.rag_service.ChatOpenAI") as mock:
         mock_llm = AsyncMock()
         mock_response = MagicMock()
         mock_response.content = "테스트 요약 결과입니다. 주요 키워드: 테스트, 입찰, 공고"
@@ -315,6 +307,7 @@ def mock_openai():
 # ============================================
 # HTTP Client Fixtures
 # ============================================
+
 
 @pytest.fixture
 async def async_client(test_db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
@@ -338,10 +331,12 @@ async def authenticated_client(test_user: User, test_db: AsyncSession) -> AsyncG
 # 크롤러 서비스 Fixtures
 # ============================================
 
+
 @pytest.fixture
 def crawler_service():
     """G2B 크롤러 서비스 인스턴스"""
     from app.services.crawler_service import G2BCrawlerService
+
     return G2BCrawlerService()
 
 
@@ -349,6 +344,7 @@ def crawler_service():
 def notification_service():
     """Slack 알림 서비스 인스턴스"""
     from app.services.notification_service import SlackNotificationService
+
     return SlackNotificationService()
 
 
@@ -356,6 +352,7 @@ def notification_service():
 def rag_service():
     """RAG 서비스 인스턴스"""
     from app.services.rag_service import RAGService
+
     return RAGService()
 
 
@@ -363,6 +360,7 @@ def rag_service():
 def ml_service():
     """ML 서비스 인스턴스"""
     from app.services.ml_service import MLService
+
     return MLService()
 
 
@@ -370,4 +368,5 @@ def ml_service():
 def file_service():
     """파일 서비스 인스턴스"""
     from app.services.file_service import FileService
+
     return FileService()

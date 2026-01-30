@@ -1,29 +1,31 @@
 """
 필터 관리 API 엔드포인트 (Phase 2)
 """
-from fastapi import APIRouter, Depends, HTTPException, Path, Body
+
 from typing import List
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Path
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
-from app.core.security import get_current_user
 from app.core.logging import logger
+from app.core.security import get_current_user
 from app.db.models import User
 from app.services.keyword_service import keyword_service
 
 router = APIRouter()
 
+
 class KeywordRequest(BaseModel):
     """제외 키워드 요청 스키마"""
+
     keyword: str = Field(..., min_length=1, max_length=50, description="제외 키워드")
 
 
 @router.post("/keywords")
 async def add_exclude_keyword(
-    request: KeywordRequest,
-    db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(get_current_user)
+    request: KeywordRequest, db: AsyncSession = Depends(deps.get_db), current_user: User = Depends(get_current_user)
 ):
     """
     제외 키워드 추가 (DB 저장 + 캐시 갱신)
@@ -36,10 +38,7 @@ async def add_exclude_keyword(
 
 
 @router.get("/keywords")
-async def get_exclude_keywords(
-    active_only: bool = True,
-    db: AsyncSession = Depends(deps.get_db)
-):
+async def get_exclude_keywords(active_only: bool = True, db: AsyncSession = Depends(deps.get_db)):
     """
     제외 키워드 목록 조회
     """
@@ -57,7 +56,7 @@ async def get_exclude_keywords(
 async def remove_exclude_keyword(
     keyword: str = Path(..., min_length=1, max_length=50, description="삭제할 키워드"),
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     제외 키워드 삭제

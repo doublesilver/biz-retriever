@@ -1,10 +1,12 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 
 class UserBasicInfo(BaseModel):
     """간단한 사용자 정보 (담당자 표시용)"""
+
     id: int
     email: str
 
@@ -14,6 +16,7 @@ class UserBasicInfo(BaseModel):
 
 class BidBase(BaseModel):
     """공고 기본 스키마"""
+
     title: str = Field(..., min_length=1, max_length=500, description="공고 제목")
     content: str = Field(..., min_length=1, description="공고 내용")
     agency: Optional[str] = Field(default=None, max_length=200, description="기관명")
@@ -23,11 +26,13 @@ class BidBase(BaseModel):
 
 class BidCreate(BidBase):
     """공고 생성 스키마"""
+
     pass
 
 
 class BidUpdate(BaseModel):
     """공고 수정 스키마"""
+
     title: Optional[str] = Field(default=None, min_length=1, max_length=500)
     content: Optional[str] = Field(default=None, min_length=1)
     agency: Optional[str] = Field(default=None, max_length=200)
@@ -41,6 +46,7 @@ class BidUpdate(BaseModel):
 
 class BidResponse(BidBase):
     """공고 응답 스키마 (전체 필드)"""
+
     id: int
     created_at: datetime
     updated_at: datetime
@@ -70,6 +76,7 @@ class BidResponse(BidBase):
 
 class BidAnnouncementCreate(BaseModel):
     """크롤러용 공고 생성 스키마 (내부용)"""
+
     title: str
     content: str
     agency: Optional[str] = None
@@ -84,17 +91,20 @@ class BidAnnouncementCreate(BaseModel):
 
 class BidAssignRequest(BaseModel):
     """공고 담당자 할당 요청"""
+
     user_id: Optional[int] = Field(None, ge=1, description="담당자 ID (None이면 할당 해제)")
 
 
 class BidStatusUpdate(BaseModel):
     """공고 상태 변경 요청"""
+
     status: str = Field(..., pattern="^(new|reviewing|bidding|submitted|won|lost|completed)$", description="공고 상태")
     notes: Optional[str] = Field(default=None, max_length=1000, description="메모")
 
 
 class BidListResponse(BaseModel):
     """공고 목록 응답 스키마 (페이지네이션 지원)"""
+
     items: List[BidResponse]
     total: int
     skip: int

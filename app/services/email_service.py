@@ -2,10 +2,13 @@
 Email Notification Service using SendGrid
 Phase 8: Email notification system for bid alerts
 """
+
 import os
 from typing import List, Optional
+
 from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail, Email, To, Content, Personalization
+from sendgrid.helpers.mail import Content, Email, Mail, Personalization, To
+
 from app.core.config import settings
 from app.core.logging import logger
 
@@ -14,106 +17,97 @@ class EmailService:
     """
     SendGrid email service for sending notifications
     """
-    
+
     def __init__(self):
-        self.api_key = os.getenv("SENDGRID_API_KEY", settings.SENDGRID_API_KEY if hasattr(settings, 'SENDGRID_API_KEY') else None)
+        self.api_key = os.getenv(
+            "SENDGRID_API_KEY", settings.SENDGRID_API_KEY if hasattr(settings, "SENDGRID_API_KEY") else None
+        )
         self.from_email = os.getenv("SENDGRID_FROM_EMAIL", "noreply@biz-retriever.com")
         self.from_name = os.getenv("SENDGRID_FROM_NAME", "Biz-Retriever")
-        
+
         if self.api_key and self.api_key.startswith("SG."):
             self.client = SendGridAPIClient(self.api_key)
             logger.info("EmailService: SendGrid API initialized")
         else:
             self.client = None
             logger.warning("EmailService: SendGrid API key not configured. Email notifications disabled.")
-    
+
     def is_configured(self) -> bool:
         """Check if SendGrid is properly configured"""
         return self.client is not None
-    
+
     async def send_email(
-        self,
-        to_email: str,
-        subject: str,
-        html_content: str,
-        plain_content: Optional[str] = None
+        self, to_email: str, subject: str, html_content: str, plain_content: Optional[str] = None
     ) -> bool:
         """
         Send a single email
-        
+
         Args:
             to_email: Recipient email address
             subject: Email subject
             html_content: HTML email body
             plain_content: Plain text fallback (optional)
-        
+
         Returns:
             bool: True if sent successfully, False otherwise
         """
         if not self.is_configured():
             logger.error("SendGrid not configured. Cannot send email.")
             return False
-        
+
         try:
             message = Mail(
                 from_email=Email(self.from_email, self.from_name),
                 to_emails=To(to_email),
                 subject=subject,
-                html_content=Content("text/html", html_content)
+                html_content=Content("text/html", html_content),
             )
-            
+
             # Add plain text content if provided
             if plain_content:
-                message.content = [
-                    Content("text/plain", plain_content),
-                    Content("text/html", html_content)
-                ]
-            
+                message.content = [Content("text/plain", plain_content), Content("text/html", html_content)]
+
             response = self.client.send(message)
-            
+
             if response.status_code in [200, 202]:
                 logger.info(f"Email sent successfully to {to_email}: {subject}")
                 return True
             else:
                 logger.error(f"Failed to send email. Status: {response.status_code}, Body: {response.body}")
                 return False
-                
+
         except Exception as e:
             logger.error(f"Error sending email to {to_email}: {str(e)}", exc_info=True)
             return False
-    
+
     async def send_bulk_email(
-        self,
-        recipients: List[str],
-        subject: str,
-        html_content: str,
-        plain_content: Optional[str] = None
+        self, recipients: List[str], subject: str, html_content: str, plain_content: Optional[str] = None
     ) -> int:
         """
         Send email to multiple recipients
-        
+
         Args:
             recipients: List of email addresses
             subject: Email subject
             html_content: HTML email body
             plain_content: Plain text fallback (optional)
-        
+
         Returns:
             int: Number of successfully sent emails
         """
         if not self.is_configured():
             logger.error("SendGrid not configured. Cannot send bulk email.")
             return 0
-        
+
         success_count = 0
-        
+
         for recipient in recipients:
             if await self.send_email(recipient, subject, html_content, plain_content):
                 success_count += 1
-        
+
         logger.info(f"Bulk email: {success_count}/{len(recipients)} sent successfully")
         return success_count
-    
+
     def render_bid_alert_email(
         self,
         user_name: str,
@@ -123,11 +117,11 @@ class EmailService:
         bid_price: str,
         bid_url: str,
         bid_summary: Optional[str] = None,
-        keywords: Optional[List[str]] = None
+        keywords: Optional[List[str]] = None,
     ) -> tuple[str, str]:
         """
         Render bid alert email template
-        
+
         Returns:
             tuple: (html_content, plain_content)
         """
@@ -142,15 +136,15 @@ class EmailService:
 📅 마감일: {bid_deadline}
 💰 추정가: {bid_price}
 """
-        
+
         if bid_summary:
             plain_text += f"\n🤖 AI 요약:\n{bid_summary}\n"
-        
+
         if keywords:
             plain_text += f"\n🏷️ 매칭 키워드: {', '.join(keywords)}\n"
-        
+
         plain_text += f"\n🔗 자세히 보기: {bid_url}\n\n감사합니다.\nBiz-Retriever 팀"
-        
+
         # HTML version
         html_content = f"""
 <!DOCTYPE html>
@@ -212,7 +206,7 @@ class EmailService:
                                             </tr>
                                         </table>
         """
-        
+
         # AI Summary section
         if bid_summary:
             html_content += f"""
@@ -221,17 +215,22 @@ class EmailService:
                                             <p style="margin: 8px 0 0; font-size: 14px; color: #333333; line-height: 1.6;">{bid_summary}</p>
                                         </div>
             """
-        
+
         # Keywords section
         if keywords:
-            keyword_badges = ' '.join([f'<span style="display: inline-block; padding: 4px 10px; margin: 2px; background-color: #667eea; color: #ffffff; border-radius: 12px; font-size: 12px;">{kw}</span>' for kw in keywords])
+            keyword_badges = " ".join(
+                [
+                    f'<span style="display: inline-block; padding: 4px 10px; margin: 2px; background-color: #667eea; color: #ffffff; border-radius: 12px; font-size: 12px;">{kw}</span>'
+                    for kw in keywords
+                ]
+            )
             html_content += f"""
                                         <div style="margin-top: 15px;">
                                             <p style="margin: 0 0 8px; font-size: 13px; color: #666666; font-weight: 600;">🏷️ 매칭 키워드</p>
                                             <div>{keyword_badges}</div>
                                         </div>
             """
-        
+
         html_content += f"""
                                     </td>
                                 </tr>
@@ -268,23 +267,18 @@ class EmailService:
 </body>
 </html>
 """
-        
+
         return html_content, plain_text
-    
-    async def send_bid_alert(
-        self,
-        to_email: str,
-        user_name: str,
-        bid_data: dict
-    ) -> bool:
+
+    async def send_bid_alert(self, to_email: str, user_name: str, bid_data: dict) -> bool:
         """
         Send bid alert email to user
-        
+
         Args:
             to_email: User email address
             user_name: User name for personalization
             bid_data: Dictionary containing bid information
-        
+
         Returns:
             bool: True if sent successfully
         """
@@ -296,11 +290,11 @@ class EmailService:
             bid_price=bid_data.get("estimated_price", "미정"),
             bid_url=bid_data.get("url", settings.FRONTEND_URL),
             bid_summary=bid_data.get("ai_summary"),
-            keywords=bid_data.get("keywords_matched")
+            keywords=bid_data.get("keywords_matched"),
         )
-        
+
         subject = f"🔔 새로운 맞춤 공고: {bid_data.get('title', '공고')}"
-        
+
         return await self.send_email(to_email, subject, html_content, plain_content)
 
 

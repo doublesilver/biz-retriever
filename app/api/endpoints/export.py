@@ -2,21 +2,23 @@
 엑셀 Export 기능
 narajangteo의 핵심 장점 도입
 """
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment
-from io import BytesIO
+
 from datetime import datetime
+from io import BytesIO
+from typing import Optional
 from urllib.parse import quote
 
-from app.core.security import get_current_user
-from app.db.models import User, BidAnnouncement
-from app.db.session import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.logging import logger
+from app.core.security import get_current_user
+from app.db.models import BidAnnouncement, User
+from app.db.session import get_db
 from app.schemas.query import BidSource
 
 router = APIRouter()
@@ -28,7 +30,7 @@ async def export_bids_to_excel(
     source: Optional[BidSource] = Query(default=None, description="출처 필터 (G2B, Onbid)"),
     agency: Optional[str] = Query(default=None, min_length=1, max_length=200, description="기관명 필터"),
     session: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     입찰 공고를 엑셀로 내보내기
@@ -38,7 +40,9 @@ async def export_bids_to_excel(
     - **source**: 출처 필터 (G2B, Onbid)
     - **agency**: 기관명 필터 (부분 일치)
     """
-    logger.info(f"엑셀 Export 요청: user={current_user.email}, filters=(importance={importance_score}, source={source})")
+    logger.info(
+        f"엑셀 Export 요청: user={current_user.email}, filters=(importance={importance_score}, source={source})"
+    )
 
     # 필터 조건 구성
     conditions = []
@@ -52,10 +56,7 @@ async def export_bids_to_excel(
         conditions.append(BidAnnouncement.agency.like(f"%{safe_agency}%"))
 
     # DB 조회
-    query = select(BidAnnouncement).order_by(
-        BidAnnouncement.importance_score.desc(),
-        BidAnnouncement.created_at.desc()
-    )
+    query = select(BidAnnouncement).order_by(BidAnnouncement.importance_score.desc(), BidAnnouncement.created_at.desc())
 
     if conditions:
         query = query.where(and_(*conditions))
@@ -87,18 +88,20 @@ async def export_bids_to_excel(
 
     # 데이터 작성
     for idx, bid in enumerate(bids, 1):
-        ws.append([
-            idx,
-            bid.title,
-            bid.agency or "미확인",
-            bid.source,
-            bid.deadline.strftime("%Y-%m-%d %H:%M") if bid.deadline else "미정",
-            f"{int(bid.estimated_price):,}원" if bid.estimated_price else "미공개",
-            "⭐" * (bid.importance_score or 1),
-            ", ".join(bid.keywords_matched) if bid.keywords_matched else "",
-            bid.status or "new",
-            bid.url
-        ])
+        ws.append(
+            [
+                idx,
+                bid.title,
+                bid.agency or "미확인",
+                bid.source,
+                bid.deadline.strftime("%Y-%m-%d %H:%M") if bid.deadline else "미정",
+                f"{int(bid.estimated_price):,}원" if bid.estimated_price else "미공개",
+                "⭐" * (bid.importance_score or 1),
+                ", ".join(bid.keywords_matched) if bid.keywords_matched else "",
+                bid.status or "new",
+                bid.url,
+            ]
+        )
 
     # 컬럼 너비 자동 조정
     for column in ws.columns:
@@ -123,22 +126,15 @@ async def export_bids_to_excel(
     return StreamingResponse(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
-            "Content-Disposition": f"attachment; filename={filename}; filename*=UTF-8''{quote(filename_display)}"
-        }
+        headers={"Content-Disposition": f"attachment; filename={filename}; filename*=UTF-8''{quote(filename_display)}"},
     )
 
 
 @router.get("/priority-agencies")
 async def export_priority_agencies_excel(
-    agencies: str = Query(
-        ...,
-        min_length=1,
-        max_length=1000,
-        description="콤마로 구분된 기관명 (최대 20개)"
-    ),
+    agencies: str = Query(..., min_length=1, max_length=1000, description="콤마로 구분된 기관명 (최대 20개)"),
     session: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     우선 기관 필터링 엑셀 (narajangteo orgs.txt 방식)
@@ -190,14 +186,16 @@ async def export_priority_agencies_excel(
     ws.append(["번호", "기관명", "제목", "마감일", "중요도", "URL"])
 
     for idx, bid in enumerate(unique_bids, 1):
-        ws.append([
-            idx,
-            bid.agency,
-            bid.title,
-            bid.deadline.strftime("%Y-%m-%d") if bid.deadline else "미정",
-            "⭐" * (bid.importance_score or 1),
-            bid.url
-        ])
+        ws.append(
+            [
+                idx,
+                bid.agency,
+                bid.title,
+                bid.deadline.strftime("%Y-%m-%d") if bid.deadline else "미정",
+                "⭐" * (bid.importance_score or 1),
+                bid.url,
+            ]
+        )
 
     output = BytesIO()
     wb.save(output)
@@ -209,7 +207,5 @@ async def export_priority_agencies_excel(
     return StreamingResponse(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
-            "Content-Disposition": f"attachment; filename={filename}; filename*=UTF-8''{quote(filename_display)}"
-        }
+        headers={"Content-Disposition": f"attachment; filename={filename}; filename*=UTF-8''{quote(filename_display)}"},
     )

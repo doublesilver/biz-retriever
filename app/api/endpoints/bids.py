@@ -1,21 +1,23 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query, Path
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
+
+from fastapi import (APIRouter, Depends, File, HTTPException, Path, Query,
+                     UploadFile, status)
 from fastapi_cache.decorator import cache
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
-from app.schemas.bid import BidCreate, BidResponse, BidUpdate, BidListResponse
+from app.core.constants import ALLOWED_FILE_EXTENSIONS, MAX_FILE_SIZE_BYTES
+from app.core.logging import logger
+from app.db.models import BidAnnouncement, User
+from app.db.repositories.bid_repository import BidRepository
+from app.schemas.bid import BidCreate, BidListResponse, BidResponse, BidUpdate
 from app.schemas.query import BidsQueryParams, FileUploadParams
 from app.services.bid_service import bid_service
 from app.services.file_service import file_service
 from app.worker.tasks import process_bid_analysis
-from app.db.models import BidAnnouncement, User
-from app.db.repositories.bid_repository import BidRepository
-from app.core.logging import logger
-from app.core.constants import ALLOWED_FILE_EXTENSIONS, MAX_FILE_SIZE_BYTES
 
 router = APIRouter()
 logger.info("CORE_MODULE_LOADED: bids.py with BidListResponse")
@@ -34,12 +36,12 @@ MAX_FILE_SIZE = MAX_FILE_SIZE_BYTES
         201: {"description": "공고 생성 성공"},
         401: {"description": "인증 필요"},
         422: {"description": "입력값 검증 실패"},
-    }
+    },
 )
 async def create_bid(
     bid_in: BidCreate,
     repo: BidRepository = Depends(deps.get_bid_repository),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user),
 ):
     """
     새로운 입찰 공고를 생성합니다.
@@ -60,11 +62,11 @@ async def create_bid(
     responses={
         200: {"description": "조회 성공"},
         404: {"description": "공고를 찾을 수 없음"},
-    }
+    },
 )
 async def read_bid(
     bid_id: int = Path(..., ge=1, description="공고 ID (양수)", example=1),
-    repo: BidRepository = Depends(deps.get_bid_repository)
+    repo: BidRepository = Depends(deps.get_bid_repository),
 ):
     """
     특정 입찰 공고의 상세 정보를 조회합니다.
@@ -84,13 +86,13 @@ async def read_bid(
     responses={
         200: {"description": "수정 성공"},
         404: {"description": "공고를 찾을 수 없음"},
-    }
+    },
 )
 async def update_bid(
     bid_in: BidUpdate,
     bid_id: int = Path(..., ge=1, description="공고 ID"),
     repo: BidRepository = Depends(deps.get_bid_repository),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user),
 ):
     """
     입찰 공고의 상태 또는 담당자를 변경합니다.
@@ -98,7 +100,7 @@ async def update_bid(
     bid = await bid_service.get_bid(repo, bid_id)
     if not bid:
         raise HTTPException(status_code=404, detail="Bid not found")
-    
+
     # Update
     updated_bid = await bid_service.update_bid(repo, bid, bid_in)
     return updated_bid
@@ -111,7 +113,7 @@ async def read_bids(
     limit: int = Query(default=100, ge=1, le=500, description="조회 개수 (최대 500)"),
     keyword: Optional[str] = Query(default=None, min_length=1, max_length=100, description="검색 키워드"),
     agency: Optional[str] = Query(default=None, min_length=1, max_length=200, description="기관명"),
-    repo: BidRepository = Depends(deps.get_bid_repository)
+    repo: BidRepository = Depends(deps.get_bid_repository),
 ):
     """
     Retrieve bids with optional filtering and caching (60s).
@@ -122,36 +124,25 @@ async def read_bids(
     - **agency**: 기관명 필터
     """
     # SQL Injection prevention is handled by SQLAlchemy in Repository, so explicit stripping is not needed for security,
-    # but strictly speaking, stripping implementation details is good. 
+    # but strictly speaking, stripping implementation details is good.
     # However, the previous implementation was overly aggressive (replacing common chars).
-    
-    bids = await bid_service.get_bids(
-        repo,
-        skip=skip,
-        limit=limit,
-        keyword=keyword,
-        agency=agency
-    )
-    
+
+    bids = await bid_service.get_bids(repo, skip=skip, limit=limit, keyword=keyword, agency=agency)
+
     # Get total count (Assuming the caller wants the total count matching filter)
-    # The previous code did raw SQL execute for count on ALL bids, ignoring filters! 
+    # The previous code did raw SQL execute for count on ALL bids, ignoring filters!
     # "select(func.count(BidAnnouncement.id))" counts everything.
     # To do this right using Repository, we should add a count method.
     # For now, let's keep it simple or fix it.
     # We can inject DB session for raw count if needed or add count to Repo.
     # Let's use session from repo to count all (to match previous behavior) or refactor properly.
     # Previous behavior was: total = total_result.scalar() -> Count *ALL*
-    
+
     # We will replicate previous behavior for "total" (all bids in DB), but using repo.session
     total_result = await repo.session.execute(select(func.count(BidAnnouncement.id)))
     total = total_result.scalar()
 
-    return {
-        "items": bids,
-        "total": total,
-        "skip": skip,
-        "limit": limit
-    }
+    return {"items": bids, "total": total, "skip": skip, "limit": limit}
 
 
 @router.get("/matched", response_model=BidListResponse)
@@ -159,7 +150,7 @@ async def read_matching_bids(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=500),
     repo: BidRepository = Depends(deps.get_bid_repository),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user),
 ):
     """
     Retrieve bids that match the user's profile conditions (Hard Match).
@@ -169,21 +160,12 @@ async def read_matching_bids(
     """
     if not current_user.full_profile:
         # If no profile, we can't match. Return empty.
-        return {
-            "items": [],
-            "total": 0,
-            "skip": skip,
-            "limit": limit
-        }
-    
+        return {"items": [], "total": 0, "skip": skip, "limit": limit}
+
     bids = await bid_service.get_matching_bids(
-        repo,
-        current_user.full_profile,
-        user=current_user,
-        skip=skip,
-        limit=limit
+        repo, current_user.full_profile, user=current_user, skip=skip, limit=limit
     )
-    
+
     # We should return the count of MATCHED bids as total, not all DB.
     # Unlike read_bids logic above, matched listing implies 'total found'.
     # Since we filter in Python (potentially) or simple SQL without count query,
@@ -194,13 +176,8 @@ async def read_matching_bids(
     # Ideally, Repo should return (items, count).
     # For MVP Phase 3, we'll just set total = 9999 or len(bids).
     # Better: return len(bids) for now, acknowledging pagination limits total visibility.
-    
-    return {
-        "items": bids,
-        "total": len(bids), # Placeholder for actual total count
-        "skip": skip,
-        "limit": limit
-    }
+
+    return {"items": bids, "total": len(bids), "skip": skip, "limit": limit}  # Placeholder for actual total count
 
 
 @router.post("/upload", response_model=BidResponse, status_code=status.HTTP_201_CREATED)
@@ -210,7 +187,7 @@ async def upload_bid(
     agency: str = Query(default="Unknown", max_length=200, description="기관명"),
     url: str = Query(default="http://uploaded.file", max_length=500, description="원본 URL"),
     repo: BidRepository = Depends(deps.get_bid_repository),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user),
 ):
     """
     Upload a PDF/HWP file, extract text, and create a bid.
@@ -227,17 +204,13 @@ async def upload_bid(
     ext = os.path.splitext(filename)[1]
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
-            status_code=400,
-            detail=f"지원하지 않는 파일 형식입니다. 허용: {', '.join(ALLOWED_EXTENSIONS)}"
+            status_code=400, detail=f"지원하지 않는 파일 형식입니다. 허용: {', '.join(ALLOWED_EXTENSIONS)}"
         )
 
     # 파일 크기 검증
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=400,
-            detail=f"파일 크기가 너무 큽니다. 최대 {MAX_FILE_SIZE // (1024*1024)}MB"
-        )
+        raise HTTPException(status_code=400, detail=f"파일 크기가 너무 큽니다. 최대 {MAX_FILE_SIZE // (1024*1024)}MB")
 
     # 파일 포인터 리셋
     await file.seek(0)
@@ -253,7 +226,7 @@ async def upload_bid(
         content=text_content,
         agency=agency,
         posted_at=datetime.now(),
-        url=f"{url}/{file.filename}-{datetime.now().timestamp()}"  # Fake unique URL
+        url=f"{url}/{file.filename}-{datetime.now().timestamp()}",  # Fake unique URL
     )
 
     # 3. Save to DB
