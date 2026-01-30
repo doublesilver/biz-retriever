@@ -17,7 +17,6 @@ from app.schemas.bid import BidCreate, BidListResponse, BidResponse, BidUpdate
 from app.schemas.query import BidsQueryParams, FileUploadParams
 from app.services.bid_service import bid_service
 from app.services.file_service import file_service
-from app.worker.tasks import process_bid_analysis
 
 router = APIRouter()
 logger.info("CORE_MODULE_LOADED: bids.py with BidListResponse")
@@ -232,7 +231,8 @@ async def upload_bid(
     # 3. Save to DB
     new_bid = await bid_service.create_bid(repo, bid_in)
 
-    # 4. Trigger Analysis Worker
+    # 4. Trigger Analysis Worker (lazy import to avoid circular dependency)
+    from app.worker.tasks import process_bid_analysis
     process_bid_analysis.delay(new_bid.id)
 
     logger.info(f"공고 생성 완료: id={new_bid.id}, title={title}")
