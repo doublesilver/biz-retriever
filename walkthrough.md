@@ -96,3 +96,22 @@ This document summarizes the comprehensive "A to Z" testing performed on the Biz
 
 ## Conclusion
 All 164 automated tests passed successfully (100%). The backend is robust, well-tested, and ready for production deployment. The comprehensive test suite covers unit tests, integration tests, and end-to-end workflows, ensuring system reliability.
+
+## 8. Phase 3: Hard Match & Billing Verification (2026-01-29)
+
+### ✅ Hard Match Engine
+- **Verification Script**: `scripts/test_hard_match.py`
+- **Scope**:
+    - **Region Filter**: `region_code` 정확도 (서울, 부산) 및 전국 공고(Region=None) 포함 로직 검증.
+    - **Performance Filter**: 실적 금액 (`min_performance`) 초과 여부 검증 (5억 유저가 6억 공고 제한).
+    - **License Filter**: 면허 보유 여부 검증 (식품접객업 필수 공고에 식품제조업 유저 매칭 X).
+- **Result**: ✅ PASSED (Zero-Error Filtering Confirmed)
+
+### ✅ Frontend Integration
+- **Dashboard**: "내 맞춤 공고" 토글 버튼 구현 및 API 연동.
+- **Smart Search**: 시맨틱 검색(`GET /analysis/smart-search`)과 하드 매치(`GET /bids/matched`)의 역할 분리 확인.
+
+### ✅ Billing System
+- **Models**: `Subscription`, `PaymentHistory` DB 스키마 생성 및 관계 설정 완료.
+- **Logic**: `SubscriptionService`를 통한 기능 제한 (Free Tier: 3건 제한 정책) 코드 레벨 적용 완료.
+

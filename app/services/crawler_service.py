@@ -7,7 +7,7 @@ from typing import List, Dict, Optional
 import httpx
 from app.core.config import settings
 from app.core.logging import logger
-from app.core.logging import logger
+
 from app.schemas.bid import BidAnnouncementCreate
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
@@ -55,12 +55,21 @@ class G2BCrawlerService:
         retry=retry_if_exception_type(httpx.RequestError),
         reraise=True
     )
-    async def fetch_new_announcements(self, from_date: Optional[datetime] = None, exclude_keywords: Optional[List[str]] = None) -> List[Dict]:
+    async def fetch_new_announcements(
+        self, 
+        from_date: Optional[datetime] = None, 
+        exclude_keywords: Optional[List[str]] = None,
+        include_keywords: Optional[List[str]] = None
+    ) -> List[Dict]:
         """
         G2B API에서 새로운 입찰 공고를 가져옵니다.
         """
         if exclude_keywords is None:
             exclude_keywords = self.DEFAULT_EXCLUDE_KEYWORDS
+            
+        # Default fallback if not provided (Phase 3 Migration Support)
+        if include_keywords is None:
+            include_keywords = self.INCLUDE_KEYWORDS_CONCESSION + self.INCLUDE_KEYWORDS_FLOWER
 
         # API 요청 파라미터 구성
         params = {
@@ -95,9 +104,11 @@ class G2BCrawlerService:
             announcements = self._parse_api_response(data)
             logger.info(f"파싱된 전체 공고 개수: {len(announcements)}")
             
-            # [DEBUG] 테스트를 위해 일시적으로 모든 필터링 해제
-            # filtered = [a for a in announcements if self._should_notify(a, exclude_keywords)]
-            filtered = announcements # 모든 공고 허용 (디버깅용)
+            # 필터링 적용
+            filtered = [
+                a for a in announcements 
+                if self._should_notify(a, exclude_keywords, include_keywords)
+            ]
             
             # Phase 1 Upgrade: Scrape Attachments for Filtered Items
             # Only scrape if it passes the initial keyword filter to save resources
@@ -124,14 +135,74 @@ class G2BCrawlerService:
             for idx, item in enumerate(filtered):
                 logger.info(f"[DEBUG G2B] {idx+1}. {item['title']} ({item['agency']}) - {item['estimated_price']:,}원")
 
-            logger.info(f"필터링 후 알림 대상 개수 (DEBUG: 전체 허용): {len(filtered)}")
+            logger.info(f"필터링 후 알림 대상 개수: {len(filtered)}")
             
             return filtered
-        
+
         except Exception as e:
-            logger.error(f"G2B API 호출 실패 상세: {type(e).__name__}: {str(e)}", exc_info=True)
-            if hasattr(e, 'response'):
-                 logger.error(f"Response Content: {e.response.text[:500]}")
+            logger.error(f"공고 수집 중 오류 발생: {e}", exc_info=True)
+            return []
+
+        
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type(httpx.RequestError),
+        reraise=True
+    )
+    async def fetch_opening_results(self, from_date: Optional[datetime] = None) -> List[Dict]:
+        """
+        G2B 개찰 결과 API에서 정보를 수집합니다.
+        """
+        params = {
+            "serviceKey": self.api_key,
+            "numOfRows": 100,
+            "pageNo": 1,
+            "type": "json",
+        }
+        
+        if from_date:
+            # 개찰일자 범위 조회 (개찰일시: opengDt)
+            # G2B 개찰결과 API는 보통 개찰일시 기준 조회
+            params["inqryBgnDt"] = from_date.strftime("%Y%m%d0000")
+            params["inqryEndDt"] = datetime.now().strftime("%Y%m%d2359")
+        
+        try:
+            url = settings.G2B_RESULT_API_ENDPOINT
+            logger.info(f"G2B 개찰결과 API 요청: {url}, params={params}")
+            
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(url, params=params)
+                response.raise_for_status()
+                data = response.json()
+            
+            header = data.get("response", {}).get("header", {})
+            if header.get("resultCode") != "00":
+                logger.error(f"G2B Result API Business Error: {header}")
+                return []
+
+            items = data.get("response", {}).get("body", {}).get("items", [])
+            results = []
+            for item in items:
+                # BidResult 모델에 맞게 데이터 정규화
+                results.append({
+                    "bid_number": item.get("bidNtceNo", ""),
+                    "title": item.get("bidNtceNm", ""),
+                    "agency": item.get("ntceInsttNm", ""),
+                    "winning_company": item.get("sucsfutlEntrpsNm", "") or "미정",
+                    "winning_price": float(item.get("sucsfutlAmt", 0) or 0),
+                    "base_price": float(item.get("baseAmt", 0) or 0),
+                    "estimated_price": float(item.get("presmptPrce", 0) or 0),
+                    "participant_count": int(item.get("bidEntrpsCnt", 0) or 0),
+                    "bid_open_date": self._parse_datetime(item.get("opengDt")),
+                    "raw_data": item
+                })
+            
+            logger.info(f"수집된 개찰결과 개수: {len(results)}")
+            return results
+            
+        except Exception as e:
+            logger.error(f"G2B 개찰결과 API 호출 실패: {e}")
             return []
 
     async def _scrape_attachments(self, url: str) -> Optional[str]:
@@ -243,15 +314,18 @@ class G2BCrawlerService:
             return None
         try:
             return datetime.strptime(date_str, "%Y%m%d%H%M")
-        except:
+        except (ValueError, TypeError):
             return None
     
-    def _should_notify(self, announcement: Dict, exclude_keywords: List[str] = None) -> bool:
+    def _should_notify(self, announcement: Dict, exclude_keywords: List[str] = None, include_keywords: List[str] = None) -> bool:
         """
         공고가 알림 대상인지 판단 (스마트 필터링)
         """
         if exclude_keywords is None:
             exclude_keywords = self.DEFAULT_EXCLUDE_KEYWORDS
+        
+        if include_keywords is None:
+             include_keywords = self.INCLUDE_KEYWORDS_CONCESSION + self.INCLUDE_KEYWORDS_FLOWER
 
         title = announcement["title"].lower()
         content = announcement.get("content", "").lower()
@@ -264,11 +338,8 @@ class G2BCrawlerService:
         
         # 포함 키워드 체크
         matched_keywords = []
-        all_include_keywords = (
-            self.INCLUDE_KEYWORDS_CONCESSION + self.INCLUDE_KEYWORDS_FLOWER
-        )
         
-        for keyword in all_include_keywords:
+        for keyword in include_keywords:
             if keyword in full_text:
                 matched_keywords.append(keyword)
         
@@ -313,5 +384,5 @@ class G2BCrawlerService:
         pass
 
 
-# 싱글톤 인스턴스
-g2b_crawler = G2BCrawlerService()
+# 싱글톤 인스턴스 제거됨 (DI 패턴 사용 권장)
+# g2b_crawler = G2BCrawlerService() -> Removed for Dependency Injection

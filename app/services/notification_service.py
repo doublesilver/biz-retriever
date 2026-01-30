@@ -1,147 +1,85 @@
-"""
-Slack 알림 서비스
-입찰 공고를 Slack 채널로 실시간 전송합니다.
-"""
-from typing import Dict, List
+
 import httpx
-from app.core.config import settings
-from app.core.logging import logger
-from app.db.models import BidAnnouncement
+import logging
+from typing import Optional, List
+from app.db.models import User, BidAnnouncement, UserProfile
+from app.services.email_service import email_service
+from app.core.logging import logger as app_logger
 
+logger = logging.getLogger(__name__)
 
-class SlackNotificationService:
-    """
-    Slack Webhook을 통한 알림 서비스
-    """
-    
-    def __init__(self):
-        self.webhook_url = settings.SLACK_WEBHOOK_URL
-        self.channel = settings.SLACK_CHANNEL
-    
-    async def send_bid_notification(self, announcement: BidAnnouncement) -> bool:
+class NotificationService:
+    @staticmethod
+    async def send_slack_message(webhook_url: str, message: str) -> bool:
         """
-        입찰 공고를 Slack으로 전송
-        
-        Args:
-            announcement: BidAnnouncement 모델 인스턴스
-        
-        Returns:
-            성공 여부
+        Send a message to a Slack Webhook URL.
         """
-        message = self._format_message(announcement)
-        
+        if not webhook_url:
+            return False
+
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(
-                    self.webhook_url,
-                    json=message
-                )
-                response.raise_for_status()
-                return True
+            async with httpx.AsyncClient() as client:
+                response = await client.post(webhook_url, json={"text": message})
+                if response.status_code == 200:
+                    return True
+                else:
+                    logger.error(f"Slack Notification Failed: {response.text}")
+                    return False
         except Exception as e:
-            logger.error(f"Slack 알림 전송 실패: {e}", exc_info=True)
+            logger.error(f"Slack Notification Error: {e}")
             return False
-    
-    def _format_message(self, announcement: BidAnnouncement) -> Dict:
-        """
-        Slack 메시지 포맷 생성
-        
-        Args:
-            announcement: BidAnnouncement 인스턴스
-        
-        Returns:
-            Slack Webhook 메시지 딕셔너리
-        """
-        # 중요도 별 표시
-        stars = "⭐" * announcement.importance_score
-        
-        # 마감일 표시
-        deadline_text = "미정"
-        if announcement.deadline:
-            deadline_text = announcement.deadline.strftime("%Y-%m-%d %H:%M")
-        
-        # 추정가 표시
-        price_text = "미공개"
-        if announcement.estimated_price:
-            price_text = f"{int(announcement.estimated_price):,}원"
-        
-        # 키워드 표시
-        keywords_text = ", ".join(announcement.keywords_matched or [])
-        
-        # 메시지 본문 구성
-        text = f"""
-🐕 *[신규 공고 알림]*
-━━━━━━━━━━━━━━━━
-📌 *제목*: {announcement.title}
-🏛 *기관*: {announcement.agency or "미확인"}
-📅 *마감*: {deadline_text}
-💰 *추정가*: {price_text}
-🔗 <{announcement.url}|상세보기>
 
-{stars} *중요도*: {announcement.importance_score}/3
-🎯 *매칭 키워드*: {keywords_text}
-        """.strip()
-        
-        return {
-            "channel": self.channel,
-            "username": "Biz-Retriever Bot",
-            "icon_emoji": ":dog:",
-            "text": text,
-            "mrkdwn": True
-        }
-    
-    async def send_digest(self, announcements: List[BidAnnouncement]) -> bool:
+    @classmethod
+    async def notify_bid_match(cls, user: User, bid: BidAnnouncement, matched_keywords: List[str]):
         """
-        여러 공고를 한 번에 요약하여 전송 (모닝 브리핑용)
-        
-        Args:
-            announcements: BidAnnouncement 리스트
-        
-        Returns:
-            성공 여부
+        Notify user about a matched bid.
         """
-        if not announcements:
-            return False
-        
-        # 중요도 순으로 정렬
-        sorted_announcements = sorted(
-            announcements,
-            key=lambda x: x.importance_score,
-            reverse=True
-        )
-        
-        # 상위 10개만
-        top_announcements = sorted_announcements[:10]
-        
-        text = "🌅 *[모닝 브리핑] 밤사이 새로운 입찰 공고*\n━━━━━━━━━━━━━━━━\n\n"
-        
-        for i, announcement in enumerate(top_announcements, 1):
-            stars = "⭐" * announcement.importance_score
-            text += f"{i}. {stars} {announcement.title}\n"
-            text += f"   🏛 {announcement.agency or '미확인'} | "
-            text += f"📅 {announcement.deadline.strftime('%m/%d') if announcement.deadline else '미정'}\n"
-            text += f"   🔗 <{announcement.url}|상세보기>\n\n"
-        
-        text += f"*총 {len(announcements)}건의 새 공고가 있습니다.*"
-        
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(
-                    self.webhook_url,
-                    json={
-                        "channel": self.channel,
-                        "username": "Biz-Retriever Bot",
-                        "icon_emoji": ":sunrise:",
-                        "text": text,
-                        "mrkdwn": True
-                    }
+        if not user.full_profile:
+            return
+
+        profile: UserProfile = user.full_profile
+
+        # Slack Notification
+        if profile.is_slack_enabled and profile.slack_webhook_url:
+            keywords_str = ", ".join(matched_keywords)
+            message = (
+                f"🔔 *키워드 매칭 알림*\n"
+                f"*공고명:* {bid.title}\n"
+                f"*키워드:* `{keywords_str}`\n"
+                f"*마감일:* {bid.deadline}\n"
+                f"*추정가:* {bid.estimated_price:,.0f}원\n"
+                f"<{bid.url}|공고 보기>"
+            )
+            await cls.send_slack_message(profile.slack_webhook_url, message)
+
+        # Email Notification
+        if profile.is_email_enabled and user.email:
+            try:
+                # Format bid data for email template
+                bid_data = {
+                    "title": bid.title,
+                    "agency": bid.agency,
+                    "deadline": bid.deadline.strftime("%Y-%m-%d %H:%M") if bid.deadline else "미정",
+                    "estimated_price": f"{bid.estimated_price:,.0f}원" if bid.estimated_price else "미정",
+                    "url": bid.url,
+                    "ai_summary": bid.ai_summary,
+                    "keywords_matched": matched_keywords
+                }
+                
+                # Get user name from profile or email
+                user_name = profile.company_name or user.email.split('@')[0]
+                
+                # Send email alert
+                success = await email_service.send_bid_alert(
+                    to_email=user.email,
+                    user_name=user_name,
+                    bid_data=bid_data
                 )
-                response.raise_for_status()
-                return True
-        except Exception as e:
-            logger.error(f"Slack 다이제스트 전송 실패: {e}", exc_info=True)
-            return False
-
-
-# 싱글톤 인스턴스
-slack_notification = SlackNotificationService()
+                
+                if success:
+                    app_logger.info(f"Email notification sent to {user.email} for bid {bid.id}")
+                else:
+                    app_logger.warning(f"Failed to send email notification to {user.email}")
+                    
+            except Exception as e:
+                app_logger.error(f"Error sending email notification: {str(e)}", exc_info=True)

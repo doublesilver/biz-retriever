@@ -48,6 +48,22 @@
     width: 100%;
 }
 
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.875rem;
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+}
+
+.btn-outline:hover {
+    background: var(--primary);
+    color: white;
+}
+
 /* Form Elements */
 .form-group {
     margin-bottom: var(--spacing-lg);

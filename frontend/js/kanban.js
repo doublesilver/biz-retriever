@@ -1,235 +1,271 @@
-// Kanban Logic
-let allBids = [];
-
-const columns = document.querySelectorAll('.kanban-column');
-const toast = document.getElementById('toast');
+// Kanban Board Logic
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Auth Check
+    // Check Auth
     const token = localStorage.getItem('token');
     if (!token) {
-        window.location.href = 'index.html';
+        window.location.href = 'login.html';
         return;
     }
 
-    // Initialize dark mode
-    utils.initDarkMode();
-
-    // Load Data
-    await loadBids();
-
-    // Event Listeners
+    // Initialize
+    await loadUsers();
+    await loadKanbanBoard();
     setupDragAndDrop();
+    setupModal();
     setupRefresh();
     setupLogout();
-    setupDarkMode();
 });
 
-async function loadBids() {
+// State
+let allUsers = [];
+let currentEditingBidId = null;
+
+const columns = {
+    'new': document.getElementById('col-new'),
+    'reviewing': document.getElementById('col-reviewing'),
+    'bidding': document.getElementById('col-bidding'),
+    'submitted': document.getElementById('col-submitted'),
+    'won': document.getElementById('col-won'),
+    'lost': document.getElementById('col-lost')
+};
+
+const counts = {
+    'new': document.getElementById('count-new'),
+    'reviewing': document.getElementById('count-reviewing'),
+    'bidding': document.getElementById('count-bidding'),
+    'submitted': document.getElementById('count-submitted'),
+    'won': document.getElementById('count-won'),
+    'lost': document.getElementById('count-lost')
+};
+
+// Modal Elements
+const modalOverlay = document.getElementById('modalOverlay');
+const modalTitle = document.getElementById('modalTitle');
+const modalAgency = document.getElementById('modalAgency');
+const modalPrice = document.getElementById('modalPrice');
+const aiRecommendedPrice = document.getElementById('aiRecommendedPrice');
+const aiConfidence = document.getElementById('aiConfidence');
+const aiReason = document.getElementById('aiReason');
+const modalStatus = document.getElementById('modalStatus');
+const modalAssignee = document.getElementById('modalAssignee');
+const modalNotes = document.getElementById('modalNotes');
+const saveModalBtn = document.getElementById('saveModal');
+const closeModalBtn = document.getElementById('closeModal');
+const cancelModalBtn = document.getElementById('cancelModal');
+
+async function loadUsers() {
     try {
-        // Get up to 100 items for Kanban board
-        const response = await API.getBids({ size: 100 });
-
-        if (Array.isArray(response)) {
-            allBids = response;
-        } else if (response.items) {
-            allBids = response.items;
-        } else {
-            console.warn('Unknown response format', response);
-            allBids = [];
-        }
-
-        renderBoard();
+        allUsers = await api.get('/auth/users');
+        modalAssignee.innerHTML = '<option value="">미지정</option>';
+        allUsers.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = user.email.split('@')[0]; // Simple display name
+            modalAssignee.appendChild(option);
+        });
     } catch (error) {
-        utils.showToast('공고 불러오기 실패: ' + error.message, 'error');
+        console.error('Failed to load users:', error);
     }
 }
 
-function renderBoard() {
-    // Clear Columns
-    document.querySelectorAll('.column-body').forEach(el => el.innerHTML = '');
-    document.querySelectorAll('.count').forEach(el => el.textContent = '0');
+async function loadKanbanBoard() {
+    try {
+        const data = await api.get('/bids/?limit=200');
+        const bids = data.items;
 
-    // Group by Status
-    const grouped = {
-        'new': [],
-        'reviewing': [],
-        'bidding': [],
-        'completed': []
-    };
+        Object.values(columns).forEach(col => col.innerHTML = '');
 
-    allBids.forEach(bid => {
-        const status = bid.status || 'new'; // Default to new if null
-        if (grouped[status]) {
-            grouped[status].push(bid);
-        } else {
-            // Handle unknown status if any, treat as new or ignore
-            if (!grouped['new']) grouped['new'] = [];
-            grouped['new'].push(bid);
-        }
-    });
+        bids.forEach(bid => {
+            const card = createCard(bid);
+            const status = bid.status || 'new';
+            if (columns[status]) {
+                columns[status].appendChild(card);
+            }
+        });
 
-    // Render
-    Object.keys(grouped).forEach(status => {
-        const columnBody = document.getElementById(`col-${status}`);
-        const countBadge = document.getElementById(`count-${status}`);
-
-        if (columnBody && countBadge) {
-            const bids = grouped[status];
-            countBadge.textContent = bids.length.toString();
-
-            bids.forEach(bid => {
-                const card = createCard(bid);
-                columnBody.appendChild(card);
-            });
-        }
-    });
+        updateCounts();
+    } catch (error) {
+        console.error('Failed to load kanban:', error);
+        showToast('데이터를 불러오는데 실패했습니다.', 'error');
+    }
 }
 
 function createCard(bid) {
-    const card = document.createElement('div');
-    card.className = 'kanban-card';
-    card.draggable = true;
-    card.dataset.id = bid.id.toString();
+    const div = document.createElement('div');
+    div.className = 'kanban-card';
+    div.dataset.id = bid.id;
 
-    const price = bid.estimated_price
-        ? new Intl.NumberFormat('ko-KR').format(bid.estimated_price) + '원'
-        : '-';
+    // Save full data for modal
+    div.dataset.bid = JSON.stringify(bid);
 
-    const deadline = bid.deadline
-        ? new Date(bid.deadline).toLocaleDateString()
-        : '-';
+    const dDay = utils.calculateDday(bid.deadline);
+    const dDayClass = dDay.includes('오늘') || dDay.includes('!') ? 'badge-dday' : '';
 
-    // Tags
-    let tagsHtml = '';
-    if (bid.importance_score > 1) {
-        tagsHtml += `<span class="tag" style="background:#ffeb3b;color:#333">⭐ ${bid.importance_score}</span>`;
-    }
-    if (bid.source) {
-        tagsHtml += `<span class="tag">${bid.source}</span>`;
+    const stars = '⭐'.repeat(Math.min(bid.importance_score, 3));
+
+    // Assignee initials
+    let assigneeLabel = '';
+    if (bid.assignee) {
+        const name = bid.assignee.email.substring(0, 1).toUpperCase();
+        assigneeLabel = `<span style="background: var(--primary-color); color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; margin-left: 0.5rem;" title="${bid.assignee.email}">${name}</span>`;
     }
 
-    card.innerHTML = `
-        <div class="card-header">
-            <span class="card-id">#${bid.id}</span>
-            <span class="card-date">${deadline} 마감</span>
-        </div>
+    div.innerHTML = `
         <div class="card-title" title="${bid.title}">${bid.title}</div>
         <div class="card-meta">
-            <span class="card-agency">${bid.agency || 'Unknown'}</span>
-            <span class="card-price">${price}</span>
+            <span>${bid.agency || '발주처 미상'}</span>
+            ${assigneeLabel}
         </div>
-        <div class="card-tags">
-            ${tagsHtml}
+        <div class="card-meta">
+            <span class="card-badge ${dDayClass}">${dDay}</span>
+            <span>${stars}</span>
         </div>
     `;
 
-    // Drag Events
-    card.addEventListener('dragstart', (e) => {
-        e.dataTransfer?.setData('text/plain', bid.id.toString());
-        card.classList.add('dragging');
-        window.draggedCardId = bid.id;
+    // Click to open modal
+    div.addEventListener('click', () => openModal(bid));
+
+    return div;
+}
+
+function updateCounts() {
+    Object.keys(columns).forEach(status => {
+        const count = columns[status].children.length;
+        if (counts[status]) {
+            counts[status].textContent = count;
+        }
+    });
+}
+
+function setupModal() {
+    const close = () => {
+        modalOverlay.style.display = 'none';
+        currentEditingBidId = null;
+    };
+
+    closeModalBtn.addEventListener('click', close);
+    cancelModalBtn.addEventListener('click', close);
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) close();
     });
 
-    card.addEventListener('dragend', () => {
-        card.classList.remove('dragging');
-        window.draggedCardId = null;
-        document.querySelectorAll('.column-body').forEach(col => col.classList.remove('drag-over'));
-    });
+    saveModalBtn.addEventListener('click', async () => {
+        if (!currentEditingBidId) return;
 
-    return card;
+        const data = {
+            status: modalStatus.value,
+            assigned_to: modalAssignee.value ? parseInt(modalAssignee.value) : null,
+            notes: modalNotes.value
+        };
+
+        try {
+            await api.patch(`/bids/${currentEditingBidId}`, data);
+            showToast('변경사항이 저장되었습니다.', 'success');
+            close();
+            loadKanbanBoard(); // Refresh
+        } catch (error) {
+            console.error('Update failed:', error);
+            showToast('저장에 실패했습니다.', 'error');
+        }
+    });
+}
+
+async function openModal(bid) {
+    currentEditingBidId = bid.id;
+
+    // Fill basic info
+    modalTitle.textContent = bid.title;
+    modalAgency.textContent = bid.agency || '발주처 미상';
+    modalPrice.textContent = bid.estimated_price ? `${bid.estimated_price.toLocaleString()}원` : '미상';
+
+    modalStatus.value = bid.status || 'new';
+    modalAssignee.value = bid.assigned_to || '';
+    modalNotes.value = bid.notes || '';
+
+    // Show modal
+    modalOverlay.style.display = 'flex';
+
+    // AI Prediction
+    aiRecommendedPrice.textContent = '분석 중...';
+    aiConfidence.textContent = '-';
+    aiReason.textContent = '';
+
+    try {
+        const pred = await api.get(`/analysis/predict-price/${bid.id}`);
+        aiRecommendedPrice.textContent = `${pred.recommended_price.toLocaleString()}원`;
+        aiConfidence.textContent = `${Math.round(pred.confidence * 100)}%`;
+        aiReason.textContent = pred.prediction_reason || '';
+    } catch (error) {
+        console.error('AI Prediction failed:', error);
+        aiRecommendedPrice.textContent = '예측 불가';
+    }
 }
 
 function setupDragAndDrop() {
-    columns.forEach(column => {
-        const body = column.querySelector('.column-body');
-        if (!body) return;
+    Object.values(columns).forEach(col => {
+        new Sortable(col, {
+            group: 'kanban',
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            onEnd: async function (evt) {
+                const itemEl = evt.item;
+                const newStatus = evt.to.dataset.status;
+                const oldStatus = evt.from.dataset.status;
+                const bidId = itemEl.dataset.id;
 
-        body.addEventListener('dragover', (e) => {
-            e.preventDefault(); // Necessary for drop to work
-            body.classList.add('drag-over');
-        });
+                if (newStatus === oldStatus) return;
 
-        body.addEventListener('dragleave', () => {
-            body.classList.remove('drag-over');
-        });
+                updateCounts();
 
-        body.addEventListener('drop', async (e) => {
-            e.preventDefault();
-            body.classList.remove('drag-over');
-
-            const bidId = window.draggedCardId;
-            const transferId = e.dataTransfer?.getData('text/plain');
-            const finalId = bidId || transferId;
-
-            if (!finalId) return;
-
-            const newStatus = column.dataset.status;
-            if (newStatus) {
-                await updateStatus(parseInt(finalId), newStatus);
+                try {
+                    await api.patch(`/bids/${bidId}`, { status: newStatus });
+                    showToast('상태가 변경되었습니다.', 'success');
+                } catch (error) {
+                    console.error('Update failed:', error);
+                    showToast('상태 변경 실패. 되돌립니다.', 'error');
+                    if (oldStatus && columns[oldStatus]) {
+                        columns[oldStatus].appendChild(itemEl);
+                        updateCounts();
+                    }
+                }
             }
         });
     });
 }
 
-async function updateStatus(id, newStatus) {
-    try {
-        await API.patchBid(id, { status: newStatus });
-
-        // Update Local State
-        const bid = allBids.find(b => b.id === id);
-        if (bid) {
-            bid.status = newStatus;
-        }
-
-        // Re-render
-        renderBoard();
-        utils.showToast('상태가 변경되었습니다.');
-    } catch (error) {
-        utils.showToast('상태 변경 실패: ' + error.message, 'error');
-        // Reload to ensure sync
-        await loadBids();
-    }
-}
-
-// Basic Handlers
 function setupRefresh() {
-    document.getElementById('refreshBtn')?.addEventListener('click', loadBids);
+    const btn = document.getElementById('refreshBtn');
+    if (btn) {
+        btn.addEventListener('click', () => {
+            btn.classList.add('spinning');
+            loadKanbanBoard().finally(() => {
+                setTimeout(() => btn.classList.remove('spinning'), 500);
+            });
+        });
+    }
 }
 
 function setupLogout() {
-    // User menu dropdown toggle
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            auth.logout();
+        });
+    }
+
     const userMenuBtn = document.getElementById('userMenuBtn');
     const userDropdown = document.getElementById('userDropdown');
 
-    userMenuBtn?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        userDropdown?.classList.toggle('show');
-    });
+    if (userMenuBtn && userDropdown) {
+        userMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            userDropdown.classList.toggle('show');
+        });
 
-    // Close dropdown when clicking outside
-    document.addEventListener('click', () => {
-        userDropdown?.classList.remove('show');
-    });
-
-    // Logout button
-    document.getElementById('logoutBtn')?.addEventListener('click', () => {
-        localStorage.removeItem('token');
-        utils.showToast('로그아웃되었습니다', 'success');
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 500);
-    });
-}
-
-function setupDarkMode() {
-    const toggle = document.getElementById('darkModeToggle');
-    // Update icon based on current state
-    if (toggle && document.body.classList.contains('dark-mode')) {
-        toggle.textContent = '☀️';
+        document.addEventListener('click', () => {
+            userDropdown.classList.remove('show');
+        });
     }
-    toggle?.addEventListener('click', () => {
-        utils.toggleDarkMode();
-        toggle.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
-    });
 }

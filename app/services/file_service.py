@@ -49,12 +49,12 @@ class FileService:
                 # Decompress zlib stream
                 # HWP BodyText is zlib compressed
                 try:
-                    decompressed = zlib.decompress(data, -15) # -15 for raw stream
-                except:
+                    decompressed = zlib.decompress(data, -15)  # -15 for raw stream
+                except zlib.error:
                     try:
                         decompressed = zlib.decompress(data)
-                    except:
-                        continue # Skip if decompression fails
+                    except zlib.error:
+                        continue  # Skip if decompression fails
 
                 # Extract generic text (simple extraction of UTF-16LE strings)
                 # This is a heuristic approach for HWP 5.0 text extraction without heavy parsers

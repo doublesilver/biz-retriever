@@ -116,4 +116,84 @@ class ProfileService:
                 return code
         return "99"  # 기타/미분류
 
+    async def get_or_create_profile(self, session: AsyncSession, user_id: int) -> UserProfile:
+        """사용자 프로필 조회 또는 생성"""
+        profile = await self.get_profile(session, user_id)
+        if not profile:
+            profile = UserProfile(user_id=user_id)
+            session.add(profile)
+            await session.commit()
+            await session.refresh(profile)
+        return profile
+
+    # License Management
+    
+    async def add_license(
+        self, 
+        session: AsyncSession, 
+        profile_id: int, 
+        license_data: Dict[str, Any]
+    ) -> UserLicense:
+        """사용자 면허 추가"""
+        license = UserLicense(profile_id=profile_id, **license_data)
+        session.add(license)
+        await session.commit()
+        await session.refresh(license)
+        return license
+
+    async def delete_license(
+        self, 
+        session: AsyncSession, 
+        profile_id: int, 
+        license_id: int
+    ) -> bool:
+        """사용자 면허 삭제"""
+        stmt = select(UserLicense).where(
+            UserLicense.id == license_id,
+            UserLicense.profile_id == profile_id
+        )
+        result = await session.execute(stmt)
+        license = result.scalar_one_or_none()
+        
+        if license:
+            await session.delete(license)
+            await session.commit()
+            return True
+        return False
+
+    # Performance Management
+    
+    async def add_performance(
+        self, 
+        session: AsyncSession, 
+        profile_id: int, 
+        performance_data: Dict[str, Any]
+    ) -> UserPerformance:
+        """사용자 실적 추가"""
+        performance = UserPerformance(profile_id=profile_id, **performance_data)
+        session.add(performance)
+        await session.commit()
+        await session.refresh(performance)
+        return performance
+
+    async def delete_performance(
+        self, 
+        session: AsyncSession, 
+        profile_id: int, 
+        performance_id: int
+    ) -> bool:
+        """사용자 실적 삭제"""
+        stmt = select(UserPerformance).where(
+            UserPerformance.id == performance_id,
+            UserPerformance.profile_id == profile_id
+        )
+        result = await session.execute(stmt)
+        performance = result.scalar_one_or_none()
+        
+        if performance:
+            await session.delete(performance)
+            await session.commit()
+            return True
+        return False
+
 profile_service = ProfileService()

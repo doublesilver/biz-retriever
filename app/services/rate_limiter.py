@@ -26,7 +26,7 @@ class RateLimiter:
                 decode_responses=True
             )
             self.enabled = True
-        except:
+        except Exception:
             self.enabled = False
     
     def check_rate_limit(
@@ -64,7 +64,7 @@ class RateLimiter:
             self.redis_client.incr(key)
             return True
             
-        except:
+        except Exception:
             # If Redis fails, allow request
             return True
     
@@ -78,7 +78,7 @@ class RateLimiter:
             if current is None:
                 return max_requests
             return max(0, max_requests - int(current))
-        except:
+        except Exception:
             return max_requests
 
 # Global instance

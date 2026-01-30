@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kanban - Biz-Retriever</title>
+    <title>입찰 칸반 보드 - Biz-Retriever</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/kanban.css">
+    <!-- SortableJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 </head>
 
 <body>
@@ -20,18 +22,18 @@
     <nav class="navbar">
         <div class="navbar-brand">
             <span>🐕</span>
-            <span>Biz-Retriever Kanban</span>
+            <span>Biz-Retriever</span>
         </div>
         <div class="navbar-actions">
-            <a href="dashboard.html" class="btn-icon" title="대시보드">
+            <a href="dashboard.html" class="btn-icon" title="대시보드 (목록)">
+                📋
+            </a>
+            <a href="kanban.html" class="btn-icon active" title="칸반 보드">
                 📊
             </a>
-            <a href="keywords.html" class="btn-icon" title="제외 키워드 관리">
-                🚫
+            <a href="profile.html" class="btn-icon" title="기업 프로필 관리">
+                🏢
             </a>
-            <button class="btn-icon" id="darkModeToggle" title="다크모드">
-                🌙
-            </button>
             <button class="btn-icon" id="refreshBtn" title="새로고침">
                 🔄
             </button>
@@ -47,58 +49,154 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="kanban-container">
-        <div class="kanban-board">
-            <!-- New -->
-            <div class="kanban-column" data-status="new">
-                <div class="column-header status-new">
-                    <h3>🆕 신규 공고</h3>
-                    <span class="count" id="count-new">0</span>
-                </div>
-                <div class="column-body" id="col-new">
-                    <!-- Cards will be injected here -->
-                </div>
-            </div>
+    <main class="dashboard-container" style="padding-top: 60px;">
+        <div class="container-fluid" style="padding: 0 1.5rem;">
+            <div class="kanban-board" id="kanbanBoard">
 
-            <!-- Reviewing -->
-            <div class="kanban-column" data-status="reviewing">
-                <div class="column-header status-reviewing">
-                    <h3>👀 검토 중</h3>
-                    <span class="count" id="count-reviewing">0</span>
+                <!-- 1. Inbox (AI 추천) -->
+                <div class="kanban-column column-new">
+                    <div class="kanban-header">
+                        <h3>🤖 AI 추천 (Inbox)</h3>
+                        <span class="column-count" id="count-new">0</span>
+                    </div>
+                    <div class="kanban-body" id="col-new" data-status="new">
+                        <!-- Cards injected here -->
+                    </div>
                 </div>
-                <div class="column-body" id="col-reviewing">
-                </div>
-            </div>
 
-            <!-- Bidding -->
-            <div class="kanban-column" data-status="bidding">
-                <div class="column-header status-bidding">
-                    <h3>📝 입찰 진행</h3>
-                    <span class="count" id="count-bidding">0</span>
+                <!-- 2. Analyzing (분석 중) -->
+                <div class="kanban-column column-reviewing">
+                    <div class="kanban-header">
+                        <h3>🧐 분석/검토 (Analyzing)</h3>
+                        <span class="column-count" id="count-reviewing">0</span>
+                    </div>
+                    <div class="kanban-body" id="col-reviewing" data-status="reviewing">
+                        <!-- Cards injected here -->
+                    </div>
                 </div>
-                <div class="column-body" id="col-bidding">
-                </div>
-            </div>
 
-            <!-- Completed -->
-            <div class="kanban-column" data-status="completed">
-                <div class="column-header status-completed">
-                    <h3>✅ 완료</h3>
-                    <span class="count" id="count-completed">0</span>
+                <!-- 3. Bidding (입찰 준비) -->
+                <div class="kanban-column column-bidding">
+                    <div class="kanban-header">
+                        <h3>📝 입찰 준비 (Bidding)</h3>
+                        <span class="column-count" id="count-bidding">0</span>
+                    </div>
+                    <div class="kanban-body" id="col-bidding" data-status="bidding">
+                        <!-- Cards injected here -->
+                    </div>
                 </div>
-                <div class="column-body" id="col-completed">
+
+                <!-- 4. Submitted (투찰 완료) -->
+                <div class="kanban-column column-submitted">
+                    <div class="kanban-header">
+                        <h3>🚀 투찰 완료 (Submitted)</h3>
+                        <span class="column-count" id="count-submitted">0</span>
+                    </div>
+                    <div class="kanban-body" id="col-submitted" data-status="submitted">
+                        <!-- Cards injected here -->
+                    </div>
                 </div>
+
+                <!-- 5. Won (낙찰) -->
+                <div class="kanban-column column-won">
+                    <div class="kanban-header">
+                        <h3>🎉 낙찰 (Won)</h3>
+                        <span class="column-count" id="count-won">0</span>
+                    </div>
+                    <div class="kanban-body" id="col-won" data-status="won">
+                        <!-- Cards injected here -->
+                    </div>
+                </div>
+
+                <!-- 6. Lost (탈락) -->
+                <div class="kanban-column column-lost">
+                    <div class="kanban-header">
+                        <h3>😢 탈락 (Lost)</h3>
+                        <span class="column-count" id="count-lost">0</span>
+                    </div>
+                    <div class="kanban-body" id="col-lost" data-status="lost">
+                        <!-- Cards injected here -->
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>
+
+    <!-- Detail Modal -->
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="modalTitle">입찰 공고 상세</h2>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>발주처</label>
+                        <p id="modalAgency">-</p>
+                    </div>
+                    <div class="info-item">
+                        <label>추정가격</label>
+                        <p id="modalPrice">-</p>
+                    </div>
+                </div>
+
+                <!-- AI Analysis Section -->
+                <div class="ai-box">
+                    <h4>🤖 AI 승률 분석</h4>
+                    <div class="ai-grid">
+                        <div class="ai-item">
+                            <label>권장 투찰가</label>
+                            <div class="ai-value" id="aiRecommendedPrice">계산 중...</div>
+                        </div>
+                        <div class="ai-item">
+                            <label>예측 신뢰도</label>
+                            <div class="ai-value" id="aiConfidence">-</div>
+                        </div>
+                    </div>
+                    <p class="ai-reason" id="aiReason"></p>
+                </div>
+
+                <div class="form-group">
+                    <label>상태 변경</label>
+                    <select id="modalStatus" class="form-control">
+                        <option value="new">AI 추천 (Inbox)</option>
+                        <option value="reviewing">분석/검토</option>
+                        <option value="bidding">입찰 준비</option>
+                        <option value="submitted">투찰 완료</option>
+                        <option value="won">낙찰</option>
+                        <option value="lost">탈락</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>담당자 지정</label>
+                    <select id="modalAssignee" class="form-control">
+                        <option value="">미지정</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>업무 메모</label>
+                    <textarea id="modalNotes" class="form-control" rows="4"
+                        placeholder="내부 공유할 메모를 입력하세요..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelModal">취소</button>
+                <button class="btn btn-primary" id="saveModal">변경사항 저장</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast -->
     <div id="toast" class="toast"></div>
 
     <!-- JavaScript Module -->
-    <script src="/js/utils.js"></script>
-    <script src="/js/api.js"></script>
-    <script src="/js/kanban.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/kanban.js"></script>
 </body>
 
 </html>

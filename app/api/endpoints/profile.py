@@ -24,6 +24,8 @@ async def get_my_profile(
         return {"id": None, "company_name": None, "user_id": current_user.id}
     
     # 관계형 데이터(License, Performance) 포함
+    plan = current_user.subscription.plan_name if current_user.subscription else "free"
+    
     return {
         "id": profile.id,
         "company_name": profile.company_name,
@@ -32,8 +34,18 @@ async def get_my_profile(
         "address": profile.address,
         "location_code": profile.location_code,
         "company_type": profile.company_type,
+        "keywords": profile.keywords,
+        "credit_rating": profile.credit_rating,
+        "employee_count": profile.employee_count,
+        "founding_year": profile.founding_year,
+        "main_bank": profile.main_bank,
+        "standard_industry_codes": profile.standard_industry_codes,
+        "slack_webhook_url": profile.slack_webhook_url,
+        "is_email_enabled": profile.is_email_enabled,
+        "is_slack_enabled": profile.is_slack_enabled,
         "licenses": [{"name": l.license_name, "number": l.license_number} for l in profile.licenses],
-        "performances": [{"project": p.project_name, "amount": p.amount} for p in profile.performances]
+        "performances": [{"project": p.project_name, "amount": p.amount} for p in profile.performances],
+        "plan_name": plan
     }
 
 @router.post("/upload-certificate", response_model=dict)
@@ -78,18 +90,127 @@ async def upload_business_certificate(
             detail=str(e)
         )
 
-@router.put("/", response_model=dict)
+from app.schemas.profile import (
+    UserProfileUpdate, 
+    UserProfileResponse,
+    UserLicenseCreate,
+    UserLicenseResponse,
+    UserPerformanceCreate,
+    UserPerformanceResponse
+)
+
+@router.put("/", response_model=UserProfileResponse)
 async def update_profile(
-    profile_in: dict,
+    profile_in: UserProfileUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """
-    프로필 정보 수동 수정
+    프로필 정보 수동 수정 (알림 설정 포함)
     """
+    # dict로 변환하여 서비스에 전달
+    update_data = profile_in.model_dump(exclude_unset=True)
+    
     profile = await profile_service.create_or_update_profile(
         db, 
         current_user.id, 
-        profile_in
+        update_data
     )
-    return {"message": "프로필 수정 완료", "id": profile.id}
+    return profile
+
+
+# License Management Endpoints
+
+@router.post("/licenses", response_model=UserLicenseResponse, status_code=status.HTTP_201_CREATED)
+async def add_license(
+    license_in: UserLicenseCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Add a new license to user profile
+    """
+    profile = await profile_service.get_or_create_profile(db, current_user.id)
+    license = await profile_service.add_license(db, profile.id, license_in.model_dump())
+    return license
+
+
+@router.get("/licenses", response_model=List[UserLicenseResponse])
+async def get_licenses(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Get all licenses for current user
+    """
+    profile = await profile_service.get_profile(db, current_user.id)
+    if not profile:
+        return []
+    return profile.licenses
+
+
+@router.delete("/licenses/{license_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_license(
+    license_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> None:
+    """
+    Delete a license from user profile
+    """
+    profile = await profile_service.get_profile(db, current_user.id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    success = await profile_service.delete_license(db, profile.id, license_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="License not found")
+
+
+# Performance Management Endpoints
+
+@router.post("/performances", response_model=UserPerformanceResponse, status_code=status.HTTP_201_CREATED)
+async def add_performance(
+    performance_in: UserPerformanceCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Add a new performance record to user profile
+    """
+    profile = await profile_service.get_or_create_profile(db, current_user.id)
+    performance = await profile_service.add_performance(db, profile.id, performance_in.model_dump())
+    return performance
+
+
+@router.get("/performances", response_model=List[UserPerformanceResponse])
+async def get_performances(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Get all performance records for current user
+    """
+    profile = await profile_service.get_profile(db, current_user.id)
+    if not profile:
+        return []
+    return profile.performances
+
+
+@router.delete("/performances/{performance_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_performance(
+    performance_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> None:
+    """
+    Delete a performance record from user profile
+    """
+    profile = await profile_service.get_profile(db, current_user.id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    success = await profile_service.delete_performance(db, profile.id, performance_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Performance not found")
+

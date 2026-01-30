@@ -1,5 +1,7 @@
-from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from typing import Any, List, Optional
+import secrets
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Request, Response
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -8,6 +10,7 @@ from app.core import security
 from app.core.exceptions import WeakPasswordError
 from app.core.logging import logger
 from app.db.models import User
+from app.services.rate_limiter import limiter
 from pydantic import BaseModel, EmailStr, Field
 
 router = APIRouter()
@@ -90,10 +93,20 @@ class UserResponse(BaseModel):
                     }
                 }
             }
+        },
+        429: {
+            "description": "요청 제한 초과",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Rate limit exceeded: 5 per 1 minute"}
+                }
+            }
         }
     }
 )
+@limiter.limit("5/minute")
 async def login_access_token(
+    request: Request,
     db: AsyncSession = Depends(deps.get_db),
     form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
@@ -163,10 +176,20 @@ async def login_access_token(
                     }
                 }
             }
+        },
+        429: {
+            "description": "요청 제한 초과",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Rate limit exceeded: 3 per 1 minute"}
+                }
+            }
         }
     }
 )
+@limiter.limit("3/minute")
 async def register(
+    request: Request,
     user_in: UserCreate,
     db: AsyncSession = Depends(deps.get_db)
 ) -> Any:
@@ -223,3 +246,180 @@ async def register(
 
     logger.info("Registration successful")
     return user
+
+
+@router.get(
+    "/users",
+    response_model=List[UserResponse],
+    summary="사용자 목록 조회",
+    description="시스템의 모든 활성 사용자를 조회합니다. (담당자 지정용)"
+)
+async def read_users(
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user)
+) -> Any:
+    """
+    모든 활성 사용자 목록을 반환합니다.
+    칸반 보드에서 담당자 지정 시 사용됩니다.
+    """
+    result = await db.execute(select(User).where(User.is_active == True))
+    users = result.scalars().all()
+    return users
+
+
+# --- SNS Login ---
+
+@router.get("/login/{provider}")
+async def login_sns(provider: str):
+    """
+    SNS 로그인 리다이렉트 (Google, Kakao, Naver)
+    """
+    from app.core.config import settings
+    import urllib.parse
+
+    if provider == "kakao":
+        client_id = settings.KAKAO_CLIENT_ID
+        redirect_uri = settings.KAKAO_REDIRECT_URI
+        auth_url = "https://kauth.kakao.com/oauth/authorize"
+        url = f"{auth_url}?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code"
+        return RedirectResponse(url=url)
+
+    elif provider == "naver":
+        client_id = settings.NAVER_CLIENT_ID
+        redirect_uri = settings.NAVER_REDIRECT_URI
+        auth_url = "https://nid.naver.com/oauth2.0/authorize"
+        state = secrets.token_urlsafe(32)  # CSRF protection with cryptographically secure random state
+        url = f"{auth_url}?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&state={state}"
+        return RedirectResponse(url=url)
+
+    raise HTTPException(status_code=400, detail="Unsupported provider")
+
+
+@router.get("/callback/{provider}")
+async def callback_sns(
+    provider: str,
+    code: str,
+    state: Optional[str] = None,
+    db: AsyncSession = Depends(deps.get_db)
+):
+    """
+    SNS 로그인 콜백 처리
+    1. 토큰 발급
+    2. 사용자 정보 조회
+    3. 회원가입/로그인 처리
+    4. JWT 토큰 발급
+    """
+    from app.core.config import settings
+    import httpx
+    
+    user_email = ""
+    social_id = ""
+    profile_image = ""
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            if provider == "kakao":
+                # Get Token
+                token_url = "https://kauth.kakao.com/oauth/token"
+                data = {
+                    "grant_type": "authorization_code",
+                    "client_id": settings.KAKAO_CLIENT_ID,
+                    "redirect_uri": settings.KAKAO_REDIRECT_URI,
+                    "code": code,
+                    "client_secret": settings.KAKAO_CLIENT_SECRET 
+                }
+                # Header content-type for Kakao
+                headers = {"Content-Type": "application/x-www-form-urlencoded;charset=utf-8"}
+                res = await client.post(token_url, data=data, headers=headers)
+                res.raise_for_status()
+                token_data = res.json()
+
+                # Get User Info
+                user_info_res = await client.get("https://kapi.kakao.com/v2/user/me", headers={"Authorization": f"Bearer {token_data['access_token']}"})
+                user_info = user_info_res.json()
+                
+                social_id = str(user_info.get("id"))
+                kakao_account = user_info.get("kakao_account", {})
+                user_email = kakao_account.get("email")
+                profile = kakao_account.get("profile", {})
+                # profile_image = profile.get("thumbnail_image_url") # Optional
+
+            elif provider == "naver":
+                # Get Token
+                token_url = "https://nid.naver.com/oauth2.0/token"
+                params = {
+                    "grant_type": "authorization_code",
+                    "client_id": settings.NAVER_CLIENT_ID,
+                    "client_secret": settings.NAVER_CLIENT_SECRET,
+                    "code": code,
+                    "state": state
+                }
+                res = await client.get(token_url, params=params)
+                res.raise_for_status()
+                token_data = res.json()
+                
+                # Get User Info
+                user_info_res = await client.get("https://openapi.naver.com/v1/nid/me", headers={"Authorization": f"Bearer {token_data['access_token']}"})
+                user_info = user_info_res.json().get("response", {})
+                
+                social_id = user_info.get("id")
+                user_email = user_info.get("email")
+                profile_image = user_info.get("profile_image")
+
+    except Exception as e:
+        logger.error(f"SNS Auth Error ({provider}): {e}")
+        raise HTTPException(status_code=400, detail="SNS Authentication Failed")
+
+    if not user_email:
+        raise HTTPException(status_code=400, detail="Email not provided by SNS")
+
+    # DB Logic
+    result = await db.execute(select(User).where(User.email == user_email))
+    user = result.scalars().first()
+    
+    if not user:
+        # Create New User (Auto Register)
+        import secrets
+        random_password = secrets.token_urlsafe(16)
+        
+        user = User(
+            email=user_email,
+            hashed_password=security.get_password_hash(random_password),
+            is_active=True,
+            provider=provider,
+            provider_id=social_id,
+            profile_image=profile_image
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        
+    else:
+        # Update existing user info if needed
+        if not user.provider:
+            user.provider = provider
+            user.provider_id = social_id
+            
+        if profile_image and not user.profile_image:
+             user.profile_image = profile_image
+             
+        await db.commit()
+    
+    # Create JWT
+    access_token = security.create_access_token(subject=user.email)
+
+    # Redirect to Frontend with token in HttpOnly cookie (NOT in URL)
+    redirect_url = f"{settings.FRONTEND_URL}/dashboard.html?login=success"
+    response = RedirectResponse(url=redirect_url, status_code=302)
+
+    # Set HttpOnly cookie for security (prevents XSS token theft)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,  # Only send over HTTPS
+        samesite="lax",
+        max_age=60 * 60 * 24 * 8,  # 8 days
+        path="/"
+    )
+    return response

@@ -1,12 +1,25 @@
 from typing import List, Dict, Any, Optional
 from app.db.models import BidAnnouncement, UserProfile, UserLicense, UserPerformance
+from app.core.config import settings
 from app.core.logging import logger
+import asyncio
+import json
 
 class MatchingService:
     """
     매칭 엔진 (Hard Match)
     사용자 프로필과 입찰 공고의 제약 조건을 비교하여 입찰 가능 여부를 판단
     """
+
+    def __init__(self):
+        self.client = None
+        if settings.GEMINI_API_KEY:
+            try:
+                from google import genai
+                self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
+                logger.info("MatchingService: Gemini 2.5 Flash client initialized for Semantic Search")
+            except Exception as e:
+                logger.error(f"Failed to initialize Gemini in MatchingService: {e}")
 
     def check_hard_match(self, user_profile: UserProfile, bid: BidAnnouncement) -> Dict[str, Any]:
         """
@@ -127,5 +140,76 @@ class MatchingService:
             "score": final_score,
             "breakdown": breakdown
         }
+
+    async def calculate_semantic_match(self, user_query: str, bid: BidAnnouncement) -> Dict[str, Any]:
+        """
+        Gemini 2.5 Flash를 사용하여 사용자의 자연어 쿼리와 입찰 공고 간의 의미적 유사도를 계산합니다.
+        
+        Returns:
+            Dict[str, Any]: {"score": float (0.0~1.0), "reasoning": str, "error": str}
+        """
+        if not self.client:
+            return {"score": 0.0, "error": "Gemini Client not initialized"}
+
+        prompt = f"""
+        You are an expert procurement analyst. Evalute the relevance between the User Query and the Bid Announcement.
+        
+        User Query: "{user_query}"
+        
+        Bid Announcement:
+        Title: "{bid.title}"
+        Content: "{bid.content[:1000]}"  # Truncate content specifically to save tokens
+
+        Task:
+        1. Analyze the intent of the User Query.
+        2. Determine if the Bid Announcement satisfies the query (Semantic Match).
+        3. Assign a relevance score between 0.0 and 1.0.
+           - 1.0: Perfect match (e.g., specific location and category match exactly).
+           - 0.8~0.9: High relevance (Same category, broader location matches - e.g. Jeju City is inside Jeju Island).
+           - 0.5~0.7: Partial relevance (Same industry but different specific task, or location ambiguous).
+           - 0.1~0.4: Low relevance (Keywords present but context different).
+           - 0.0: Irrelevant.
+           
+        *IMPORTANT*: Be generous with location matching. if the query is a province (e.g., Jeju-do) and the bid is a city within it (e.g., Jeju-si), consider it a High Relevance match (0.8+).
+
+        Output Format:
+        Provide the response in pure JSON format WITHOUT Markdown blocks.
+        {{
+            "reasoning": "Explain why you assigned this score in Korean.",
+            "score": 0.0
+        }}
+        """
+
+        try:
+            # Run blocking Gemini call in thread pool
+            response = await asyncio.to_thread(
+                self.client.models.generate_content,
+                model='gemini-2.5-flash',
+                contents=prompt
+            )
+            
+            # Raw response processing
+            raw_text = response.text.strip()
+            # Clean markdown code blocks if present
+            if raw_text.startswith("```json"):
+                raw_text = raw_text.replace("```json", "", 1).replace("```", "", 1).strip()
+            elif raw_text.startswith("```"):
+                raw_text = raw_text.replace("```", "", 1).strip()
+
+            import json
+            try:
+                data = json.loads(raw_text)
+                score = float(data.get("score", 0.0))
+                reasoning = data.get("reasoning", "No reasoning provided.")
+                
+                # logger.info(f"Gemini Match: {user_query} vs {bid.title} -> {score} ({reasoning})")
+                return {"score": score, "reasoning": reasoning, "error": None}
+            except json.JSONDecodeError:
+                logger.error(f"Gemini JSON Parse Error. Raw: {raw_text}")
+                return {"score": 0.0, "reasoning": f"JSON Parse Error: {raw_text[:50]}...", "error": "JSON Parse Error"}
+
+        except Exception as e:
+            logger.error(f"Gemini Semantic Match Error: {e}")
+            return {"score": 0.0, "error": str(e)}
 
 matching_service = MatchingService()

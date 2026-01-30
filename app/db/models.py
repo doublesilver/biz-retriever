@@ -71,21 +71,38 @@ class User(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)  # SNS Login Fields
+    provider: Mapped[str] = mapped_column(String, default="email")  # email, google, kakao, naver
+    provider_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Social ID
+    profile_image: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Profile Image URL
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # Relationship: User -> BidAnnouncement (담당 공고 목록)
+    # Relationships
+    full_profile: Mapped[Optional["UserProfile"]] = relationship(
+        "UserProfile", back_populates="user", uselist=False, lazy="selectin", cascade="all, delete-orphan"
+    )
     assigned_bids: Mapped[List["BidAnnouncement"]] = relationship(
-        "BidAnnouncement",
         back_populates="assignee",
+        cascade="all, delete-orphan",
         lazy="selectin"
     )
-
-    # Phase 2: User -> UserProfile (1:1 관계)
-    profile: Mapped[Optional["UserProfile"]] = relationship(
-        "UserProfile",
+    
+    # Billing Relationships (Phase 3)
+    subscription: Mapped[Optional["Subscription"]] = relationship(
+        "Subscription",
         back_populates="user",
         uselist=False,
+        cascade="all, delete-orphan",
+        lazy="selectin"
+    )
+    payments: Mapped[List["PaymentHistory"]] = relationship(
+        "PaymentHistory",
+        back_populates="user",
+        lazy="selectin"
+    )
+    keywords: Mapped[List["UserKeyword"]] = relationship(
+        "UserKeyword",
+        back_populates="user",
         cascade="all, delete-orphan",
         lazy="selectin"
     )
@@ -118,8 +135,20 @@ class UserProfile(Base, TimestampMixin):
     company_type: Mapped[Optional[str]] = mapped_column(String)  # 기업 구분 (중소기업, 소상공인 등)
     keywords: Mapped[Optional[List[str]]] = mapped_column(JSON, default=list)  # 관심 키워드 (Phase 3 Soft Match)
 
+    # Phase 6.1: Detailed Profile
+    credit_rating: Mapped[Optional[str]] = mapped_column(String)  # 신용등급 (e.g. "A-", "BBB+")
+    employee_count: Mapped[Optional[int]] = mapped_column(Integer)  # 직원 수
+    founding_year: Mapped[Optional[int]] = mapped_column(Integer)  # 설립연도
+    main_bank: Mapped[Optional[str]] = mapped_column(String)  # 주거래 은행
+    standard_industry_codes: Mapped[Optional[List[str]]] = mapped_column(JSON, default=list)  # 표준산업분류코드
+
+    # Phase 8: Notification Settings
+    slack_webhook_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Slack Webhook URL
+    is_email_enabled: Mapped[bool] = mapped_column(Boolean, default=False)  # 이메일 알림 사용 여부
+    is_slack_enabled: Mapped[bool] = mapped_column(Boolean, default=False)  # Slack 알림 사용 여부
+
     # Relationship
-    user: Mapped["User"] = relationship("User", back_populates="profile")
+    user: Mapped["User"] = relationship("User", back_populates="full_profile")
     licenses: Mapped[List["UserLicense"]] = relationship(
         "UserLicense",
         back_populates="profile",
@@ -307,3 +336,81 @@ class ExcludeKeyword(Base, TimestampMixin):
 
     def __repr__(self):
         return f"<ExcludeKeyword(id={self.id}, word='{self.word}')>"
+
+
+class UserKeyword(Base, TimestampMixin):
+    """
+    User Keyword Model (Dynamic Targeting)
+    Phase 3: 사용자 정의 키워드 (Hardcode Replacement)
+    """
+    __tablename__ = "user_keywords"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    
+    keyword: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    category: Mapped[str] = mapped_column(String, default="include") # include, exclude
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    
+    # Relationship
+    user: Mapped["User"] = relationship("User", back_populates="keywords")
+
+    def __repr__(self):
+        return f"<UserKeyword(id={self.id}, user_id={self.user_id}, keyword='{self.keyword}')>"
+
+
+class Subscription(Base, TimestampMixin):
+    """
+    Subscription Model (구독 관리)
+    Phase 3: Billing System
+    """
+    __tablename__ = "subscriptions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True
+    )
+    
+    plan_name: Mapped[str] = mapped_column(String, default="free")  # free, basic, pro
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    start_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    next_billing_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    
+    # Stripe/Payment Gateway IDs
+    stripe_subscription_id: Mapped[Optional[str]] = mapped_column(String, index=True)
+    
+    # Relationship
+    user: Mapped["User"] = relationship("User", back_populates="subscription")
+
+
+class PaymentHistory(Base, TimestampMixin):
+    """
+    Payment History Model (결제 이력)
+    """
+    __tablename__ = "payment_history"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
+    
+    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    currency: Mapped[str] = mapped_column(String, default="KRW")
+    status: Mapped[str] = mapped_column(String, default="pending")  # pending, paid, failed, refunded
+    payment_method: Mapped[str] = mapped_column(String, default="card")
+    transaction_id: Mapped[Optional[str]] = mapped_column(String, index=True)
+    
+    # Relationship
+    user: Mapped["User"] = relationship("User", back_populates="payments")
+

@@ -52,38 +52,54 @@ class RAGService:
                 "keywords": []
             }
 
-        prompt = f"""다음 입찰 공고를 분석하여:
-1. 핵심 내용을 1문장으로 요약
-2. 중요 키워드 3개 추출
+        prompt = f"""다음 입찰 공고를 분석하여 JSON 형식으로 응답하라.
 
 공고 내용:
 {content}
 
-응답 형식:
-요약: [1문장 요약]
-키워드: [키워드1, 키워드2, 키워드3]
+필수 추출 항목:
+1. summary: 핵심 내용을 1문장으로 요약
+2. keywords: 중요 키워드 3~5개 (리스트)
+3. region_code: 공사/용역 현장 지역 (서울, 경기, 부산 등 광역시도 명칭. 전국이면 "전국")
+4. license_requirements: 참여에 필요한 면허/자격 목록 (리스트). 없으면 빈 리스트.
+5. min_performance: 실적 제한 금액 (숫자만, 없으면 0). "최근 3년 10억 이상" -> 1000000000
+
+응답 예시:
+{{
+    "summary": "서울시청 구내식당 위탁운영 사업자 선정",
+    "keywords": ["구내식당", "위탁운영", "급식"],
+    "region_code": "서울",
+    "license_requirements": ["식품접객업", "위생관리용역업"],
+    "min_performance": 500000000
+}}
 """
 
         try:
-            result_text = ""
+            result_json = {}
             
             if self.api_key_type == "gemini":
-                # Gemini API 호출 (gemini-2.5-flash 모델)
+                # Gemini API (JSON Mode)
+                from google.genai import types
                 response = self.client.models.generate_content(
                     model='gemini-2.5-flash',
-                    contents=prompt
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json"
+                    )
                 )
-                result_text = response.text
+                import json
+                result_json = json.loads(response.text)
                 
             elif self.api_key_type == "openai":
-                # OpenAI API 호출 (Direct HTTP Request)
+                # OpenAI API (JSON Mode)
                 payload = {
                     "model": "gpt-4o-mini",
                     "messages": [
-                        {"role": "system", "content": "You are an AI assistant for analyzing public bid announcements in Korean."},
+                        {"role": "system", "content": "You are an AI assistant. Respond in JSON only."},
                         {"role": "user", "content": prompt}
                     ],
-                    "temperature": 0
+                    "temperature": 0,
+                    "response_format": {"type": "json_object"}
                 }
                 headers = {
                     "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
@@ -97,23 +113,15 @@ class RAGService:
                 )
                 response.raise_for_status()
                 data = response.json()
-                result_text = data["choices"][0]["message"]["content"]
-            
-            # 간단한 파싱
-            lines = result_text.strip().split('\n')
-            summary = ""
-            keywords = []
-            
-            for line in lines:
-                if line.startswith("요약:"):
-                    summary = line.replace("요약:", "").strip()
-                elif line.startswith("키워드:"):
-                    kw_text = line.replace("키워드:", "").strip()
-                    keywords = [k.strip() for k in kw_text.replace('[', '').replace(']', '').split(',')]
+                import json
+                result_json = json.loads(data["choices"][0]["message"]["content"])
             
             return {
-                "summary": summary or result_text[:100],
-                "keywords": keywords[:3] if keywords else ["AI", "분석", "완료"]
+                "summary": result_json.get("summary", "분석 실패"),
+                "keywords": result_json.get("keywords", []),
+                "region_code": result_json.get("region_code"),
+                "license_requirements": result_json.get("license_requirements", []),
+                "min_performance": float(result_json.get("min_performance", 0) or 0)
             }
             
         except Exception as e:

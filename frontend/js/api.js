@@ -1,6 +1,6 @@
 // API Service
 
-const API_BASE = '/api/v1';
+const API_BASE = 'http://localhost:8000/api/v1';
 
 class APIService {
     static async request(endpoint, options = {}) {
@@ -36,8 +36,23 @@ class APIService {
             if (!response.ok) {
                 const contentType = response.headers.get("content-type");
                 if (contentType && contentType.indexOf("application/json") !== -1) {
-                    const error = await response.json();
-                    throw new Error(JSON.stringify(error) || '요청 처리 중 오류가 발생했습니다.');
+                    const errorData = await response.json();
+                    
+                    // Parse user-friendly error message from new format
+                    let errorMessage = '요청 처리 중 오류가 발생했습니다.';
+                    
+                    if (errorData.message) {
+                        errorMessage = errorData.message;
+                    } else if (errorData.detail) {
+                        errorMessage = errorData.detail;
+                    }
+                    
+                    // Add details if validation error
+                    if (errorData.details && Array.isArray(errorData.details)) {
+                        errorMessage += '\n\n세부 사항:\n' + errorData.details.join('\n');
+                    }
+                    
+                    throw new Error(errorMessage);
                 } else {
                     const text = await response.text();
                     console.error('Non-JSON Error Response:', text);
@@ -68,6 +83,13 @@ class APIService {
         return this.request(`/analysis/match/${id}`);
     }
 
+    static async smartSearch(query, limit = 10) {
+        return this.request('/analysis/smart-search', {
+            method: 'POST',
+            body: JSON.stringify({ query, limit })
+        });
+    }
+
     // Auth
     static async register(email, password) {
         return this.request('/auth/register', {
@@ -93,10 +115,19 @@ class APIService {
         });
     }
 
+    static loginSNS(provider) {
+        window.location.href = `${API_BASE}/auth/login/${provider}`;
+    }
+
     // Bids
     static async getBids(params = {}) {
         const queryString = new URLSearchParams(params).toString();
         return this.request(`/bids/${queryString ? '?' + queryString : ''}`);
+    }
+
+    static async getMatchedBids(params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        return this.request(`/bids/matched${queryString ? '?' + queryString : ''}`);
     }
 
     static async getBid(id) {
@@ -140,6 +171,14 @@ class APIService {
     static async deleteKeyword(keyword) {
         return this.request(`/filters/keywords/${encodeURIComponent(keyword)}`, {
             method: 'DELETE'
+        });
+    }
+
+    // Payment (Phase 3)
+    static async subscribe(planName) {
+        return this.request('/payment/subscribe', {
+            method: 'POST',
+            body: JSON.stringify({ plan_name: planName })
         });
     }
 
@@ -201,6 +240,79 @@ class APIService {
             },
             body: formData
         });
+    }
+
+    // License Management (Phase 9)
+    static async getLicenses() {
+        return this.request('/profile/licenses');
+    }
+
+    static async addLicense(data) {
+        return this.request('/profile/licenses', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    static async deleteLicense(licenseId) {
+        return this.request(`/profile/licenses/${licenseId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // Performance Management (Phase 9)
+    static async getPerformances() {
+        return this.request('/profile/performances');
+    }
+
+    static async addPerformance(data) {
+        return this.request('/profile/performances', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    static async deletePerformance(performanceId) {
+        return this.request(`/profile/performances/${performanceId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // Payment & Subscription (Phase 10)
+    static async createPayment(planName) {
+        return this.request('/payment/create', {
+            method: 'POST',
+            body: JSON.stringify({ plan_name: planName })
+        });
+    }
+
+    static async confirmPayment(paymentKey, orderId, amount) {
+        return this.request('/payment/confirm', {
+            method: 'POST',
+            body: JSON.stringify({
+                paymentKey,
+                orderId,
+                amount
+            })
+        });
+    }
+
+    static async cancelPayment(paymentKey, cancelReason) {
+        return this.request('/payment/cancel', {
+            method: 'POST',
+            body: JSON.stringify({
+                paymentKey,
+                cancelReason
+            })
+        });
+    }
+
+    static async getPaymentHistory() {
+        return this.request('/payment/history');
+    }
+
+    static async getPlans() {
+        return this.request('/payment/plans');
     }
 }
 

@@ -1,110 +1,217 @@
-/* Login Page Styles */
 .login-container {
     min-height: 100vh;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-xl);
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    align-items: stretch;
+    background: #f0f2f5;
     position: relative;
     overflow: hidden;
 }
 
-.login-container::before {
+.login-info {
+    flex: 1.2;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-3xl);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-info::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-    animation: float 20s infinite ease-in-out;
+    inset: 0;
+    background: url('https://www.transparenttextures.com/patterns/cubes.png');
+    opacity: 0.1;
 }
 
-@keyframes float {
-
-    0%,
-    100% {
-        transform: translate(0, 0) rotate(0deg);
-    }
-
-    33% {
-        transform: translate(30px, -30px) rotate(120deg);
-    }
-
-    66% {
-        transform: translate(-20px, 20px) rotate(240deg);
-    }
-}
-
-.login-card {
-    background: var(--bg-primary);
-    border-radius: var(--radius-xl);
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    padding: var(--spacing-2xl);
-    width: 100%;
-    max-width: 420px;
+.info-content {
+    max-width: 500px;
     position: relative;
-    animation: slideUp 0.5s ease-out;
+    z-index: 1;
+    animation: fadeIn 0.8s ease-out;
 }
 
-@keyframes slideUp {
+.info-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-2xl);
+}
+
+.info-logo .logo-icon {
+    font-size: 3rem;
+    margin-bottom: 0;
+}
+
+.info-logo h1 {
+    font-size: var(--font-size-4xl);
+    color: white;
+    font-weight: 800;
+}
+
+.info-content h2 {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.2;
+}
+
+.info-content p {
+    font-size: var(--font-size-lg);
+    opacity: 0.9;
+    margin-bottom: var(--spacing-2xl);
+    line-height: 1.6;
+}
+
+.feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.feature-list li {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+}
+
+@keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(30px);
+        transform: translateX(-20px);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateX(0);
     }
 }
 
-.logo {
-    text-align: center;
-    margin-bottom: var(--spacing-lg);
+.login-card {
+    flex: 1;
+    background: var(--bg-primary);
+    padding: var(--spacing-3xl);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 550px;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.05);
+    z-index: 2;
+    animation: slideInRight 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.logo-icon {
-    font-size: 4rem;
-    display: block;
-    margin-bottom: var(--spacing-sm);
-    animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-
-    0%,
-    100% {
-        transform: translateY(0);
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
     }
 
-    50% {
-        transform: translateY(-10px);
+    to {
+        opacity: 1;
+        transform: translateX(0);
     }
 }
 
-.logo h1 {
-    font-size: var(--font-size-3xl);
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--primary), #764ba2);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.tagline {
-    text-align: center;
-    color: var(--text-secondary);
-    font-size: var(--font-size-base);
+.auth-header {
     margin-bottom: var(--spacing-2xl);
 }
 
-.footer-text {
-    text-align: center;
-    margin-top: var(--spacing-xl);
-    font-size: var(--font-size-sm);
+.auth-header h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+}
+
+.auth-header p {
     color: var(--text-secondary);
+}
+
+.mobile-only {
+    display: none;
+}
+
+.sns-login {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Base SNS Button Style */
+[class^="btn-sns-"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: var(--spacing-md) !important;
+    height: 52px !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 15px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    border: none !important;
+    width: 100% !important;
+}
+
+[class^="btn-sns-"]:hover {
+    transform: translateY(-2px) !important;
+    filter: brightness(0.95) !important;
+}
+
+[class^="btn-sns-"] img,
+[class^="btn-sns-"] svg {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+    flex-shrink: 0 !important;
+}
+
+/* Kakao Brand */
+.btn-sns-kakao {
+    background-color: #FEE500 !important;
+    color: #191919 !important;
+}
+
+/* Naver Brand */
+.btn-sns-naver {
+    background-color: #03C75A !important;
+    color: #ffffff !important;
+}
+
+/* Responsive Overrides */
+@media (max-width: 1024px) {
+    .login-container {
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        padding: var(--spacing-xl) !important;
+    }
+
+    .login-info {
+        display: none !important;
+    }
+
+    .login-card {
+        width: 100% !important;
+        max-width: 420px !important;
+        border-radius: var(--radius-xl) !important;
+        box-shadow: var(--card-shadow-lg) !important;
+        flex: none !important;
+        padding: var(--spacing-2xl) !important;
+        margin: 0 !important;
+    }
+
+    .mobile-only {
+        display: block !important;
+        margin-bottom: var(--spacing-xl) !important;
+    }
 }
 
 /* Dashboard Styles (will add more later) */

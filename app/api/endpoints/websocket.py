@@ -40,5 +40,5 @@ async def websocket_endpoint(
         logger.error(f"WebSocket error: {e}")
         try:
             await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
-        except:
+        except Exception:
             pass

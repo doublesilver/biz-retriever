@@ -3,12 +3,24 @@
 // Toast Notification
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
-    toast.textContent = message;
+    
+    // Handle multi-line messages (preserve line breaks)
+    if (message.includes('\n')) {
+        toast.innerHTML = message.split('\n').map(line => 
+            line ? `<div>${line}</div>` : '<br>'
+        ).join('');
+    } else {
+        toast.textContent = message;
+    }
+    
     toast.className = `toast ${type} show`;
 
+    // Longer duration for error messages (5 seconds vs 3 seconds)
+    const duration = type === 'error' ? 5000 : 3000;
+    
     setTimeout(() => {
         toast.classList.remove('show');
-    }, 3000);
+    }, duration);
 }
 
 // Password Toggle

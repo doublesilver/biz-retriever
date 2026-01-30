@@ -53,8 +53,13 @@ env/
 *.swo
 *~
 
-# Environment variables
-*.env
+# Environment variables (CRITICAL: Never commit secrets!)
+.env
+.env.local
+.env.production
+.env.*.local
+# Keep .env.example for reference
+!.env.example
 handoff_guide.md
 HANDOFF_GUIDE.md
 archive/legacy_docs/HANDOFF_GUIDE.md
@@ -84,3 +89,4 @@ node_modules/
 dist/
 .claude/
 .pytest_cache/
+nul

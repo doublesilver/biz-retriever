@@ -8,20 +8,40 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/variables.css">
-    <link rel="stylesheet" href="css/reset.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/variables.css?v=v3">
+    <link rel="stylesheet" href="css/reset.css?v=v3">
+    <link rel="stylesheet" href="css/components.css?v=v3">
+    <link rel="stylesheet" href="css/main.css?v=v3">
 </head>
 
 <body>
     <div class="login-container">
+        <div class="login-info">
+            <div class="info-content">
+                <div class="info-logo">
+                    <span class="logo-icon">🐕</span>
+                    <h1>Biz-Retriever</h1>
+                </div>
+                <h2>스마트한 입찰 파트너</h2>
+                <p>전국 입찰 정보를 한눈에 관리하고 AI로 분석하여 승률을 극대화하세요.</p>
+                <ul class="feature-list">
+                    <li><span>✅</span> 실시간 공고 수집</li>
+                    <li><span>✅</span> AI 매칭 및 분석</li>
+                    <li><span>✅</span> 칸반 보드 협업 관리</li>
+                    <li><span>✅</span> 실시간 Slack 알림</li>
+                </ul>
+            </div>
+        </div>
         <div class="login-card">
-            <div class="logo">
+            <div class="logo mobile-only">
                 <span class="logo-icon">🐕</span>
                 <h1>Biz-Retriever</h1>
             </div>
-            <p class="tagline">입찰 공고 자동 수집 플랫폼</p>
+
+            <div class="auth-header">
+                <h2>반가워요! 👋</h2>
+                <p>계정에 로그인하여 시작하세요.</p>
+            </div>
 
             <form id="loginForm" class="auth-form">
                 <div class="form-group">
@@ -47,7 +67,29 @@
             </form>
 
             <div class="divider">
-                <span>또는</span>
+                <span>SNS 간편 로그인</span>
+            </div>
+
+            <div class="sns-login">
+                <button class="btn-sns-kakao" onclick="API.loginSNS('kakao')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M12 3c-4.97 0-9 3.185-9 7.115 0 2.558 1.712 4.8 4.346 6.108l-.837 3.072c-.046.168.048.347.21.4.047.015.097.02.146.015.114-.01.21-.073.268-.17l3.634-2.42c.404.053.816.08 1.233.08 4.97 0 9-3.186 9-7.115S16.97 3 12 3z"
+                            fill="#381E1F" />
+                    </svg>
+                    <span>Kakao로 시작하기</span>
+                </button>
+                <button class="btn-sns-naver" onclick="API.loginSNS('naver')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727v12.845z"
+                            fill="#FFFFFF" />
+                    </svg>
+                    <span>Naver로 시작하기</span>
+                </button>
+            </div>
+
+            <div class="divider">
+                <span>또는 이메일로 시작</span>
             </div>
 
             <button class="btn btn-secondary btn-block" id="showRegisterBtn">

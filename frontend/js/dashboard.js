@@ -4,6 +4,17 @@ let currentPage = 1;
 let currentFilters = {};
 
 document.addEventListener('DOMContentLoaded', async function () {
+  // Check for SNS Login Token (Redirected from Backend)
+  const urlParams = new URLSearchParams(window.location.search);
+  const accessToken = urlParams.get('access_token');
+
+  if (accessToken) {
+    localStorage.setItem('token', accessToken);
+    // Clean URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+    console.log('SNS Login Successful');
+  }
+
   // Check authentication
   if (!localStorage.getItem('token')) {
     window.location.href = '/index.html';
@@ -97,7 +108,7 @@ function initEventListeners() {
   document.getElementById('searchInput').addEventListener('input', function (e) {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(async () => {
-      currentFilters.search = e.target.value;
+      currentFilters.keyword = e.target.value;
       currentPage = 1;
       await loadBids();
     }, 500);
@@ -120,6 +131,59 @@ function initEventListeners() {
     currentPage = 1;
     await loadBids();
   });
+
+  // Matched Toggle
+  document.getElementById('toggleMatchedView').addEventListener('click', async function () {
+    this.classList.toggle('active');
+    // Toggle visual state
+    const isActive = this.classList.contains('active');
+    this.style.background = isActive ? 'var(--primary-color)' : 'transparent';
+    this.style.color = isActive ? 'white' : 'var(--text-color)';
+
+    // Reset Page
+    currentPage = 1;
+    await loadBids();
+  });
+
+  // AI Smart Search
+  document.getElementById('aiSearchBtn').addEventListener('click', async function () {
+    const input = document.getElementById('aiSearchInput');
+    const query = input.value.trim();
+    if (!query) return;
+
+    const btn = this;
+    utils.setLoading(btn, true);
+
+    try {
+      const response = await API.smartSearch(query);
+      const results = response.results || [];
+
+      if (results.length > 0) {
+        // UI 반영
+        document.getElementById('aiSearchResults').style.display = 'block';
+        document.getElementById('aiSearchStatus').textContent = `🤖 AI가 '${query}'와 가장 일치하는 공고 ${results.length}개를 찾았습니다.`;
+
+        // 기존 목록 섹션을 숨기거나 업데이트 (여기서는 그냥 renderBids 호출)
+        const bidsList = document.getElementById('bidsList');
+        // AI 결과용 렌더링 (relevance_score 포함)
+        renderBids(results, true);
+        document.getElementById('pagination').style.display = 'none'; // AI 검색은 페이징 미지원( MVP)
+      } else {
+        utils.showToast('일치하는 공고가 없습니다.', 'warning');
+      }
+    } catch (error) {
+      utils.showToast('AI 검색 실패: ' + error.message, 'error');
+    } finally {
+      utils.setLoading(btn, false);
+    }
+  });
+}
+
+function clearAiSearch() {
+  document.getElementById('aiSearchInput').value = '';
+  document.getElementById('aiSearchResults').style.display = 'none';
+  document.getElementById('pagination').style.display = 'flex';
+  loadBids();
 }
 
 async function loadStats() {
@@ -152,7 +216,17 @@ async function loadBids() {
       ...currentFilters
     };
 
-    const response = await API.getBids(params);
+    // Check Matched View Toggle
+    const isMatchedView = document.getElementById('toggleMatchedView').classList.contains('active');
+
+    let response;
+    if (isMatchedView) {
+      response = await API.getMatchedBids(params);
+      document.getElementById('bidsList').classList.add('matched-mode');
+    } else {
+      response = await API.getBids(params);
+      document.getElementById('bidsList').classList.remove('matched-mode');
+    }
 
     // [FIX] Handle both Array and Object formats
     let items = [];
@@ -193,18 +267,25 @@ async function loadBids() {
   }
 }
 
-function renderBids(bids) {
+function renderBids(bids, isAiSearch = false) {
   const bidsList = document.getElementById('bidsList');
 
   bidsList.innerHTML = bids.map(bid => {
     const priorityClass = bid.importance_score >= 3 ? 'priority-high' :
       bid.importance_score >= 2 ? 'priority-medium' : 'priority-low';
 
+    // AI 점수 태그
+    const aiTag = isAiSearch && bid.relevance_score !== undefined ?
+      `<span class="badge" style="background: var(--primary-color); color: white;">🤖 매칭률 ${Math.round(bid.relevance_score * 100)}%</span>` : '';
+
     return `
       <div class="bid-card ${priorityClass}" onclick="viewBidDetail(${bid.id})">
         <div class="bid-header">
           <div class="bid-priority">${utils.getPriorityStars(bid.importance_score || 1)}</div>
-          <span class="bid-status">${bid.status || '신규'}</span>
+          <div style="display: flex; gap: 5px; align-items: center;">
+            ${aiTag}
+            <span class="bid-status">${bid.status || '신규'}</span>
+          </div>
         </div>
         <h3 class="bid-title">${bid.title}</h3>
         <div class="bid-meta">
@@ -280,10 +361,109 @@ async function changePage(page) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function viewBidDetail(id) {
-  utils.showToast('공고 상세 페이지는 준비 중입니다', 'warning');
-  // TODO: Implement bid detail page
-  // window.location.href = `/frontend/bid-detail.html?id=${id}`;
+async function viewBidDetail(id) {
+  const modal = document.getElementById('bidDetailModal');
+  const loadingEl = document.getElementById('bidDetailLoading');
+  const errorEl = document.getElementById('bidDetailError');
+  const errorMsgEl = document.getElementById('bidDetailErrorMsg');
+  const contentEl = document.getElementById('bidDetailContent');
+  
+  // Store current bid ID for action buttons
+  window.currentBidId = id;
+  
+  // Show modal with loading state
+  modal.classList.add('active');
+  loadingEl.style.display = 'block';
+  errorEl.style.display = 'none';
+  contentEl.style.display = 'none';
+  
+  try {
+    const bid = await API.getBid(id);
+    
+    // Populate modal content
+    document.getElementById('bidDetailTitle').textContent = bid.title;
+    document.getElementById('bidDetailPriority').innerHTML = utils.getPriorityStars(bid.importance_score || 1);
+    document.getElementById('bidDetailStatus').textContent = getStatusText(bid.status || 'new');
+    document.getElementById('bidDetailStatus').className = `badge ${getStatusClass(bid.status || 'new')}`;
+    
+    // Basic info
+    document.getElementById('bidDetailAgency').textContent = bid.agency || '미정';
+    document.getElementById('bidDetailDeadline').textContent = bid.deadline ? utils.formatDate(bid.deadline) : '미정';
+    document.getElementById('bidDetailPrice').textContent = bid.estimated_price ? utils.formatCurrency(bid.estimated_price) : '미정';
+    document.getElementById('bidDetailPosted').textContent = bid.posted_at ? utils.formatDate(bid.posted_at) : '-';
+    document.getElementById('bidDetailUrl').href = bid.url || '#';
+    
+    // AI Summary
+    if (bid.ai_summary) {
+      document.getElementById('bidDetailAISection').style.display = 'block';
+      document.getElementById('bidDetailAISummary').textContent = bid.ai_summary;
+    } else {
+      document.getElementById('bidDetailAISection').style.display = 'none';
+    }
+    
+    // Keywords
+    const keywords = bid.keywords_matched || bid.ai_keywords || [];
+    if (keywords && keywords.length > 0) {
+      document.getElementById('bidDetailKeywordsSection').style.display = 'block';
+      document.getElementById('bidDetailKeywords').innerHTML = keywords
+        .map(keyword => `<span class="badge">${keyword}</span>`)
+        .join('');
+    } else {
+      document.getElementById('bidDetailKeywordsSection').style.display = 'none';
+    }
+    
+    // Content
+    document.getElementById('bidDetailContentPreview').textContent = bid.content || '내용 없음';
+    
+    // Notes
+    if (bid.notes) {
+      document.getElementById('bidDetailNotesSection').style.display = 'block';
+      document.getElementById('bidDetailNotes').textContent = bid.notes;
+    } else {
+      document.getElementById('bidDetailNotesSection').style.display = 'none';
+    }
+    
+    // Show content
+    loadingEl.style.display = 'none';
+    contentEl.style.display = 'block';
+    
+  } catch (error) {
+    console.error('Failed to load bid detail:', error);
+    loadingEl.style.display = 'none';
+    errorEl.style.display = 'block';
+    errorMsgEl.textContent = error.message || '공고 정보를 불러오는데 실패했습니다.';
+  }
+}
+
+function closeBidDetailModal() {
+  document.getElementById('bidDetailModal').classList.remove('active');
+  window.currentBidId = null;
+}
+
+function getStatusText(status) {
+  const statusMap = {
+    'new': '신규',
+    'reviewing': '검토중',
+    'bidding': '입찰중',
+    'submitted': '제출완료',
+    'won': '낙찰',
+    'lost': '탈락',
+    'completed': '완료'
+  };
+  return statusMap[status] || status;
+}
+
+function getStatusClass(status) {
+  const classMap = {
+    'new': '',
+    'reviewing': 'warning',
+    'bidding': 'warning',
+    'submitted': 'success',
+    'won': 'success',
+    'lost': 'danger',
+    'completed': ''
+  };
+  return classMap[status] || '';
 }
 
 async function analyzeBid(id, btn) {
@@ -369,6 +549,8 @@ document.getElementById('matchModal').addEventListener('click', function (e) {
 window.changePage = changePage;
 window.loadBids = loadBids;
 window.viewBidDetail = viewBidDetail;
+window.closeBidDetailModal = closeBidDetailModal;
 window.analyzeBid = analyzeBid;
 window.checkMatch = checkMatch;
 window.closeMatchModal = closeMatchModal;
+window.clearAiSearch = clearAiSearch;
