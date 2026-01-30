@@ -1,0 +1,114 @@
+# Alertmanager Configuration for Biz-Retriever
+# Slack 연동 및 알림 라우팅 설정
+
+global:
+  resolve_timeout: 5m
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+
+# 알림 템플릿
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# 알림 라우팅
+route:
+  # 기본 수신자
+  receiver: 'slack-critical'
+  
+  # 그룹화 설정 (같은 알림을 묶어서 전송)
+  group_by: ['alertname', 'cluster', 'component']
+  group_wait: 10s        # 첫 알림 대기 시간
+  group_interval: 10s    # 그룹 내 추가 알림 간격
+  repeat_interval: 12h   # 동일 알림 재전송 간격
+
+  # 하위 라우팅 규칙
+  routes:
+    # Critical 알림 (즉시 전송)
+    - match:
+        severity: critical
+      receiver: 'slack-critical'
+      group_wait: 0s
+      repeat_interval: 4h
+
+    # Warning 알림 (10분 대기 후 전송)
+    - match:
+        severity: warning
+      receiver: 'slack-warning'
+      group_wait: 10m
+      repeat_interval: 12h
+
+    # 크롤러 관련 알림
+    - match:
+        component: crawler
+      receiver: 'slack-crawler'
+      group_wait: 30m
+      repeat_interval: 24h
+
+# 알림 수신자 설정
+receivers:
+  # Critical 알림 (빨간색, 즉시 알림)
+  - name: 'slack-critical'
+    slack_configs:
+      - channel: '#biz-retriever-alerts'
+        username: 'Biz-Retriever Alert'
+        icon_emoji: ':rotating_light:'
+        color: 'danger'
+        title: ':fire: CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}
+          *Description:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          *Component:* {{ .GroupLabels.component }}
+          *Severity:* {{ .GroupLabels.severity }}
+          *Time:* {{ range .Alerts }}{{ .StartsAt.Format "2006-01-02 15:04:05 KST" }}{{ end }}
+        send_resolved: true
+
+  # Warning 알림 (노란색)
+  - name: 'slack-warning'
+    slack_configs:
+      - channel: '#biz-retriever-alerts'
+        username: 'Biz-Retriever Alert'
+        icon_emoji: ':warning:'
+        color: 'warning'
+        title: ':warning: WARNING: {{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}
+          *Description:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          *Component:* {{ .GroupLabels.component }}
+          *Time:* {{ range .Alerts }}{{ .StartsAt.Format "2006-01-02 15:04:05 KST" }}{{ end }}
+        send_resolved: true
+
+  # 크롤러 알림 (파란색)
+  - name: 'slack-crawler'
+    slack_configs:
+      - channel: '#biz-retriever-crawler'
+        username: 'Biz-Retriever Crawler'
+        icon_emoji: ':robot_face:'
+        color: '#36a64f'
+        title: ':mag: Crawler Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}
+          *Description:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          *Time:* {{ range .Alerts }}{{ .StartsAt.Format "2006-01-02 15:04:05 KST" }}{{ end }}
+        send_resolved: true
+
+# 알림 억제 규칙 (중복 알림 방지)
+inhibit_rules:
+  # Critical 알림이 발생하면 Warning 알림 억제
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'component']
+
+  # API 다운 시 관련 모든 알림 억제
+  - source_match:
+      alertname: 'APIServiceDown'
+    target_match_re:
+      alertname: 'High.*'
+    equal: ['component']
+
+  # DB 다운 시 관련 모든 알림 억제
+  - source_match:
+      alertname: 'PostgreSQLDown'
+    target_match_re:
+      alertname: '.*Database.*'
+    equal: ['component']

@@ -1,0 +1,16 @@
+# Grafana Dashboard Provisioning
+# 기존 grafana-dashboard.json 자동 로드
+
+apiVersion: 1
+
+providers:
+  - name: 'Biz-Retriever Dashboards'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

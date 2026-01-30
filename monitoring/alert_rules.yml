@@ -1,0 +1,196 @@
+# Prometheus Alert Rules for Biz-Retriever
+# 라즈베리파이 환경에 최적화된 임계값
+
+groups:
+  - name: api_alerts
+    interval: 30s
+    rules:
+      # API 에러율 5% 초과
+      - alert: HighAPIErrorRate
+        expr: |
+          (sum(rate(http_requests_total{status_code!="200"}[5m])) / sum(rate(http_requests_total[5m]))) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API 에러율이 5%를 초과했습니다"
+          description: "현재 에러율: {{ $value | humanizePercentage }}"
+
+      # API 응답 시간 P95 > 5초
+      - alert: HighAPILatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "API 응답 시간이 느립니다 (P95 > 5초)"
+          description: "현재 P95 응답 시간: {{ $value }}초"
+
+      # API 서비스 다운
+      - alert: APIServiceDown
+        expr: up{job="biz-retriever-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "Biz-Retriever API 서비스가 다운되었습니다"
+          description: "API 서비스가 1분 이상 응답하지 않습니다"
+
+  - name: database_alerts
+    interval: 30s
+    rules:
+      # PostgreSQL 연결 실패
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "PostgreSQL 데이터베이스가 다운되었습니다"
+          description: "DB 연결이 1분 이상 실패했습니다"
+
+      # DB 연결 수 과다 (80% 이상)
+      - alert: HighDatabaseConnections
+        expr: |
+          (pg_stat_database_numbackends / pg_settings_max_connections) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "데이터베이스 연결 수가 많습니다"
+          description: "현재 연결 비율: {{ $value | humanizePercentage }}"
+
+      # DB 쿼리 응답 시간 P95 > 1초
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(0.95, sum(rate(db_query_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "데이터베이스 쿼리가 느립니다 (P95 > 1초)"
+          description: "현재 P95 쿼리 시간: {{ $value }}초"
+
+  - name: redis_alerts
+    interval: 30s
+    rules:
+      # Redis 연결 실패
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "Redis 캐시 서버가 다운되었습니다"
+          description: "Redis 연결이 1분 이상 실패했습니다"
+
+      # Redis 메모리 사용량 > 180MB (200MB 제한의 90%)
+      - alert: HighRedisMemory
+        expr: redis_memory_used_bytes > 188743680
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Redis 메모리 사용량이 높습니다"
+          description: "현재 메모리 사용량: {{ $value | humanize1024 }}B"
+
+      # 캐시 히트율 < 70%
+      - alert: LowCacheHitRate
+        expr: |
+          (sum(rate(cache_hits_total[5m])) / (sum(rate(cache_hits_total[5m])) + sum(rate(cache_misses_total[5m])))) < 0.7
+        for: 10m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "캐시 히트율이 낮습니다 (< 70%)"
+          description: "현재 히트율: {{ $value | humanizePercentage }}"
+
+  - name: crawler_alerts
+    interval: 60s
+    rules:
+      # 크롤링 실패율 > 20%
+      - alert: HighCrawlerFailureRate
+        expr: |
+          (sum(rate(crawler_runs_total{status="failure"}[1h])) / sum(rate(crawler_runs_total[1h]))) > 0.2
+        for: 30m
+        labels:
+          severity: warning
+          component: crawler
+        annotations:
+          summary: "크롤링 실패율이 높습니다 (> 20%)"
+          description: "{{ $labels.source }} 크롤러 실패율: {{ $value | humanizePercentage }}"
+
+      # 크롤링 미실행 (2시간 이상)
+      - alert: CrawlerNotRunning
+        expr: |
+          (time() - crawler_last_run_timestamp) > 7200
+        for: 10m
+        labels:
+          severity: warning
+          component: crawler
+        annotations:
+          summary: "크롤러가 2시간 이상 실행되지 않았습니다"
+          description: "{{ $labels.source }} 크롤러 마지막 실행: {{ $value | humanizeDuration }}초 전"
+
+  - name: celery_alerts
+    interval: 30s
+    rules:
+      # Celery 작업 실패율 > 10%
+      - alert: HighCeleryTaskFailureRate
+        expr: |
+          (sum(rate(celery_tasks_total{status="failure"}[5m])) / sum(rate(celery_tasks_total[5m]))) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: celery
+        annotations:
+          summary: "Celery 작업 실패율이 높습니다 (> 10%)"
+          description: "현재 실패율: {{ $value | humanizePercentage }}"
+
+      # Celery 큐 대기 작업 > 100개
+      - alert: HighCeleryQueueLength
+        expr: celery_queue_length > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: celery
+        annotations:
+          summary: "Celery 큐에 대기 중인 작업이 많습니다"
+          description: "{{ $labels.queue_name }} 큐 대기 작업: {{ $value }}개"
+
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # 디스크 사용량 > 80%
+      - alert: HighDiskUsage
+        expr: |
+          (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) > 0.8
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "디스크 사용량이 80%를 초과했습니다"
+          description: "현재 디스크 사용률: {{ $value | humanizePercentage }}"
+
+      # 메모리 사용량 > 90% (라즈베리파이 4GB)
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "메모리 사용량이 90%를 초과했습니다"
+          description: "현재 메모리 사용률: {{ $value | humanizePercentage }}"
