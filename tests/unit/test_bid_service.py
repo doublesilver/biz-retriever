@@ -80,7 +80,9 @@ class TestBidService:
     # ============================================
 
     @pytest.mark.asyncio
-    async def test_get_bids_default(self, bid_repository: BidRepository, multiple_bids: list):
+    async def test_get_bids_default(
+        self, bid_repository: BidRepository, multiple_bids: list
+    ):
         """기본 조회"""
         result = await bid_service.get_bids(bid_repository)
 
@@ -128,7 +130,9 @@ class TestBidService:
         self, bid_repository: BidRepository, multiple_bids: list
     ):
         """키워드 필터링 - 매칭 없음"""
-        result = await bid_service.get_bids(bid_repository, keyword="존재하지않는키워드xyz")
+        result = await bid_service.get_bids(
+            bid_repository, keyword="존재하지않는키워드xyz"
+        )
 
         assert len(result) == 0
 
@@ -153,7 +157,9 @@ class TestBidService:
         """처리 상태를 True로 업데이트"""
         assert sample_bid.processed is False
 
-        await bid_service.update_bid_processing_status(bid_repository, sample_bid.id, True)
+        await bid_service.update_bid_processing_status(
+            bid_repository, sample_bid.id, True
+        )
 
         # DB에서 다시 조회
         updated_bid = await bid_service.get_bid(bid_repository, sample_bid.id)
@@ -165,10 +171,14 @@ class TestBidService:
     ):
         """처리 상태를 False로 업데이트"""
         # 먼저 True로 설정
-        await bid_service.update_bid_processing_status(bid_repository, sample_bid.id, True)
+        await bid_service.update_bid_processing_status(
+            bid_repository, sample_bid.id, True
+        )
 
         # 다시 False로 변경
-        await bid_service.update_bid_processing_status(bid_repository, sample_bid.id, False)
+        await bid_service.update_bid_processing_status(
+            bid_repository, sample_bid.id, False
+        )
 
         updated_bid = await bid_service.get_bid(bid_repository, sample_bid.id)
         assert updated_bid.processed is False
@@ -179,6 +189,8 @@ class TestBidService:
     ):
         """존재하지 않는 Bid 업데이트 시도"""
         # 예외가 발생하거나 None이 반환되어야 함
-        result = await bid_service.update_bid_processing_status(bid_repository, 99999, True)
+        result = await bid_service.update_bid_processing_status(
+            bid_repository, 99999, True
+        )
         # 구현에 따라 None을 반환하거나 예외를 발생시킬 수 있음
         # 여기서는 함수가 실행되는지만 확인
