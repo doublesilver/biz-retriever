@@ -314,6 +314,42 @@ class APIService {
     static async getPlans() {
         return this.request('/payment/plans');
     }
+
+    // License Management (Phase 9)
+    static async getLicenses() {
+        return this.request('/profile/licenses');
+    }
+
+    static async addLicense(data) {
+        return this.request('/profile/licenses', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    static async deleteLicense(licenseId) {
+        return this.request(`/profile/licenses/${licenseId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // Performance Management (Phase 9)
+    static async getPerformances() {
+        return this.request('/profile/performances');
+    }
+
+    static async addPerformance(data) {
+        return this.request('/profile/performances', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    static async deletePerformance(performanceId) {
+        return this.request(`/profile/performances/${performanceId}`, {
+            method: 'DELETE'
+        });
+    }
 }
 
 // Export API service
