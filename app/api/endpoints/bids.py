@@ -233,6 +233,7 @@ async def upload_bid(
 
     # 4. Trigger Analysis Worker (lazy import to avoid circular dependency)
     from app.worker.tasks import process_bid_analysis
+
     process_bid_analysis.delay(new_bid.id)
 
     logger.info(f"공고 생성 완료: id={new_bid.id}, title={title}")
