@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결제 - Biz-Retriever</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    
+    <!-- Tosspayments SDK -->
+    <script src="https://js.tosspayments.com/v1"></script>
+    
+    <style>
+        .payment-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+
+        .plan-card {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .plan-card.selected {
+            border-color: var(--primary-color);
+            background: var(--primary-light);
+        }
+
+        .plan-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .plan-price {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 1rem 0;
+        }
+
+        .plan-price small {
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+
+        .plan-features {
+            list-style: none;
+            padding: 0;
+            margin: 1rem 0;
+        }
+
+        .plan-features li {
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+        }
+
+        .plan-features li::before {
+            content: "✓";
+            color: var(--success-color);
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .payment-section {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .payment-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .payment-summary:last-child {
+            border-bottom: none;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .btn-pay {
+            width: 100%;
+            padding: 1.2rem;
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            color: white;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <h1>Biz-Retriever</h1>
+            </div>
+            <div class="header-right">
+                <button onclick="window.location.href='dashboard.html'" class="btn btn-outline">
+                    대시보드로 돌아가기
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <div class="payment-container">
+                <h2>플랜 선택 및 결제</h2>
+                <p style="color: var(--text-muted); margin-bottom: 2rem;">원하시는 플랜을 선택하고 결제를 진행하세요</p>
+
+                <!-- Plan Cards -->
+                <div id="plan-cards">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+
+                <!-- Payment Section -->
+                <div class="payment-section" id="payment-section" style="display: none;">
+                    <h3>결제 정보</h3>
+                    
+                    <div class="payment-summary">
+                        <span>선택한 플랜</span>
+                        <span id="selected-plan-name">-</span>
+                    </div>
+                    
+                    <div class="payment-summary">
+                        <span>결제 금액</span>
+                        <span id="selected-plan-price">-</span>
+                    </div>
+                    
+                    <button class="btn btn-primary btn-pay" onclick="handlePayment()">
+                        결제하기
+                    </button>
+                    
+                    <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted); text-align: center;">
+                        월 단위 자동 갱신됩니다. 언제든지 취소할 수 있습니다.
+                    </p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner">결제 처리 중...</div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        let selectedPlan = null;
+        let tossPayments = null;
+        let clientKey = null;
+
+        // Plan data
+        const plans = {
+            basic: {
+                name: 'BASIC',
+                price: 10000,
+                features: [
+                    'Hard Match 50건/일',
+                    'AI 분석 100건/일',
+                    '키워드 20개 등록',
+                    '이메일 알림'
+                ]
+            },
+            pro: {
+                name: 'PRO',
+                price: 30000,
+                features: [
+                    'Hard Match 무제한',
+                    'AI 분석 무제한',
+                    '키워드 100개 등록',
+                    '이메일 + Slack 알림',
+                    '우선 지원'
+                ]
+            }
+        };
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderPlanCards();
+            
+            // Check URL params for pre-selected plan
+            const urlParams = new URLSearchParams(window.location.search);
+            const preselectedPlan = urlParams.get('plan');
+            if (preselectedPlan && plans[preselectedPlan]) {
+                selectPlan(preselectedPlan);
+            }
+        });
+
+        function renderPlanCards() {
+            const container = document.getElementById('plan-cards');
+            container.innerHTML = '';
+
+            Object.keys(plans).forEach(planKey => {
+                const plan = plans[planKey];
+                const card = document.createElement('div');
+                card.className = 'plan-card';
+                card.onclick = () => selectPlan(planKey);
+                
+                card.innerHTML = `
+                    <h3>${plan.name}</h3>
+                    <div class="plan-price">
+                        ${plan.price.toLocaleString()}원 <small>/월</small>
+                    </div>
+                    <ul class="plan-features">
+                        ${plan.features.map(f => `<li>${f}</li>`).join('')}
+                    </ul>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        function selectPlan(planKey) {
+            selectedPlan = planKey;
+            
+            // Update UI
+            document.querySelectorAll('.plan-card').forEach((card, idx) => {
+                const keys = Object.keys(plans);
+                if (keys[idx] === planKey) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+
+            // Show payment section
+            document.getElementById('payment-section').style.display = 'block';
+            document.getElementById('selected-plan-name').textContent = plans[planKey].name;
+            document.getElementById('selected-plan-price').textContent = `${plans[planKey].price.toLocaleString()}원`;
+        }
+
+        async function handlePayment() {
+            if (!selectedPlan) {
+                showToast('플랜을 선택해주세요', 'error');
+                return;
+            }
+
+            try {
+                showLoading(true);
+
+                // Create payment request to backend
+                const response = await API.createPayment(selectedPlan);
+
+                if (!response.client_key) {
+                    throw new Error('결제 시스템 설정이 완료되지 않았습니다');
+                }
+
+                // Initialize Tosspayments
+                clientKey = response.client_key;
+                tossPayments = TossPayments(clientKey);
+
+                // Request payment
+                await tossPayments.requestPayment('카드', {
+                    amount: response.amount,
+                    orderId: response.orderId,
+                    orderName: response.orderName,
+                    customerName: response.customerName,
+                    customerEmail: response.customerEmail,
+                    successUrl: response.successUrl,
+                    failUrl: response.failUrl
+                });
+
+            } catch (error) {
+                showLoading(false);
+                console.error('Payment error:', error);
+                showToast(error.message || '결제 요청 중 오류가 발생했습니다', 'error');
+            }
+        }
+
+        function showLoading(show) {
+            const overlay = document.getElementById('loading-overlay');
+            if (show) {
+                overlay.classList.add('active');
+            } else {
+                overlay.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+
+</html>
