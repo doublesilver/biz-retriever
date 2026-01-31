@@ -225,22 +225,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-# TrustedHost 미들웨어 - Host 헤더 검증 (Host Header Injection 공격 방지)
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=[
-        "leeeunseok.tail32c3e2.ts.net",
-        "localhost",
-        "127.0.0.1",
-        "test",  # For pytest integration tests
-        "testserver",  # For TestClient
-    ],
-)
-
-# Prometheus 메트릭 미들웨어 등록
-app.add_middleware(PrometheusMiddleware)
-
-# CORS 설정 - 허용 도메인 구성
+# CORS 설정 - 허용 도메인 구성 (가장 먼저 등록 - 미들웨어는 역순 실행)
 cors_origins = settings.CORS_ORIGINS
 
 if settings.PRODUCTION_DOMAIN:
@@ -261,7 +246,26 @@ app.add_middleware(
         "Origin",
         "X-Requested-With",
     ],
+    expose_headers=["*"],  # 모든 응답 헤더 노출
     max_age=600,  # preflight 캐시 10분
+)
+
+# Prometheus 메트릭 미들웨어 등록
+app.add_middleware(PrometheusMiddleware)
+
+# TrustedHost 미들웨어 - Host 헤더 검증 (Host Header Injection 공격 방지)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=[
+        "leeeunseok.tail32c3e2.ts.net",
+        "biz-retriever.vercel.app",  # Vercel 프론트엔드
+        "biz-retriever-doublesilvers-projects.vercel.app",  # Vercel 자동 도메인
+        "biz-retriever-git-master-doublesilvers-projects.vercel.app",  # Vercel 브랜치
+        "localhost",
+        "127.0.0.1",
+        "test",  # For pytest integration tests
+        "testserver",  # For TestClient
+    ],
 )
 
 # API Router
