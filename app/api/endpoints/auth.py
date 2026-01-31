@@ -363,13 +363,13 @@ async def check_email_exists(
 ) -> Any:
     """
     이메일 중복 확인 API
-    
+
     - email: 확인할 이메일 주소
     - returns: {"exists": bool, "message": str}
     """
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
-    
+
     if user:
         return {"exists": True, "message": "이미 사용 중인 이메일입니다"}
     else:
