@@ -31,6 +31,40 @@ limiter = Limiter(key_func=get_remote_address)
 
 
 # ============================================
+# 커스텀 CORS 미들웨어
+# ============================================
+class CustomCORSMiddleware(BaseHTTPMiddleware):
+    """
+    직접 CORS 헤더를 추가하는 커스텀 미들웨어
+    FastAPI CORSMiddleware가 작동하지 않는 경우 사용
+    """
+    
+    async def dispatch(self, request: Request, call_next):
+        origin = request.headers.get("origin", "")
+        
+        # Preflight OPTIONS 요청 처리
+        if request.method == "OPTIONS":
+            response = Response(status_code=200)
+            response.headers["Access-Control-Allow-Origin"] = origin or "*"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With"
+            response.headers["Access-Control-Max-Age"] = "600"
+            return response
+        
+        # 일반 요청 처리
+        response = await call_next(request)
+        
+        # CORS 헤더 추가
+        if origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Expose-Headers"] = "*"
+        
+        return response
+
+
+# ============================================
 # Prometheus 메트릭 미들웨어
 # ============================================
 class PrometheusMiddleware(BaseHTTPMiddleware):
@@ -225,23 +259,9 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-# CORS 설정 - 허용 도메인 구성 (가장 먼저 등록 - 미들웨어는 역순 실행)
-# NOTE: allow_origin_regex 사용하여 Vercel 도메인 패턴 매칭
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=r"https?://(.*\.vercel\.app|leeeunseok\.tail32c3e2\.ts\.net|localhost(:[0-9]+)?)",
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=[
-        "Authorization",
-        "Content-Type",
-        "Accept",
-        "Origin",
-        "X-Requested-With",
-    ],
-    expose_headers=["*"],  # 모든 응답 헤더 노출
-    max_age=600,  # preflight 캐시 10분
-)
+# CORS 설정 - 커스텀 미들웨어 사용 (FastAPI CORSMiddleware 대체)
+# NOTE: FastAPI CORSMiddleware가 헤더를 추가하지 않는 문제 해결을 위해 커스텀 구현
+app.add_middleware(CustomCORSMiddleware)
 
 # Prometheus 메트릭 미들웨어 등록
 app.add_middleware(PrometheusMiddleware)
