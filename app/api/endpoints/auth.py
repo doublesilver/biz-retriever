@@ -128,7 +128,9 @@ class UserResponse(BaseModel):
                         },
                         "account_locked": {
                             "summary": "계정 잠금",
-                            "value": {"detail": "Account locked due to too many failed login attempts. Try again later."},
+                            "value": {
+                                "detail": "Account locked due to too many failed login attempts. Try again later."
+                            },
                         },
                     }
                 }
@@ -163,13 +165,13 @@ async def login_access_token(
     ### 토큰 유효기간
     - Access Token: 15분
     - Refresh Token: 30일
-    
+
     ### 보안 강화
     - 로그인 5회 실패 시 계정 30분 잠금
     - 잠금 해제 후 자동으로 재시도 가능
     """
     from datetime import datetime, timedelta
-    
+
     # 1. Get User
     result = await db.execute(select(User).where(User.email == form_data.username))
     user = result.scalars().first()
@@ -184,7 +186,7 @@ async def login_access_token(
             remaining_time = (user.locked_until - datetime.utcnow()).seconds // 60
             raise HTTPException(
                 status_code=400,
-                detail=f"Account locked due to too many failed login attempts. Try again in {remaining_time} minutes."
+                detail=f"Account locked due to too many failed login attempts. Try again in {remaining_time} minutes.",
             )
         else:
             # Lock expired - reset
@@ -196,21 +198,21 @@ async def login_access_token(
     if not security.verify_password(form_data.password, user.hashed_password):
         # Increment failed attempts
         user.failed_login_attempts += 1
-        
+
         # Lock account after 5 failed attempts
         if user.failed_login_attempts >= 5:
             user.locked_until = datetime.utcnow() + timedelta(minutes=30)
             await db.commit()
             raise HTTPException(
                 status_code=400,
-                detail="Account locked due to too many failed login attempts. Try again in 30 minutes."
+                detail="Account locked due to too many failed login attempts. Try again in 30 minutes.",
             )
-        
+
         await db.commit()
         remaining_attempts = 5 - user.failed_login_attempts
         raise HTTPException(
             status_code=400,
-            detail=f"Incorrect email or password. {remaining_attempts} attempts remaining before account lock."
+            detail=f"Incorrect email or password. {remaining_attempts} attempts remaining before account lock.",
         )
 
     # 4. Check if user is active
@@ -224,9 +226,9 @@ async def login_access_token(
 
     # 6. Create Token Pair (Access + Refresh)
     tokens = security.create_token_pair(subject=user.email)
-    
+
     logger.info(f"User logged in successfully: {user.email}")
-    
+
     return {
         "access_token": tokens["access_token"],
         "refresh_token": tokens["refresh_token"],
@@ -438,15 +440,15 @@ async def refresh_token(
         200: {
             "description": "로그아웃 성공",
             "content": {
-                "application/json": {
-                    "example": {"message": "Successfully logged out"}
-                }
+                "application/json": {"example": {"message": "Successfully logged out"}}
             },
         },
         401: {
             "description": "인증 실패",
             "content": {
-                "application/json": {"example": {"detail": "Could not validate credentials"}}
+                "application/json": {
+                    "example": {"detail": "Could not validate credentials"}
+                }
             },
         },
     },
@@ -459,21 +461,21 @@ async def logout(
 ) -> Any:
     """
     ## 로그아웃
-    
+
     현재 사용중인 Access Token을 블랙리스트에 추가하여 무효화합니다.
-    
+
     ### 동작 방식
     1. 현재 토큰을 Redis 블랙리스트에 추가
     2. 토큰 만료 시간까지 블랙리스트 유지
     3. 클라이언트에서 토큰 삭제 필요
-    
+
     ### 보안 참고
     - Refresh Token도 함께 무효화하려면 클라이언트에서 삭제 필요
     - Access Token은 자동으로 블랙리스트 처리
     """
     # Blacklist the current access token
     await security.blacklist_token(token, "access")
-    
+
     logger.info(f"User logged out: {current_user.email}")
-    
+
     return {"message": "Successfully logged out"}

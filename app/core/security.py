@@ -227,23 +227,23 @@ async def verify_refresh_token(refresh_token: str, session: AsyncSession) -> Use
 async def blacklist_token(token: str, token_type: str = "access") -> None:
     """
     토큰을 블랙리스트에 추가 (로그아웃 시 사용)
-    
+
     Args:
         token: JWT 토큰
         token_type: "access" or "refresh"
     """
     try:
         from app.core.cache import get_redis_client
-        
+
         # Decode token to get expiry time
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         exp_timestamp = payload.get("exp")
-        
+
         if exp_timestamp:
             # Calculate TTL (time to live) - how long until token expires
             now = datetime.utcnow().timestamp()
             ttl = int(exp_timestamp - now)
-            
+
             if ttl > 0:
                 # Store in Redis with TTL matching token expiry
                 redis_client = get_redis_client()
@@ -258,17 +258,17 @@ async def blacklist_token(token: str, token_type: str = "access") -> None:
 async def is_token_blacklisted(token: str, token_type: str = "access") -> bool:
     """
     토큰이 블랙리스트에 있는지 확인
-    
+
     Args:
         token: JWT 토큰
         token_type: "access" or "refresh"
-        
+
     Returns:
         True if blacklisted, False otherwise
     """
     try:
         from app.core.cache import get_redis_client
-        
+
         redis_client = get_redis_client()
         key = f"blacklist:{token_type}:{token}"
         result = await redis_client.get(key)
