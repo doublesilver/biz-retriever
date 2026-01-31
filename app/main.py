@@ -228,7 +228,13 @@ async def general_exception_handler(request: Request, exc: Exception):
 # TrustedHost 미들웨어 - Host 헤더 검증 (Host Header Injection 공격 방지)
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["leeeunseok.tail32c3e2.ts.net", "localhost", "127.0.0.1"],
+    allowed_hosts=[
+        "leeeunseok.tail32c3e2.ts.net",
+        "localhost",
+        "127.0.0.1",
+        "test",  # For pytest integration tests
+        "testserver",  # For TestClient
+    ],
 )
 
 # Prometheus 메트릭 미들웨어 등록
