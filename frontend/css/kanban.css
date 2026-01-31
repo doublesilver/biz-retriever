@@ -3,8 +3,8 @@
 .kanban-board {
     display: flex;
     overflow-x: auto;
-    gap: 1.5rem;
-    padding: 1.5rem 0;
+    gap: var(--spacing-md);  /* KRDS 표준 간격 (24px) */
+    padding: var(--spacing-md) 0;
     height: calc(100vh - 80px);
     /* Adjust based on navbar height */
     align-items: flex-start;
@@ -13,8 +13,8 @@
 .kanban-column {
     min-width: 300px;
     width: 320px;
-    background: var(--surface-color);
-    border-radius: 12px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
     display: flex;
     flex-direction: column;
     max-height: 100%;
@@ -23,27 +23,27 @@
 }
 
 .kanban-header {
-    padding: 1rem;
+    padding: var(--spacing-sm);  /* KRDS 표준 여백 (16px) */
     border-bottom: 1px solid var(--border-color);
     font-weight: 600;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(var(--primary-rgb), 0.03);
-    border-radius: 12px 12px 0 0;
+    background: rgba(37, 110, 244, 0.03);  /* KRDS 정부24 블루 */
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;  /* KRDS 표준 (8px) */
 }
 
 .kanban-header h3 {
     margin: 0;
     font-size: 1rem;
-    color: var(--text-color);
+    color: var(--text-primary);
 }
 
 .column-count {
-    background: var(--border-color);
-    padding: 0.2rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.8rem;
+    background: var(--gray-200);
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
     color: var(--text-secondary);
 }
 
@@ -58,12 +58,12 @@
     /* Drop target matching */
 }
 
-/* Card Styles */
+/* Card Styles - KRDS 정부24 */
 .kanban-card {
-    background: var(--background-color);
+    background: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1rem;
+    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
+    padding: var(--spacing-sm);  /* KRDS 표준 여백 (16px) */
     cursor: grab;
     transition: all 0.2s ease;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -71,22 +71,20 @@
 }
 
 .kanban-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);  /* KRDS 스타일 - transform 없음 */
+    border-color: var(--primary);
 }
 
 .kanban-card.sortable-ghost {
     opacity: 0.4;
-    background: var(--primary-color-light);
-    border: 2px dashed var(--primary-color);
+    background: var(--primary-light);
+    border: 2px dashed var(--primary);
 }
 
 .kanban-card.sortable-drag {
     cursor: grabbing;
     opacity: 1;
-    background: var(--surface-color);
-    transform: scale(1.02);
+    background: var(--bg-primary);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
@@ -111,9 +109,9 @@
 }
 
 .card-badge {
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-sm);  /* KRDS 표준 (4px) */
+    font-size: var(--font-size-xs);
     font-weight: 500;
 }
 
@@ -175,10 +173,10 @@
 }
 
 .modal-card {
-    background: var(--surface-color);
+    background: var(--bg-primary);
     width: 90%;
     max-width: 600px;
-    border-radius: 16px;
+    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     overflow: hidden;
     animation: modal-in 0.3s ease-out;
@@ -207,7 +205,7 @@
 .modal-header h2 {
     margin: 0;
     font-size: 1.25rem;
-    color: var(--text-color);
+    color: var(--text-primary);
 }
 
 .close-btn {
@@ -244,19 +242,19 @@
     margin: 0;
 }
 
-/* AI Box Styles */
+/* AI Box Styles - KRDS 정부24 */
 .ai-box {
-    background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
-    border: 1px solid rgba(var(--primary-rgb), 0.1);
-    border-radius: 12px;
-    padding: 1.25rem;
-    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, rgba(37, 110, 244, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+    border: 1px solid rgba(37, 110, 244, 0.1);
+    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
+    padding: var(--spacing-sm);  /* KRDS 표준 여백 (16px) */
+    margin-bottom: var(--spacing-sm);
 }
 
 .ai-box h4 {
-    margin: 0 0 1rem 0;
+    margin: 0 0 var(--spacing-sm) 0;
     font-size: 0.95rem;
-    color: var(--primary-color);
+    color: var(--primary);
 }
 
 .ai-grid {
@@ -269,7 +267,7 @@
 .ai-value {
     font-size: 1.1rem;
     font-weight: 700;
-    color: var(--text-color);
+    color: var(--text-primary);
 }
 
 .ai-reason {
@@ -301,14 +299,16 @@
 
 .form-control {
     width: 100%;
-    padding: 0.6rem 0.8rem;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    font-size: 0.9rem;
+    height: 5.6rem;  /* KRDS 중형 입력 (56px) */
+    padding: 0 var(--spacing-sm);
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
+    font-size: var(--font-size-base);
     transition: border-color 0.2s;
 }
 
 .form-control:focus {
     outline: none;
-    border-color: var(--primary-color);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(37, 110, 244, 0.1);  /* KRDS 정부24 블루 */
 }

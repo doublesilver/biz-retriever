@@ -118,7 +118,7 @@
 }
 
 .auth-header {
-    margin-bottom: var(--spacing-2xl);
+    margin-bottom: var(--spacing-md);  /* KRDS 표준 여백 (24px) */
 }
 
 .auth-header h2 {
@@ -221,9 +221,9 @@
 }
 
 .navbar {
-    background: var(--primary);  /* 정부24 파란색 헤더 */
+    background: var(--primary);  /* KRDS 정부24 파란색 헤더 */
     border-bottom: 2px solid var(--primary-dark);
-    padding: 1rem var(--spacing-xl);
+    padding: var(--spacing-sm) var(--spacing-md);  /* KRDS 표준 여백 */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -248,18 +248,18 @@
     gap: var(--spacing-md);
 }
 
-/* Stats Widgets - 정부 사이트 스타일 */
+/* Stats Widgets - KRDS 정부24 스타일 */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: var(--spacing-lg);
-    margin-bottom: var(--spacing-2xl);
+    gap: var(--spacing-md);  /* KRDS 표준 간격 (24px) */
+    margin-bottom: var(--spacing-md);
 }
 
 .stat-card {
     background: var(--bg-primary);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-xl) 1.5rem;  /* 더 넓은 padding */
+    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
+    padding: var(--spacing-md);  /* KRDS 표준 여백 (24px) */
     border: 1px solid var(--gray-200);
     border-left: 4px solid var(--primary);
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -297,13 +297,21 @@
     color: var(--text-primary);
 }
 
-/* Responsive */
+/* Responsive - KRDS 정부24 */
 @media (max-width: 768px) {
     .login-card {
-        padding: var(--spacing-xl);
+        padding: var(--spacing-md);  /* KRDS 표준 여백 (24px) */
     }
 
     .stats-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .btn {
+        height: 5.6rem;  /* 모바일용 버튼 높이 (56px) */
+    }
+    
+    .form-group input {
+        height: 5.6rem;  /* 모바일용 입력 높이 (56px) */
     }
 }
