@@ -38,29 +38,33 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
     직접 CORS 헤더를 추가하는 커스텀 미들웨어
     FastAPI CORSMiddleware가 작동하지 않는 경우 사용
     """
-    
+
     async def dispatch(self, request: Request, call_next):
         origin = request.headers.get("origin", "")
-        
+
         # Preflight OPTIONS 요청 처리
         if request.method == "OPTIONS":
             response = Response(status_code=200)
             response.headers["Access-Control-Allow-Origin"] = origin or "*"
             response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With"
+            response.headers["Access-Control-Allow-Methods"] = (
+                "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+            )
+            response.headers["Access-Control-Allow-Headers"] = (
+                "Authorization, Content-Type, Accept, Origin, X-Requested-With"
+            )
             response.headers["Access-Control-Max-Age"] = "600"
             return response
-        
+
         # 일반 요청 처리
         response = await call_next(request)
-        
+
         # CORS 헤더 추가
         if origin:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Expose-Headers"] = "*"
-        
+
         return response
 
 
