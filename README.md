@@ -556,7 +556,19 @@ pytest tests/unit/test_rag_service.py -v
 ## 프로덕션 배포
 
 ### 배포 플랫폼 가이드
+
+#### ⭐ 권장: Oracle Cloud Always Free Tier (NEW!)
+- **[`docs/ORACLE_CLOUD_DEPLOYMENT.md`](docs/ORACLE_CLOUD_DEPLOYMENT.md) - Oracle Cloud 완벽 배포 가이드**
+  - **24GB RAM + 4 vCPU + 200GB SSD 영구 무료** 🚀
+  - 라즈베리파이 대비 성능 6배 향상
+  - 자동 배포 스크립트 포함 (`scripts/deploy-to-oracle.sh`)
+  - 예상 배포 시간: 1-2시간 (빌드 포함)
+
+#### 라즈베리파이 (기존)
 - [`RASPBERRY_PI_DEPLOY_GUIDE.md`](RASPBERRY_PI_DEPLOY_GUIDE.md) - 라즈베리파이 배포 가이드
+- ⚠️ ARM 빌드 제한으로 Oracle Cloud 권장
+
+#### 인프라 & 운영
 - [`docs/BUSINESS_ASSESSMENT.md`](docs/BUSINESS_ASSESSMENT.md) - 비즈니스/프로덕트 냉정 평가
 - [`docs/SD_CARD_OPTIMIZATION.md`](docs/SD_CARD_OPTIMIZATION.md) - PostgreSQL SD 카드 최적화
 - [`docs/MONITORING_SETUP.md`](docs/MONITORING_SETUP.md) - Prometheus + Grafana 모니터링
