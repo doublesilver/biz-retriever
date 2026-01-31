@@ -71,7 +71,9 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3001",
         "http://localhost:8000",
         "https://leeeunseok.tail32c3e2.ts.net",
-        "https://*.vercel.app",  # Vercel 프론트엔드
+        "https://biz-retriever.vercel.app",  # Vercel Production
+        "https://biz-retriever-doublesilvers-projects.vercel.app",  # Vercel Auto Domain
+        "https://biz-retriever-git-master-doublesilvers-projects.vercel.app",  # Vercel Branch
     ]
     PRODUCTION_DOMAIN: Union[str, None] = None
 
