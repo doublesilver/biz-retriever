@@ -30,12 +30,13 @@
 | 항목 | 내용 |
 |------|------|
 | **프로젝트명** | Biz-Retriever (입찰 공고 자동 수집 및 AI 분석 시스템) |
-| **개발 기간** | **4일** (2026.01.22 ~ 2026.01.26) |
+| **개발 기간** | **10일** (2026.01.22 ~ 2026.01.31) |
 | **개발 인원** | 1인 (기획, 설계, 개발, 테스트, 배포) |
 | **백엔드** | FastAPI (Async/Await) |
+| **프론트엔드** | Vanilla JavaScript (Payhera/Naver 디자인 시스템) |
 | **AI** | Google Gemini 2.5 Flash |
 | **데이터** | G2B 나라장터 + 온비드 API |
-| **성과** | 20,000+ lines, 164 tests (100%), 85%+ coverage |
+| **성과** | 20,000+ lines, 164 tests (100%), 85%+ coverage, 프로덕션 배포 완료 |
 
 ---
 
@@ -125,9 +126,52 @@ mindmap
 - ✅ **토큰 보안**: Access Token 유효기간 8일 → 15분 (99.87% 단축)
 - ✅ **감사 추적**: 로그인 실패 횟수, 마지막 로그인 시간, 잠금 이력 추적
 
+### 🎨 Phase 12: UI/UX 전면 재디자인 (완료 - 2026.01.31)
+- ✅ **디자인 시스템 개편**: Payhera/Naver/Kakao 스타일 적용 (AI 느낌 완전 제거)
+- ✅ **14개 편의 기능 추가**:
+  - 비밀번호 확인 필드 (오타 방지)
+  - 비밀번호 강도 표시기 (약함/보통/강함)
+  - 이메일 중복 확인 (실시간 API 호출)
+  - Caps Lock 경고 (자동 감지)
+  - 자동 포맷팅 (사업자등록번호, 전화번호, 금액)
+  - 변경사항 경고 (페이지 이탈 시)
+  - 세션 만료 경고 (5분 전 알림)
+  - 키보드 단축키 (Ctrl+S 저장 등)
+  - 최근 본 항목 (localStorage 저장)
+  - 다크모드 자동 전환 (18:00~06:00)
+  - Debounce (검색 최적화)
+  - escapeHtml (XSS 방어)
+  - 로딩 스피너 (UX 개선)
+  - Toast 알림 (성공/에러 피드백)
+- ✅ **CSS 변수 재설계**: 
+  - 색상: Payhera 블루 (#3182f6), Naver 그린 (#00c73c)
+  - Spacing: 8px 단위 → 4px 단위 (정밀 제어)
+  - Border Radius: 4px ~ 16px (미묘한 둥근 모서리)
+  - Shadow: 불투명도 0.1 → 0.08 (자연스러움)
+- ✅ **레이아웃 현대화**:
+  - 로그인: 좌우 분할 → 중앙 카드 (Payhera 스타일)
+  - 네비게이션: 어두운 배경 → 흰색 + 얇은 테두리 (Naver 스타일)
+  - 버튼/입력: 64px → 48px (표준 높이)
+- ✅ **Frontend 배포**: Vercel로 분리 배포 (Backend와 독립적 운영)
+  - URL: [https://biz-retriever.vercel.app](https://biz-retriever.vercel.app)
+  - 자동 배포: GitHub push 시 2-3분 내 자동 배포
+  - CDN 최적화: 글로벌 엣지 네트워크
+
 ---
 
 ## 기술 스택
+
+### Frontend
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=flat&logo=javascript&logoColor=black)
+![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000?style=flat&logo=vercel&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-Variables-1572B6?style=flat&logo=css3&logoColor=white)
+
+- **Framework**: Vanilla JavaScript (SPA)
+- **Design System**: Payhera/Naver/Kakao 스타일 기반
+- **CSS Architecture**: CSS Variables (Design Tokens)
+- **Deployment**: Vercel (Automatic deployment on push)
+- **Features**: 14개 UX 편의 기능 (비밀번호 강도, 자동 포맷팅 등)
+- **Live URL**: [https://biz-retriever.vercel.app](https://biz-retriever.vercel.app)
 
 ### Backend
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat&logo=fastapi&logoColor=white)
@@ -492,12 +536,21 @@ taskiq scheduler app.worker.taskiq_app:scheduler
 ```
 
 #### 🚀 Live Demo & Access
-- **API Service**: [https://leeeunseok.tail32c3e2.ts.net/](https://leeeunseok.tail32c3e2.ts.net/) (Live)
+
+**Frontend (Vercel)**:
+- **Live Site**: [https://biz-retriever.vercel.app](https://biz-retriever.vercel.app) ⭐
+- **Alt URL**: [https://sideproject-doublesilvers-projects.vercel.app](https://sideproject-doublesilvers-projects.vercel.app)
+- **특징**: 자동 배포, CDN 최적화, HTTPS
+
+**Backend (Raspberry Pi + Tailscale)**:
+- **API Service**: [https://leeeunseok.tail32c3e2.ts.net/](https://leeeunseok.tail32c3e2.ts.net/)
 - **Swagger UI**: [https://leeeunseok.tail32c3e2.ts.net/docs](https://leeeunseok.tail32c3e2.ts.net/docs)
 - **ReDoc**: [https://leeeunseok.tail32c3e2.ts.net/redoc](https://leeeunseok.tail32c3e2.ts.net/redoc)
-- **Note**: Tailscale Funnel을 통해 외부 접속 가능
-- Local API: http://localhost:8000
-- Local Frontend: http://localhost:3001
+- **특징**: Tailscale Funnel 외부 접속, SSL 인증서, 모니터링
+
+**Local Development**:
+- API: http://localhost:8000
+- Frontend: http://localhost:3001
 
 ---
 
@@ -719,11 +772,13 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 **Made with ❤️ by [doublesilver](https://github.com/doublesilver)**
 
-**Last Updated**: 2026-01-31 05:30 PM KST  
-**Project Status**: 프로덕션 준비 90% 완료 (안정적 배포 가능) 🚀  
+**Last Updated**: 2026-01-31 08:30 PM KST  
+**Project Status**: 프로덕션 준비 95% 완료 (안정적 배포 완료) 🚀  
 **Tests**: 164/164 (100%) ✅  
 **Coverage**: 85% ✅  
-**Production Readiness**: 85% → **90%** (+5% 향상)  
-**Security**: 95% ✅ | **Infrastructure**: 98% ✅ | **User Features**: 70% ⏸️ | **Business**: 0% ❌  
-**Live Service**: [https://leeeunseok.tail32c3e2.ts.net/](https://leeeunseok.tail32c3e2.ts.net/) 🌐  
-**Latest Changes**: OAuth2 제거, 계정 잠금, 로그아웃 구현 (2026-01-31)
+**Production Readiness**: 90% → **95%** (+5% 향상)  
+**Security**: 95% ✅ | **Infrastructure**: 98% ✅ | **User Features**: 85% ✅ (+15%) | **Business**: 0% ❌  
+**Live Services**:
+  - **Frontend**: [https://biz-retriever.vercel.app](https://biz-retriever.vercel.app) 🌐
+  - **Backend API**: [https://leeeunseok.tail32c3e2.ts.net/](https://leeeunseok.tail32c3e2.ts.net/) 🌐  
+**Latest Changes**: UI/UX 전면 재디자인 (Payhera/Naver 스타일), 14개 편의 기능 추가, Vercel 배포 (2026-01-31)
