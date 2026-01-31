@@ -226,26 +226,13 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 
 # CORS 설정 - 허용 도메인 구성 (가장 먼저 등록 - 미들웨어는 역순 실행)
-cors_origins = settings.CORS_ORIGINS
-
-if settings.PRODUCTION_DOMAIN:
-    cors_origins.append(settings.PRODUCTION_DOMAIN)
-
-# Local Test Frontend
-cors_origins.append("http://localhost:8081")
-
+# NOTE: allow_origin_regex 사용하여 Vercel 도메인 패턴 매칭
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origin_regex=r"https://(biz-retriever.*\.vercel\.app|leeeunseok\.tail32c3e2\.ts\.net|localhost:[0-9]+)",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=[
-        "Authorization",
-        "Content-Type",
-        "Accept",
-        "Origin",
-        "X-Requested-With",
-    ],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
     expose_headers=["*"],  # 모든 응답 헤더 노출
     max_age=600,  # preflight 캐시 10분
 )
