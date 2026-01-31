@@ -47,25 +47,32 @@ Error: 링크웍스 @ vercel 50.9.6 is not a legal HTTP header value
    - `biz-retriever` 저장소 찾기
    - "Import" 클릭
 
-4. **프로젝트 설정**
+4. **프로젝트 설정** ⚠️ 중요!
    ```
-   Project Name: biz-retriever-frontend
+   Project Name: biz-retriever-frontend (또는 원하는 이름)
    Framework Preset: Other
    Root Directory: frontend/
-   Build Command: (비워두기)
-   Output Directory: .
+   Build Command: (완전히 비워두기 - 입력하지 마세요!)
+   Output Directory: (비워두기)
    Install Command: (비워두기)
    ```
-
-5. **환경 변수 추가**
-   - "Environment Variables" 섹션에서:
-   ```
-   Name: VITE_API_URL
-   Value: https://leeeunseok.tail32c3e2.ts.net
    
-   Name: VITE_API_BASE_URL
-   Value: https://leeeunseok.tail32c3e2.ts.net/api/v1
-   ```
+   **⚠️ 주의사항:**
+   - **Build Command 필드를 완전히 비워야 합니다!**
+   - 이 프로젝트는 정적 HTML 사이트입니다 (빌드 불필요)
+   - TypeScript 빌드 스크립트가 있지만 실제로는 사용되지 않습니다
+   - Build Command를 입력하면 `npm run build exited with 126` 오류 발생
+
+5. **환경 변수** (선택사항, 권장하지 않음)
+   - 환경 변수는 **필요 없습니다**
+   - 프론트엔드 JavaScript가 자동으로 API URL을 감지합니다:
+     - Vercel 배포: `https://leeeunseok.tail32c3e2.ts.net/api/v1`
+     - Local 개발: `http://localhost:8000/api/v1`
+   - 설정하려면 (선택사항):
+     ```
+     Name: VITE_API_URL
+     Value: https://leeeunseok.tail32c3e2.ts.net
+     ```
 
 6. **"Deploy" 클릭**
    - 자동 빌드 시작 (약 30초)
@@ -139,7 +146,50 @@ git push origin master
 
 ## 🔧 트러블슈팅
 
-### 1. 404 Not Found
+### 1. Build Error: npm run build exited with 126
+
+**증상:**
+```
+Error: Command "npm run build" exited with 126
+```
+
+**원인:** 
+- Build Command 필드에 값이 입력되어 있음
+- 이 프로젝트는 정적 HTML 사이트로 빌드가 필요 없음
+- TypeScript 파일(`src/`)은 실제로 사용되지 않음
+
+**해결:**
+1. Vercel Dashboard → Settings → General
+2. **Build & Development Settings**에서:
+   - Build Command: **완전히 비워두기** (Override 체크 해제)
+   - Install Command: 비워두기
+   - Output Directory: 비워두기
+3. **Save** 클릭
+4. **Deployments** → 최신 배포 → **Redeploy**
+
+**확인:**
+```
+✅ Cloning repository...
+✅ Analyzing source code...
+✅ Deploying... (빌드 단계 건너뜀)
+✅ Deployment completed!
+```
+
+### 2. vercel.json Configuration Error
+
+**증상:**
+```
+If `rewrites`, `redirects`, `headers`, `cleanUrls` or `trailingSlash` 
+are used, then `routes` cannot be present.
+```
+
+**원인:** `routes` (구형 설정)와 `headers`를 동시에 사용
+
+**해결:** ✅ 이미 수정 완료 (커밋 `198c183`)
+- `routes` 제거됨
+- `cleanUrls: true` 사용 중
+
+### 3. 404 Not Found
 
 **원인:** Root Directory 설정 오류
 
@@ -148,7 +198,7 @@ git push origin master
 2. Root Directory: `frontend/` 확인
 3. Redeploy
 
-### 2. CORS 에러
+### 4. CORS 에러
 
 **증상:**
 ```
@@ -156,23 +206,26 @@ Access to fetch blocked by CORS policy
 ```
 
 **해결:**
+- **대부분의 경우 CORS 설정 필요 없음** (이미 `*.vercel.app` 허용됨)
+- 커스텀 도메인 사용 시에만 업데이트 필요:
+
 ```bash
 # 1. 정확한 Vercel URL 확인
 예: https://biz-retriever-frontend.vercel.app
 
-# 2. 백엔드 CORS 업데이트 (필요시)
+# 2. 백엔드 CORS 업데이트 (커스텀 도메인만)
 ssh admin@100.75.72.6
 cd /home/admin/projects/biz-retriever
 nano app/core/config.py
 
-# CORS_ORIGINS에 추가:
-"https://biz-retriever-frontend.vercel.app",
+# CORS_ORIGINS에 추가 (커스텀 도메인인 경우):
+"https://your-custom-domain.com",
 
 # 3. API 재시작
 docker compose restart api
 ```
 
-### 3. API 연결 안 됨
+### 5. API 연결 안 됨
 
 **체크리스트:**
 - [ ] 라즈베리파이 API 실행 중: `ssh admin@100.75.72.6 "curl http://localhost:8000/health"`
