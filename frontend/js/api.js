@@ -1,6 +1,14 @@
 // API Service
 
-const API_BASE = 'http://localhost:8000/api/v1';
+// Auto-detect API URL based on environment
+const API_BASE = (() => {
+    // If running on Vercel or any production domain
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        return 'https://leeeunseok.tail32c3e2.ts.net/api/v1';
+    }
+    // Local development
+    return 'http://localhost:8000/api/v1';
+})();
 
 class APIService {
     static async request(endpoint, options = {}) {
