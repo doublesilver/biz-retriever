@@ -30,9 +30,6 @@ from app.core.metrics import (HTTP_REQUEST_DURATION_SECONDS,
 limiter = Limiter(key_func=get_remote_address)
 
 
-
-
-
 # ============================================
 # Prometheus 메트릭 미들웨어
 # ============================================
