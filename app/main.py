@@ -229,7 +229,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 # NOTE: allow_origin_regex 사용하여 Vercel 도메인 패턴 매칭
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https://(biz-retriever.*\.vercel\.app|leeeunseok\.tail32c3e2\.ts\.net|localhost:[0-9]+)",
+    allow_origin_regex=r"https?://(.*\.vercel\.app|leeeunseok\.tail32c3e2\.ts\.net|localhost(:[0-9]+)?)",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
