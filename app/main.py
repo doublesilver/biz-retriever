@@ -30,50 +30,7 @@ from app.core.metrics import (HTTP_REQUEST_DURATION_SECONDS,
 limiter = Limiter(key_func=get_remote_address)
 
 
-# ============================================
-# 커스텀 CORS 미들웨어
-# ============================================
-class CustomCORSMiddleware(BaseHTTPMiddleware):
-    """
-    직접 CORS 헤더를 추가하는 커스텀 미들웨어
-    FastAPI CORSMiddleware가 작동하지 않는 경우 사용
-    """
 
-    async def dispatch(self, request: Request, call_next):
-        origin = request.headers.get("origin", "")
-
-        logger.info(f"[CORS DEBUG] Method: {request.method}, Origin: '{origin}', Path: {request.url.path}")
-
-        # Preflight OPTIONS 요청 처리
-        if request.method == "OPTIONS":
-            logger.info(f"[CORS DEBUG] OPTIONS preflight detected")
-            response = Response(status_code=200)
-            response.headers["Access-Control-Allow-Origin"] = origin or "*"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Methods"] = (
-                "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-            )
-            response.headers["Access-Control-Allow-Headers"] = (
-                "Authorization, Content-Type, Accept, Origin, X-Requested-With"
-            )
-            response.headers["Access-Control-Max-Age"] = "600"
-            logger.info(f"[CORS DEBUG] OPTIONS response headers: {dict(response.headers)}")
-            return response
-
-        # 일반 요청 처리
-        response = await call_next(request)
-
-        # CORS 헤더 추가
-        if origin:
-            logger.info(f"[CORS DEBUG] Adding CORS headers for origin: '{origin}'")
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Expose-Headers"] = "*"
-            logger.info(f"[CORS DEBUG] Response headers: {list(response.headers.keys())}")
-        else:
-            logger.warning(f"[CORS DEBUG] No origin header, skipping CORS")
-
-        return response
 
 
 # ============================================
@@ -189,6 +146,9 @@ Bearer Token 방식의 JWT 인증을 사용합니다.
     },
 )
 
+
+
+
 # Rate Limiting State
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -271,9 +231,26 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-# CORS 설정 - 커스텀 미들웨어 사용 (FastAPI CORSMiddleware 대체)
-# NOTE: FastAPI CORSMiddleware가 헤더를 추가하지 않는 문제 해결을 위해 커스텀 구현
-app.add_middleware(CustomCORSMiddleware)
+# CORS 설정 - FastAPI 공식 CORSMiddleware 사용
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://biz-retriever.vercel.app",
+        "https://biz-retriever-doublesilvers-projects.vercel.app",
+        "https://biz-retriever-git-master-doublesilvers-projects.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:8000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,
+)
 
 # Prometheus 메트릭 미들웨어 등록
 app.add_middleware(PrometheusMiddleware)

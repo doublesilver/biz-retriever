@@ -9,7 +9,12 @@
 
 .login-info {
     flex: 1.2;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);  /* 정부24 블루 그라데이션 */
+    background: linear-gradient(
+        135deg,
+        var(--primary) 0%,
+        #1a5dd4 50%,
+        var(--primary-dark) 100%
+    );  /* 부드러운 3단계 그라데이션 */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -262,13 +267,18 @@
     padding: var(--spacing-md);  /* KRDS 표준 여백 (24px) */
     border: 1px solid var(--gray-200);
     border-left: 4px solid var(--primary);
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    transition: box-shadow var(--transition-base);
+    box-shadow: 
+        0 1px 3px 0 rgba(0, 0, 0, 0.1),
+        0 1px 2px -1px rgba(0, 0, 0, 0.1);  /* 계층적 그림자 */
+    transition: all var(--transition-base) cubic-bezier(0.16, 1, 0.3, 1);
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .stat-card:hover {
-    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
-    /* transform 효과 제거 */
+    box-shadow:
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -4px rgba(0, 0, 0, 0.1);  /* 호버 시 강화된 그림자 */
+    transform: translateY(-2px);
 }
 
 .stat-card.success {

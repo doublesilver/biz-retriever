@@ -1,6 +1,62 @@
 /* Components */
 
-/* Buttons - KRDS 정부24 공식 스타일 */
+/* ============================================
+   Animations - Professional Transitions
+   ============================================ */
+
+/* Fade In Up Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Focus Ring Animation */
+@keyframes focusRing {
+    0% {
+        box-shadow: 0 0 0 0 rgba(37, 110, 244, 0.4);
+    }
+    100% {
+        box-shadow: 0 0 0 4px rgba(37, 110, 244, 0.1);
+    }
+}
+
+/* Skeleton Loading Animation */
+@keyframes skeletonLoading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Progress Animation */
+@keyframes progress {
+    0% {
+        transform: scaleX(0);
+        transform-origin: left;
+    }
+    50% {
+        transform: scaleX(1);
+        transform-origin: left;
+    }
+    51% {
+        transform: scaleX(1);
+        transform-origin: right;
+    }
+    100% {
+        transform: scaleX(0);
+        transform-origin: right;
+    }
+}
+
+/* Buttons - KRDS 정부24 공식 스타일 + 애니메이션 */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -11,15 +67,17 @@
     font-weight: var(--font-weight-bold);
     font-size: var(--font-size-base);
     border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
-    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+    transition: all var(--transition-base) cubic-bezier(0.16, 1, 0.3, 1);
     cursor: pointer;
     border: 1px solid transparent;
     outline: none;
-    letter-spacing: -0.02em;
+    letter-spacing: var(--letter-spacing-tight);
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn:hover {
-    /* transform 효과 없음 - 정부 사이트 스타일 */
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(37, 110, 244, 0.2);
 }
 
 .btn:active {
@@ -77,14 +135,16 @@
 /* Form Elements */
 .form-group {
     margin-bottom: var(--spacing-lg);
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .form-group label {
     display: block;
     margin-bottom: var(--spacing-sm);
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
+    letter-spacing: var(--letter-spacing-normal);
 }
 
 .form-group input {
@@ -95,15 +155,16 @@
     border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
     background: var(--bg-primary);
     color: var(--text-primary);
-    transition: border-color var(--transition-fast);
+    transition: all var(--transition-base) cubic-bezier(0.16, 1, 0.3, 1);
     font-size: var(--font-size-base);
-    line-height: 1.5;
+    line-height: var(--line-height-normal);
 }
 
 .form-group input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(37, 110, 244, 0.1);  /* KRDS 정부24 블루 */
+    animation: focusRing 0.3s ease-out;
+    box-shadow: 0 0 0 4px rgba(37, 110, 244, 0.1);  /* KRDS 정부24 블루 */
 }
 
 .form-group input::placeholder {
@@ -143,19 +204,24 @@
     color: var(--text-secondary);
 }
 
-/* Card - KRDS 정부24 스타일 */
+/* Card - KRDS 정부24 스타일 + 애니메이션 */
 .card {
     background: var(--bg-primary);
     border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
     border: 1px solid var(--gray-200);  /* 명확한 테두리 */
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);  /* 은은한 그림자 */
+    box-shadow: 
+        0 1px 3px 0 rgba(0, 0, 0, 0.1),
+        0 1px 2px -1px rgba(0, 0, 0, 0.1);  /* 계층적 그림자 */
     padding: var(--spacing-md);  /* KRDS 표준 여백 (24px) */
-    transition: box-shadow var(--transition-base);
+    transition: all var(--transition-base) cubic-bezier(0.16, 1, 0.3, 1);
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .card:hover {
-    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
-    /* transform 효과 없음 */
+    box-shadow:
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -4px rgba(0, 0, 0, 0.1);  /* 호버 시 강화된 그림자 */
+    transform: translateY(-2px);
 }
 
 /* Modal */
@@ -182,15 +248,26 @@
 
 .modal-content {
     position: relative;
-    background: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);  /* Safari 지원 */
+    border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
-    box-shadow: var(--card-shadow-lg);
+    box-shadow: 
+        0 20px 25px -5px rgba(0, 0, 0, 0.1),
+        0 10px 10px -5px rgba(0, 0, 0, 0.04);  /* 강화된 그림자 */
     max-width: 500px;
     width: 90%;
     max-height: 90vh;
     overflow-y: auto;
     z-index: var(--z-modal);
     animation: modalSlideIn var(--transition-base);
+}
+
+/* Dark Mode에서는 글래스모피즘 색상 조정 */
+body.dark-mode .modal-content {
+    background: rgba(30, 41, 59, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 @keyframes modalSlideIn {
@@ -336,4 +413,77 @@
     width: 2rem;
     height: 2rem;
     border-width: 3px;
+}
+
+/* ============================================
+   Skeleton Loader - Loading States
+   ============================================ */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--gray-100) 25%,
+        var(--gray-200) 50%,
+        var(--gray-100) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeletonLoading 1.5s ease-in-out infinite;
+    border-radius: var(--radius-lg);
+}
+
+.skeleton-text {
+    height: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.skeleton-title {
+    height: 1.5rem;
+    width: 60%;
+    margin-bottom: 1rem;
+}
+
+.skeleton-card {
+    height: 200px;
+    width: 100%;
+}
+
+.skeleton-circle {
+    width: 3rem;
+    height: 3rem;
+    border-radius: var(--radius-full);
+}
+
+/* ============================================
+   Progress Bar - Loading Indicator
+   ============================================ */
+.progress-bar-container {
+    width: 100%;
+    height: 4px;
+    background: var(--gray-200);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-hover));
+    animation: progress 1.5s ease-in-out infinite;
+    border-radius: var(--radius-full);
+}
+
+/* Button Loading State */
+.btn.loading {
+    position: relative;
+    color: transparent;
+    pointer-events: none;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 0.6s linear infinite;
 }
