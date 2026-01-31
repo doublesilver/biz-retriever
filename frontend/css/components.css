@@ -56,59 +56,73 @@
     }
 }
 
-/* Buttons - KRDS 정부24 공식 스타일 + 애니메이션 */
+/* Buttons - 페이히어/네이버 스타일 */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--spacing-sm);
-    height: 6.4rem;  /* KRDS 표준 버튼 높이 (64px) */
-    padding: 0 2rem;
-    font-weight: var(--font-weight-bold);
+    gap: var(--spacing-2);
+    height: 48px;
+    padding: 0 var(--spacing-6);
+    font-weight: var(--font-weight-semibold);
     font-size: var(--font-size-base);
-    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
-    transition: all var(--transition-base) cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
     cursor: pointer;
     border: 1px solid transparent;
     outline: none;
-    letter-spacing: var(--letter-spacing-tight);
-    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    letter-spacing: var(--letter-spacing-normal);
+    white-space: nowrap;
 }
 
 .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(37, 110, 244, 0.2);
-}
-
-.btn:active {
     opacity: 0.9;
 }
 
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn:focus-visible {
+    box-shadow: var(--focus-ring);
+}
+
 .btn:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
+    pointer-events: none;
 }
 
 .btn-primary {
     background: var(--primary);
     color: white;
-    border-color: var(--primary);
 }
 
 .btn-primary:hover {
     background: var(--primary-hover);
-    border-color: var(--primary-hover);
+}
+
+.btn-primary:active {
+    background: var(--primary-dark);
 }
 
 .btn-secondary {
     background: white;
     color: var(--text-primary);
-    border: 1.5px solid var(--gray-300);  /* 더 명확한 테두리 */
+    border-color: var(--border-color-strong);
 }
 
 .btn-secondary:hover {
-    background: var(--gray-50);
-    border-color: var(--gray-400);
+    background: var(--bg-secondary);
+}
+
+.btn-tertiary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-tertiary:hover {
+    background: var(--bg-tertiary);
 }
 
 .btn-block {
@@ -116,59 +130,91 @@
 }
 
 .btn-sm {
-    height: 4.8rem;  /* KRDS 소형 버튼 (48px) */
-    padding: 0 1.2rem;
-    font-size: 0.875rem;
+    height: 40px;
+    padding: 0 var(--spacing-4);
+    font-size: var(--font-size-sm);
+}
+
+.btn-lg {
+    height: 56px;
+    padding: 0 var(--spacing-8);
+    font-size: var(--font-size-lg);
 }
 
 .btn-outline {
     background: transparent;
     color: var(--primary);
-    border: 1px solid var(--primary);
+    border-color: var(--primary);
 }
 
 .btn-outline:hover {
-    background: var(--primary);
-    color: white;
+    background: var(--primary-light);
 }
 
-/* Form Elements */
+/* Form Elements - 페이히어/네이버 스타일 */
 .form-group {
-    margin-bottom: var(--spacing-lg);
-    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-bottom: var(--spacing-5);
 }
 
 .form-group label {
     display: block;
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-2);
     font-weight: var(--font-weight-medium);
     font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    letter-spacing: var(--letter-spacing-normal);
+    color: var(--text-primary);
 }
 
-.form-group input {
+.form-group input,
+.form-group textarea,
+.form-group select {
     width: 100%;
-    height: 6.4rem;  /* KRDS 표준 입력 높이 (64px) */
-    padding: 0 1.6rem;
-    border: 1.5px solid var(--gray-300);  /* 더 명확한 테두리 */
-    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
+    height: 48px;
+    padding: 0 var(--spacing-4);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
     background: var(--bg-primary);
     color: var(--text-primary);
-    transition: all var(--transition-base) cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all var(--transition-base);
     font-size: var(--font-size-base);
-    line-height: var(--line-height-normal);
+    font-family: inherit;
 }
 
-.form-group input:focus {
+.form-group textarea {
+    height: auto;
+    min-height: 120px;
+    padding: var(--spacing-3) var(--spacing-4);
+    resize: vertical;
+}
+
+.form-group input:hover,
+.form-group textarea:hover,
+.form-group select:hover {
+    border-color: var(--border-color-strong);
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
     outline: none;
     border-color: var(--primary);
-    animation: focusRing 0.3s ease-out;
-    box-shadow: 0 0 0 4px rgba(37, 110, 244, 0.1);  /* KRDS 정부24 블루 */
+    box-shadow: var(--focus-ring);
 }
 
-.form-group input::placeholder {
-    color: var(--gray-400);
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: var(--text-tertiary);
+}
+
+.form-group input.error {
+    border-color: var(--danger);
+}
+
+.form-group input.error:focus {
+    box-shadow: var(--focus-ring-error);
+}
+
+.form-group input.valid {
+    border-color: var(--success);
 }
 
 .password-input {

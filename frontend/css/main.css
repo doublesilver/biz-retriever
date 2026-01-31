@@ -1,322 +1,340 @@
+/* 
+   페이히어/네이버/카카오 스타일 디자인
+   - 깔끔하고 전문적인 레이아웃
+   - 불필요한 애니메이션 제거
+   - 적절한 여백과 타이포그래피
+*/
+
+/* ============================================
+   Login Page - 페이히어 스타일
+   ============================================ */
 .login-container {
     min-height: 100vh;
     display: flex;
-    align-items: stretch;
-    background: #f0f2f5;
-    position: relative;
-    overflow: hidden;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    padding: var(--spacing-6);
 }
 
 .login-info {
-    flex: 1.2;
-    background: var(--primary);  /* 단색 배경 - 전문적이고 깔끔함 */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-3xl);
-    color: white;
-    position: relative;
-    overflow: hidden;
-}
-
-.login-info::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.05) 100%);  /* 미묘한 그라데이션 오버레이 */
-    opacity: 1;
-}
-
-.info-content {
-    max-width: 500px;
-    position: relative;
-    z-index: 1;
-    animation: fadeIn 0.8s ease-out;
-}
-
-.info-logo {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-2xl);
-}
-
-.info-logo .logo-icon {
-    font-size: 3rem;
-    margin-bottom: 0;
-}
-
-.info-logo h1 {
-    font-size: var(--font-size-4xl);
-    color: white;
-    font-weight: 800;
-}
-
-.info-content h2 {
-    font-size: var(--font-size-3xl);
-    font-weight: 700;
-    margin-bottom: var(--spacing-lg);
-    line-height: 1.2;
-}
-
-.info-content p {
-    font-size: var(--font-size-lg);
-    opacity: 0.9;
-    margin-bottom: var(--spacing-2xl);
-    line-height: 1.6;
-}
-
-.feature-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-}
-
-.feature-list li {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    font-size: var(--font-size-base);
-    font-weight: 500;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateX(-20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
+    display: none;
 }
 
 .login-card {
-    flex: 1;
+    width: 100%;
+    max-width: 400px;
     background: var(--bg-primary);
-    padding: var(--spacing-3xl);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    max-width: 550px;
-    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.05);
-    z-index: 2;
-    animation: slideInRight 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: var(--spacing-10);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-color);
 }
 
-@keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(100px);
-    }
+.logo {
+    text-align: center;
+    margin-bottom: var(--spacing-8);
+}
 
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
+.logo .logo-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-2);
+    display: block;
+}
+
+.logo h1 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin: 0;
 }
 
 .auth-header {
-    margin-bottom: var(--spacing-md);  /* KRDS 표준 여백 (24px) */
+    margin-bottom: var(--spacing-6);
 }
 
 .auth-header h2 {
-    font-size: var(--font-size-2xl);
-    font-weight: 700;
-    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-2);
 }
 
 .auth-header p {
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    margin: var(--spacing-6) 0;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.divider span {
+    padding: 0 var(--spacing-4);
+}
+
+.footer-text {
+    margin-top: var(--spacing-6);
+    text-align: center;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.footer-text a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.footer-text a:hover {
+    text-decoration: underline;
 }
 
 .mobile-only {
     display: none;
 }
 
-.sns-login {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
-}
-
-/* Base SNS Button Style */
-[class^="btn-sns-"] {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: var(--spacing-md) !important;
-    height: 52px !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    font-size: 15px !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-    border: none !important;
-    width: 100% !important;
-}
-
-[class^="btn-sns-"]:hover {
-    transform: translateY(-2px) !important;
-    filter: brightness(0.95) !important;
-}
-
-[class^="btn-sns-"] img,
-[class^="btn-sns-"] svg {
-    width: 20px !important;
-    height: 20px !important;
-    min-width: 20px !important;
-    min-height: 20px !important;
-    flex-shrink: 0 !important;
-}
-
-/* Kakao Brand */
-.btn-sns-kakao {
-    background-color: #FEE500 !important;
-    color: #191919 !important;
-}
-
-/* Naver Brand */
-.btn-sns-naver {
-    background-color: #03C75A !important;
-    color: #ffffff !important;
-}
-
-/* Responsive Overrides */
-@media (max-width: 1024px) {
-    .login-container {
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        background: var(--bg-secondary) !important;  /* 단색 배경 */
-        padding: var(--spacing-xl) !important;
-    }
-
-    .login-info {
-        display: none !important;
-    }
-
-    .login-card {
-        width: 100% !important;
-        max-width: 420px !important;
-        border-radius: var(--radius-xl) !important;
-        box-shadow: var(--card-shadow-lg) !important;
-        flex: none !important;
-        padding: var(--spacing-2xl) !important;
-        margin: 0 !important;
-    }
-
-    .mobile-only {
-        display: block !important;
-        margin-bottom: var(--spacing-xl) !important;
-    }
-}
-
-/* Dashboard Styles (will add more later) */
+/* ============================================
+   Dashboard - 네이버 스타일
+   ============================================ */
 .dashboard-container {
     min-height: 100vh;
     background: var(--bg-secondary);
 }
 
 .navbar {
-    background: var(--primary);  /* KRDS 정부24 파란색 헤더 */
-    border-bottom: 2px solid var(--primary-dark);
-    padding: var(--spacing-sm) var(--spacing-md);  /* KRDS 표준 여백 */
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 var(--spacing-6);
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     position: sticky;
     top: 0;
     z-index: var(--z-sticky);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);  /* 더 명확한 그림자 */
 }
 
 .navbar-brand {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    font-size: var(--font-size-xl);
+    gap: var(--spacing-3);
+    font-size: var(--font-size-lg);
     font-weight: var(--font-weight-bold);
-    color: white;  /* 정부 사이트는 흰색 텍스트 */
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.navbar-brand .logo-icon {
+    font-size: 1.5rem;
+}
+
+.navbar-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-2) var(--spacing-4);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    transition: all var(--transition-base);
+}
+
+.nav-link:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.nav-link.active {
+    background: var(--primary-light);
+    color: var(--primary);
 }
 
 .navbar-actions {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
+    gap: var(--spacing-3);
 }
 
-/* Stats Widgets - KRDS 정부24 스타일 */
+/* Main Content */
+.main-content {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: var(--spacing-6);
+}
+
+.page-header {
+    margin-bottom: var(--spacing-6);
+}
+
+.page-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-2);
+}
+
+.page-subtitle {
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+}
+
+/* Stats Grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: var(--spacing-md);  /* KRDS 표준 간격 (24px) */
-    margin-bottom: var(--spacing-md);
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--spacing-4);
+    margin-bottom: var(--spacing-6);
 }
 
 .stat-card {
     background: var(--bg-primary);
-    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
-    padding: var(--spacing-md);  /* KRDS 표준 여백 (24px) */
-    border: 1px solid var(--gray-200);
-    border-left: 4px solid var(--primary);
-    box-shadow: 
-        0 1px 3px 0 rgba(0, 0, 0, 0.1),
-        0 1px 2px -1px rgba(0, 0, 0, 0.1);  /* 계층적 그림자 */
-    transition: all var(--transition-base) cubic-bezier(0.16, 1, 0.3, 1);
-    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-5);
+    border: 1px solid var(--border-color);
+    transition: all var(--transition-base);
 }
 
 .stat-card:hover {
-    box-shadow:
-        0 10px 15px -3px rgba(0, 0, 0, 0.1),
-        0 4px 6px -4px rgba(0, 0, 0, 0.1);  /* 호버 시 강화된 그림자 */
-    transform: translateY(-2px);
-}
-
-.stat-card.success {
-    border-left-color: var(--success);
-}
-
-.stat-card.warning {
-    border-left-color: var(--warning);
-}
-
-.stat-card.danger {
-    border-left-color: var(--danger);
+    box-shadow: var(--shadow-md);
 }
 
 .stat-label {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
-    margin-bottom: var(--spacing-sm);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    margin-bottom: var(--spacing-2);
+    font-weight: var(--font-weight-medium);
 }
 
 .stat-value {
-    font-size: var(--font-size-4xl);
-    font-weight: 700;
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
     color: var(--text-primary);
 }
 
-/* Responsive - KRDS 정부24 */
+.stat-change {
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-2);
+}
+
+.stat-change.positive {
+    color: var(--success);
+}
+
+.stat-change.negative {
+    color: var(--danger);
+}
+
+/* Card */
+.card {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-6);
+    border: 1px solid var(--border-color);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-5);
+    padding-bottom: var(--spacing-4);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+}
+
+.card-body {
+    /* Content area */
+}
+
+/* Table */
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead {
+    background: var(--bg-secondary);
+}
+
+th {
+    padding: var(--spacing-3) var(--spacing-4);
+    text-align: left;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+td {
+    padding: var(--spacing-4);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+tr:hover {
+    background: var(--bg-secondary);
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
 @media (max-width: 768px) {
     .login-card {
-        padding: var(--spacing-md);  /* KRDS 표준 여백 (24px) */
+        padding: var(--spacing-6);
     }
-
+    
+    .navbar {
+        padding: 0 var(--spacing-4);
+    }
+    
+    .main-content {
+        padding: var(--spacing-4);
+    }
+    
     .stats-grid {
         grid-template-columns: 1fr;
     }
     
-    .btn {
-        height: 5.6rem;  /* 모바일용 버튼 높이 (56px) */
+    .page-title {
+        font-size: var(--font-size-2xl);
     }
-    
-    .form-group input {
-        height: 5.6rem;  /* 모바일용 입력 높이 (56px) */
+}
+
+@media (max-width: 480px) {
+    .login-card {
+        padding: var(--spacing-5);
+        border-radius: var(--radius-lg);
     }
 }
