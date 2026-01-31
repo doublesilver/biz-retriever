@@ -232,7 +232,13 @@ app.add_middleware(
     allow_origin_regex=r"https?://(.*\.vercel\.app|leeeunseok\.tail32c3e2\.ts\.net|localhost(:[0-9]+)?)",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+    ],
     expose_headers=["*"],  # 모든 응답 헤더 노출
     max_age=600,  # preflight 캐시 10분
 )
