@@ -9,12 +9,7 @@
 
 .login-info {
     flex: 1.2;
-    background: linear-gradient(
-        135deg,
-        var(--primary) 0%,
-        #1a5dd4 50%,
-        var(--primary-dark) 100%
-    );  /* 부드러운 3단계 그라데이션 */
+    background: var(--primary);  /* 단색 배경 - 전문적이고 깔끔함 */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -28,8 +23,8 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: url('https://www.transparenttextures.com/patterns/cubes.png');
-    opacity: 0.1;
+    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.05) 100%);  /* 미묘한 그라데이션 오버레이 */
+    opacity: 1;
 }
 
 .info-content {
@@ -195,7 +190,7 @@
         flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        background: var(--bg-secondary) !important;  /* 단색 배경 */
         padding: var(--spacing-xl) !important;
     }
 

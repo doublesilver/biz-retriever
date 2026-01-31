@@ -85,16 +85,18 @@ async def crawl_g2b_bids():
         result = await session.execute(stmt)
         active_users = result.scalars().all()
 
-        # 5. 공고 저장 및 알림
-        for announcement_data in announcements:
-            # 중복 체크
-            stmt = select(BidAnnouncement).where(
-                BidAnnouncement.url == announcement_data["url"]
-            )
-            result = await session.execute(stmt)
-            existing = result.scalar_one_or_none()
+        # 5. 중복 체크를 위한 기존 URL 일괄 조회 (N+1 쿼리 방지)
+        announcement_urls = [a["url"] for a in announcements]
+        stmt = select(BidAnnouncement.url).where(
+            BidAnnouncement.url.in_(announcement_urls)
+        )
+        result = await session.execute(stmt)
+        existing_urls = set(result.scalars().all())
 
-            if existing:
+        # 6. 공고 저장 및 알림
+        for announcement_data in announcements:
+            # 중복 체크 (메모리에서 조회)
+            if announcement_data["url"] in existing_urls:
                 continue
 
             # 중요도 계산

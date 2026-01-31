@@ -99,6 +99,12 @@ class APIService {
     }
 
     // Auth
+    static async checkEmailExists(email) {
+        return this.request(`/auth/check-email?email=${encodeURIComponent(email)}`, {
+            skipAuth: true
+        });
+    }
+
     static async register(email, password) {
         return this.request('/auth/register', {
             method: 'POST',
@@ -125,6 +131,22 @@ class APIService {
 
     static loginSNS(provider) {
         window.location.href = `${API_BASE}/auth/login/${provider}`;
+    }
+
+    static async logout() {
+        try {
+            await this.request('/auth/logout', {
+                method: 'POST'
+            });
+        } catch (error) {
+            console.error('Logout API call failed:', error);
+            // Continue with local logout even if API call fails
+        }
+        // Clear local storage
+        localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
+        // Redirect to login
+        window.location.href = '/index.html';
     }
 
     // Bids

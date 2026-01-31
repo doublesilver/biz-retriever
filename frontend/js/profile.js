@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Failed to load profile:', error);
-            showToast('프로필을 불러오지 못했습니다.', 'error');
+            utils.showToast('프로필을 불러오지 못했습니다.', 'error');
         }
     }
 
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const result = await API.uploadCertificate(file);
-            showToast('사업자 정보 추출 성공!', 'success');
+            utils.showToast('사업자 정보 추출 성공!', 'success');
 
             // 추출된 데이터 폼에 채우기
             const data = result.data;
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('companyType').value = data.company_type || '';
 
         } catch (error) {
-            showToast('AI 분석 실패: ' + error.message, 'error');
+            utils.showToast('AI 분석 실패: ' + error.message, 'error');
         } finally {
             uploadStatus.style.display = 'none';
         }
@@ -81,13 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (plan === 'free') {
             if (confirm('무료 플랜으로 변경하시겠습니까?\n현재 구독이 취소되고 제한된 기능만 사용할 수 있습니다.')) {
                 // TODO: Implement downgrade logic (cancel subscription)
-                showToast('관리자에게 문의하여 다운그레이드를 요청하세요', 'info');
+                utils.showToast('관리자에게 문의하여 다운그레이드를 요청하세요', 'info');
             }
             return;
         }
 
         if (plan === currentPlan) {
-            showToast('이미 사용 중인 플랜입니다', 'info');
+            utils.showToast('이미 사용 중인 플랜입니다', 'info');
             return;
         }
 
@@ -124,9 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await API.updateProfile(profileData);
-            showToast('프로필이 저장되었습니다.', 'success');
+            utils.showToast('프로필이 저장되었습니다.', 'success');
         } catch (error) {
-            showToast('저장 실패: ' + error.message, 'error');
+            utils.showToast('저장 실패: ' + error.message, 'error');
         }
     });
 
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('saveLicenseBtn').addEventListener('click', async () => {
         const licenseName = document.getElementById('licenseName').value.trim();
         if (!licenseName) {
-            showToast('면허명을 입력하세요', 'error');
+            utils.showToast('면허명을 입력하세요', 'error');
             return;
         }
 
@@ -174,11 +174,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await API.addLicense(licenseData);
-            showToast('면허가 추가되었습니다', 'success');
+            utils.showToast('면허가 추가되었습니다', 'success');
             closeLicenseModal();
             loadLicenses();
         } catch (error) {
-            showToast('면허 추가 실패: ' + error.message, 'error');
+            utils.showToast('면허 추가 실패: ' + error.message, 'error');
         }
     });
 
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const projectAmount = document.getElementById('projectAmount').value;
 
         if (!projectName || !projectAmount) {
-            showToast('프로젝트명과 계약금액을 입력하세요', 'error');
+            utils.showToast('프로젝트명과 계약금액을 입력하세요', 'error');
             return;
         }
 
@@ -205,11 +205,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await API.addPerformance(performanceData);
-            showToast('실적이 추가되었습니다', 'success');
+            utils.showToast('실적이 추가되었습니다', 'success');
             closePerformanceModal();
             loadPerformances();
         } catch (error) {
-            showToast('실적 추가 실패: ' + error.message, 'error');
+            utils.showToast('실적 추가 실패: ' + error.message, 'error');
         }
     });
 });
@@ -274,10 +274,10 @@ async function deleteLicense(licenseId) {
 
     try {
         await API.deleteLicense(licenseId);
-        showToast('면허가 삭제되었습니다', 'success');
+        utils.showToast('면허가 삭제되었습니다', 'success');
         loadLicenses();
     } catch (error) {
-        showToast('면허 삭제 실패: ' + error.message, 'error');
+        utils.showToast('면허 삭제 실패: ' + error.message, 'error');
     }
 }
 
@@ -287,10 +287,10 @@ async function deletePerformance(performanceId) {
 
     try {
         await API.deletePerformance(performanceId);
-        showToast('실적이 삭제되었습니다', 'success');
+        utils.showToast('실적이 삭제되었습니다', 'success');
         loadPerformances();
     } catch (error) {
-        showToast('실적 삭제 실패: ' + error.message, 'error');
+        utils.showToast('실적 삭제 실패: ' + error.message, 'error');
     }
 }
 

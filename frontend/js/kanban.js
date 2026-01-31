@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Check Auth
     const token = localStorage.getItem('token');
     if (!token) {
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
         return;
     }
 
@@ -56,7 +56,7 @@ const cancelModalBtn = document.getElementById('cancelModal');
 
 async function loadUsers() {
     try {
-        allUsers = await api.get('/auth/users');
+        allUsers = await API.request('/auth/users');
         modalAssignee.innerHTML = '<option value="">미지정</option>';
         allUsers.forEach(user => {
             const option = document.createElement('option');
@@ -71,7 +71,7 @@ async function loadUsers() {
 
 async function loadKanbanBoard() {
     try {
-        const data = await api.get('/bids/?limit=200');
+        const data = await API.getBids({ limit: 200 });
         const bids = data.items;
 
         Object.values(columns).forEach(col => col.innerHTML = '');
@@ -87,7 +87,7 @@ async function loadKanbanBoard() {
         updateCounts();
     } catch (error) {
         console.error('Failed to load kanban:', error);
-        showToast('데이터를 불러오는데 실패했습니다.', 'error');
+        utils.showToast('데이터를 불러오는데 실패했습니다.', 'error');
     }
 }
 
@@ -160,13 +160,13 @@ function setupModal() {
         };
 
         try {
-            await api.patch(`/bids/${currentEditingBidId}`, data);
-            showToast('변경사항이 저장되었습니다.', 'success');
+            await API.patchBid(currentEditingBidId, data);
+            utils.showToast('변경사항이 저장되었습니다.', 'success');
             close();
             loadKanbanBoard(); // Refresh
         } catch (error) {
             console.error('Update failed:', error);
-            showToast('저장에 실패했습니다.', 'error');
+            utils.showToast('저장에 실패했습니다.', 'error');
         }
     });
 }
@@ -192,7 +192,7 @@ async function openModal(bid) {
     aiReason.textContent = '';
 
     try {
-        const pred = await api.get(`/analysis/predict-price/${bid.id}`);
+        const pred = await API.predictPrice(bid.id);
         aiRecommendedPrice.textContent = `${pred.recommended_price.toLocaleString()}원`;
         aiConfidence.textContent = `${Math.round(pred.confidence * 100)}%`;
         aiReason.textContent = pred.prediction_reason || '';
@@ -220,11 +220,11 @@ function setupDragAndDrop() {
                 updateCounts();
 
                 try {
-                    await api.patch(`/bids/${bidId}`, { status: newStatus });
-                    showToast('상태가 변경되었습니다.', 'success');
+                    await API.patchBid(bidId, { status: newStatus });
+                    utils.showToast('상태가 변경되었습니다.', 'success');
                 } catch (error) {
                     console.error('Update failed:', error);
-                    showToast('상태 변경 실패. 되돌립니다.', 'error');
+                    utils.showToast('상태 변경 실패. 되돌립니다.', 'error');
                     if (oldStatus && columns[oldStatus]) {
                         columns[oldStatus].appendChild(itemEl);
                         updateCounts();
@@ -251,7 +251,7 @@ function setupLogout() {
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-            auth.logout();
+            API.logout();
         });
     }
 

@@ -90,3 +90,13 @@ dist/
 .claude/
 .pytest_cache/
 nul
+
+# Temporary files
+*.txt
+!requirements*.txt
+!README*.txt
+!.vercel/README.txt
+.sisyphus/
+tests/manual/
+TEST_REPORT.md
+ENVIRONMENT_CONFIG_REPORT.md

@@ -343,6 +343,40 @@ async def register(
 
 
 @router.get(
+    "/check-email",
+    summary="이메일 중복 확인",
+    description="회원가입 전 이메일 중복 여부를 확인합니다.",
+    responses={
+        200: {
+            "description": "중복 확인 결과",
+            "content": {
+                "application/json": {
+                    "example": {"exists": False, "message": "사용 가능한 이메일입니다"}
+                }
+            },
+        }
+    },
+)
+async def check_email_exists(
+    email: EmailStr,
+    db: AsyncSession = Depends(deps.get_db),
+) -> Any:
+    """
+    이메일 중복 확인 API
+    
+    - email: 확인할 이메일 주소
+    - returns: {"exists": bool, "message": str}
+    """
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    
+    if user:
+        return {"exists": True, "message": "이미 사용 중인 이메일입니다"}
+    else:
+        return {"exists": False, "message": "사용 가능한 이메일입니다"}
+
+
+@router.get(
     "/users",
     response_model=List[UserResponse],
     summary="사용자 목록 조회",

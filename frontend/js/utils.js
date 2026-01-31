@@ -116,18 +116,225 @@ function setLoading(button, isLoading) {
     }
 }
 
-// Export utilities
+// Calculate D-Day
+function calculateDday(dateString) {
+    if (!dateString) return '미정';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = Math.floor((date - now) / (1000 * 60 * 60 * 24));
+    if (diff === 0) return '오늘!';
+    if (diff < 0) return `D+${Math.abs(diff)}`;
+    return `D-${diff}`;
+}
+
+// Debounce function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Hide Toast
+function hideToast() {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.classList.remove('show');
+    }
+}
+
+// Escape HTML
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// Format BRN (Business Registration Number)
+function formatBRN(value) {
+    const cleaned = value.replace(/[^0-9]/g, '');
+    
+    if (cleaned.length <= 3) {
+        return cleaned;
+    } else if (cleaned.length <= 5) {
+        return cleaned.slice(0, 3) + '-' + cleaned.slice(3);
+    } else if (cleaned.length <= 10) {
+        return cleaned.slice(0, 3) + '-' + cleaned.slice(3, 5) + '-' + cleaned.slice(5, 10);
+    }
+    return cleaned.slice(0, 3) + '-' + cleaned.slice(3, 5) + '-' + cleaned.slice(5, 10);
+}
+
+// Format Phone Number
+function formatPhone(value) {
+    const cleaned = value.replace(/[^0-9]/g, '');
+    
+    if (cleaned.length <= 3) {
+        return cleaned;
+    } else if (cleaned.length <= 7) {
+        return cleaned.slice(0, 3) + '-' + cleaned.slice(3);
+    } else if (cleaned.length <= 11) {
+        return cleaned.slice(0, 3) + '-' + cleaned.slice(3, 7) + '-' + cleaned.slice(7, 11);
+    }
+    return cleaned.slice(0, 3) + '-' + cleaned.slice(3, 7) + '-' + cleaned.slice(7, 11);
+}
+
+// Format Number with Comma
+function formatNumberWithComma(value) {
+    const cleaned = value.replace(/[^0-9]/g, '');
+    if (!cleaned) return '';
+    return Number(cleaned).toLocaleString();
+}
+
+// Auto-format input fields
+function initAutoFormat() {
+    // BRN formatting
+    document.querySelectorAll('input[name="brn"], #brn').forEach(input => {
+        input.addEventListener('input', function(e) {
+            e.target.value = formatBRN(e.target.value);
+        });
+    });
+    
+    // Phone formatting
+    document.querySelectorAll('input[type="tel"], input[name="phone"]').forEach(input => {
+        input.addEventListener('input', function(e) {
+            e.target.value = formatPhone(e.target.value);
+        });
+    });
+    
+    // Number formatting with comma
+    document.querySelectorAll('.number-format').forEach(input => {
+        input.addEventListener('input', function(e) {
+            const cursorPos = e.target.selectionStart;
+            const oldValue = e.target.value;
+            const newValue = formatNumberWithComma(e.target.value);
+            e.target.value = newValue;
+            
+            // Restore cursor position
+            const diff = newValue.length - oldValue.length;
+            e.target.setSelectionRange(cursorPos + diff, cursorPos + diff);
+        });
+    });
+}
+
+// Unsaved changes warning
+let hasUnsavedChanges = false;
+
+function trackFormChanges(formElement) {
+    const inputs = formElement.querySelectorAll('input, textarea, select');
+    
+    inputs.forEach(input => {
+        input.addEventListener('change', () => {
+            hasUnsavedChanges = true;
+        });
+    });
+}
+
+function clearUnsavedChanges() {
+    hasUnsavedChanges = false;
+}
+
+// Setup unsaved changes warning
+window.addEventListener('beforeunload', (e) => {
+    if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '저장하지 않은 변경사항이 있습니다. 정말 나가시겠습니까?';
+    }
+});
+
+// Session expiry warning
+let sessionExpiryTimer;
+
+function startSessionTimer(expiresInSeconds) {
+    // Clear existing timer
+    if (sessionExpiryTimer) {
+        clearTimeout(sessionExpiryTimer);
+    }
+    
+    // Warn 5 minutes before expiry
+    const warnTime = (expiresInSeconds - 5 * 60) * 1000;
+    
+    if (warnTime > 0) {
+        sessionExpiryTimer = setTimeout(() => {
+            showToast('5분 후 자동 로그아웃됩니다. 작업을 저장해주세요.', 'warning');
+        }, warnTime);
+    }
+}
+
+// Recent items (generic)
+function addToRecentItems(key, itemId, maxItems = 10) {
+    const history = JSON.parse(localStorage.getItem(key) || '[]');
+    const updated = [itemId, ...history.filter(id => id !== itemId)].slice(0, maxItems);
+    localStorage.setItem(key, JSON.stringify(updated));
+}
+
+function getRecentItems(key) {
+    return JSON.parse(localStorage.getItem(key) || '[]');
+}
+
+// Keyboard shortcuts
+function initKeyboardShortcuts(shortcuts) {
+    document.addEventListener('keydown', (e) => {
+        for (const [key, handler] of Object.entries(shortcuts)) {
+            const parts = key.split('+');
+            const keyMatch = parts[parts.length - 1].toLowerCase() === e.key.toLowerCase();
+            const ctrlMatch = parts.includes('ctrl') === (e.ctrlKey || e.metaKey);
+            const shiftMatch = parts.includes('shift') === e.shiftKey;
+            const altMatch = parts.includes('alt') === e.altKey;
+            
+            if (keyMatch && ctrlMatch && shiftMatch && altMatch) {
+                e.preventDefault();
+                handler(e);
+            }
+        }
+    });
+}
+
+// Auto dark mode based on time
+function autoSwitchDarkMode() {
+    const theme = localStorage.getItem('theme');
+    
+    if (theme === 'auto') {
+        const hour = new Date().getHours();
+        const shouldBeDark = hour >= 18 || hour < 6;
+        document.body.classList.toggle('dark-mode', shouldBeDark);
+    }
+}
+
+// Initialize auto dark mode
+setInterval(autoSwitchDarkMode, 60 * 60 * 1000); // Check every hour
+
 window.utils = {
+    formatCurrency,
+    formatDate,
+    debounce,
     showToast,
-    initPasswordToggle,
+    hideToast,
     showModal,
     hideModal,
-    formatDate,
-    formatCurrency,
-    getPriorityStars,
+    initPasswordToggle,
+    initDarkMode,
     isValidEmail,
     isValidPassword,
-    initDarkMode,
-    toggleDarkMode,
-    setLoading
+    setLoading,
+    escapeHtml,
+    calculateDday,
+    formatBRN,
+    formatPhone,
+    formatNumberWithComma,
+    initAutoFormat,
+    trackFormChanges,
+    clearUnsavedChanges,
+    startSessionTimer,
+    addToRecentItems,
+    getRecentItems,
+    initKeyboardShortcuts,
+    autoSwitchDarkMode
 };

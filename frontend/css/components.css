@@ -487,3 +487,32 @@ body.dark-mode .modal-content {
     border-top-color: white;
     animation: spin 0.6s linear infinite;
 }
+
+/* ============================================
+   Password Strength Indicator
+   ============================================ */
+.password-strength {
+    margin-top: var(--spacing-sm);
+}
+
+.strength-bar {
+    width: 100%;
+    height: 0.4rem;
+    background: var(--gray-200);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-bottom: var(--spacing-xs);
+}
+
+.strength-fill {
+    height: 100%;
+    width: 0%;
+    transition: all var(--transition-base);
+    border-radius: var(--radius-full);
+}
+
+.strength-text {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    transition: color var(--transition-base);
+}
