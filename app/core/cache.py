@@ -65,7 +65,19 @@ async def set_cached(key: str, value: Any, expire: int = 300) -> bool:
     """
     try:
         redis = await get_redis()
-        await redis.setex(key, expire, json.dumps(value, ensure_ascii=False))
+        
+        # Pydantic 모델 직렬화 처리
+        if isinstance(value, list):
+            serialized = [
+                item.model_dump() if hasattr(item, 'model_dump') else item 
+                for item in value
+            ]
+        elif hasattr(value, 'model_dump'):
+            serialized = value.model_dump()
+        else:
+            serialized = value
+        
+        await redis.setex(key, expire, json.dumps(serialized, ensure_ascii=False))
         logger.debug(f"Cache SET: {key} (expire={expire}s)")
         return True
     except Exception as e:
