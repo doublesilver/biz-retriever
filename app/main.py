@@ -46,6 +46,12 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
         if path in ["/metrics", "/health"]:
             return await call_next(request)
 
+        # CORS Preflight 요청 로깅
+        if method == "OPTIONS":
+            origin = request.headers.get("origin", "no-origin")
+            logger.info(f"CORS PREFLIGHT: {method} {path} from {origin}")
+            return await call_next(request)
+
         # DEBUG: Request Start
         logger.info(f"INCOMING REQUEST: {method} {path}")
 
@@ -226,29 +232,20 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
+# Prometheus 메트릭 미들웨어 등록 (먼저 등록 - 역순 실행됨)
+app.add_middleware(PrometheusMiddleware)
+
 # CORS 설정 - FastAPI 공식 CORSMiddleware 사용
+# IMPORTANT: CORS must be added AFTER other middlewares (executed FIRST in reverse order)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://biz-retriever.vercel.app",
-        "https://biz-retriever-doublesilvers-projects.vercel.app",
-        "https://biz-retriever-git-master-doublesilvers-projects.vercel.app",
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:8000",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://127.0.0.1:8000",
-    ],
+    allow_origins=settings.CORS_ORIGINS,  # Use settings for consistency
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["*"],  # Allows OPTIONS for preflight
     allow_headers=["*"],
     expose_headers=["*"],
     max_age=600,
 )
-
-# Prometheus 메트릭 미들웨어 등록
-app.add_middleware(PrometheusMiddleware)
 
 # TrustedHost 미들웨어 - Host 헤더 검증 (Host Header Injection 공격 방지)
 app.add_middleware(

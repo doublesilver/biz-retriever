@@ -6,9 +6,15 @@ import type {
     BidFilters
 } from '../types';
 
-const API_BASE = import.meta.env.PROD
-    ? 'https://api.biz-retriever.com/api/v1'
-    : 'http://localhost:8000/api/v1';
+// Auto-detect API URL based on environment (consistent with api.js)
+const API_BASE = (() => {
+    // If running on Vercel or any production domain
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        return 'https://leeeunseok.tail32c3e2.ts.net/api/v1';
+    }
+    // Local development
+    return 'http://localhost:8000/api/v1';
+})();
 
 interface RequestOptions extends RequestInit {
     skipAuth?: boolean;
