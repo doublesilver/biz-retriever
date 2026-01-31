@@ -71,6 +71,7 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3001",
         "http://localhost:8000",
         "https://leeeunseok.tail32c3e2.ts.net",
+        "https://*.vercel.app",  # Vercel 프론트엔드
     ]
     PRODUCTION_DOMAIN: Union[str, None] = None
 
