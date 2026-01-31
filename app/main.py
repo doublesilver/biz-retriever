@@ -144,8 +144,6 @@ Bearer Token 방식의 JWT 인증을 사용합니다.
 )
 
 
-
-
 # Rate Limiting State
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
