@@ -6,15 +6,17 @@ from app.api.endpoints import (analysis, analytics, auth, bids, crawler,
 
 api_router = APIRouter()
 
+
 # Health check endpoint for /api/v1/health
 @api_router.get("/health", tags=["health"])
 async def api_health_check():
     """
     API Health Check
-    
+
     /api/v1/health 엔드포인트 - Docker healthcheck 및 모니터링용
     """
     return {"status": "ok", "service": "Biz-Retriever", "version": "1.0.0"}
+
 
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(bids.router, prefix="/bids", tags=["bids"])
