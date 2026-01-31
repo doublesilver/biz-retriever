@@ -5,7 +5,8 @@
     "description": "Premium dark-mode frontend for Biz-Retriever bid collection platform",
     "scripts": {
         "dev": "vite",
-        "build": "tsc && vite build",
+        "build": "echo 'Static HTML site - no build needed'",
+        "build:vite": "tsc && vite build",
         "preview": "vite preview",
         "type-check": "tsc --noEmit"
     },
