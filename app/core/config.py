@@ -37,18 +37,8 @@ class Settings(BaseSettings):
     # Google Gemini API (AI 분석 - 권장)
     GEMINI_API_KEY: Union[str, None] = None
 
-    # SNS Login (OAuth2)
-    GOOGLE_CLIENT_ID: Union[str, None] = None
-    GOOGLE_CLIENT_SECRET: Union[str, None] = None
-    GOOGLE_REDIRECT_URI: Union[str, None] = None
-
-    KAKAO_CLIENT_ID: Union[str, None] = None
-    KAKAO_CLIENT_SECRET: Union[str, None] = None
-    KAKAO_REDIRECT_URI: Union[str, None] = None
-
-    NAVER_CLIENT_ID: Union[str, None] = None
-    NAVER_CLIENT_SECRET: Union[str, None] = None
-    NAVER_REDIRECT_URI: Union[str, None] = None
+    # OAuth2 Social Login - REMOVED
+    # Kakao and Naver OAuth2 have been removed for security and maintenance simplicity
 
     # Phase 1: G2B API (나라장터) - 데이터셋 개방표준 서비스
     G2B_API_KEY: Union[str, None] = None

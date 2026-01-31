@@ -100,13 +100,20 @@ class User(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)  # SNS Login Fields
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    
+    # Security & Login Management
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0)  # 로그인 실패 횟수
+    locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)  # 계정 잠금 해제 시간
+    last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)  # 마지막 로그인 시간
+    
+    # OAuth2 Fields (Deprecated - kept for backward compatibility)
     provider: Mapped[str] = mapped_column(
         String, default="email"
-    )  # email, google, kakao, naver
+    )  # email (OAuth removed)
     provider_id: Mapped[Optional[str]] = mapped_column(
         String, nullable=True
-    )  # Social ID
+    )  # Deprecated
     profile_image: Mapped[Optional[str]] = mapped_column(
         String, nullable=True
     )  # Profile Image URL

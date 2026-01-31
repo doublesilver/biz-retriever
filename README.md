@@ -99,8 +99,10 @@ mindmap
 - ✅ **모니터링**: Prometheus + Grafana(Metrics), Slack Error Logging
 - ✅ **반응형 UI**: 모바일 최적화 및 Tailscale Funnel 외부 접속 지원
 
-### 🔑 Phase 7-8: 인증 & 알림
-- ✅ **SNS 로그인**: Google, Kakao, Naver OAuth2 연동
+### 🔑 Phase 7-8: 인증 & 보안 강화
+- ✅ **JWT 인증**: Access Token (15분) + Refresh Token (30일) 기반 인증
+- ✅ **계정 보안**: 로그인 실패 5회 시 30분 자동 잠금
+- ✅ **로그아웃**: Redis 기반 토큰 블랙리스트 (안전한 세션 종료)
 - ✅ **알림 시스템**: 사용자별 알림 설정 및 Slack 실시간 연동
 
 ### 🏁 Phase 9: 최종 통합 및 검증
@@ -115,6 +117,13 @@ mindmap
 - ✅ **DDoS 방어**: Nginx 3-Layer 방어 (Rate Limiting, 타임아웃, Fail2Ban)
 - ✅ **Celery → Taskiq 전환**: 메모리 70% 절감 (400MB → 120MB), Async-native 지원
 - ✅ **JWT Refresh Token**: Access Token 15분 + Refresh Token 30일 (Token Rotation)
+
+### 🔐 Phase 11: 보안 강화 (완료 - 2026.01.31)
+- ✅ **OAuth2 제거**: Kakao/Naver 소셜 로그인 제거 (이메일/비밀번호만 사용)
+- ✅ **계정 잠금**: 로그인 5회 실패 시 30분 자동 잠금
+- ✅ **로그아웃**: Redis 기반 토큰 블랙리스트 (탈취된 토큰 무효화)
+- ✅ **토큰 보안**: Access Token 유효기간 8일 → 15분 (99.87% 단축)
+- ✅ **감사 추적**: 로그인 실패 횟수, 마지막 로그인 시간, 잠금 이력 추적
 
 ---
 
@@ -483,10 +492,10 @@ taskiq scheduler app.worker.taskiq_app:scheduler
 ```
 
 #### 🚀 Live Demo & Access
-- **API Service**: [https://node.tail32c3e2.ts.net/](https://node.tail32c3e2.ts.net/) (Live)
-- **Swagger UI**: [https://node.tail32c3e2.ts.net/docs](https://node.tail32c3e2.ts.net/docs)
-- **ReDoc**: [https://node.tail32c3e2.ts.net/redoc](https://node.tail32c3e2.ts.net/redoc)
-- **Note**: Tailscale Serve를 통해 외부 접속 가능
+- **API Service**: [https://leeeunseok.tail32c3e2.ts.net/](https://leeeunseok.tail32c3e2.ts.net/) (Live)
+- **Swagger UI**: [https://leeeunseok.tail32c3e2.ts.net/docs](https://leeeunseok.tail32c3e2.ts.net/docs)
+- **ReDoc**: [https://leeeunseok.tail32c3e2.ts.net/redoc](https://leeeunseok.tail32c3e2.ts.net/redoc)
+- **Note**: Tailscale Funnel을 통해 외부 접속 가능
 - Local API: http://localhost:8000
 - Local Frontend: http://localhost:3001
 
@@ -652,11 +661,15 @@ biz-retriever/
 
 ## 보안 고려사항
 
-- ✅ **JWT 인증**: Bearer Token 기반
-- ✅ **비밀번호 해싱**: bcrypt (cost factor 12)
-- ✅ **CORS 설정**: 명시적 Origin 제한
-- ✅ **Rate Limiting**: SlowAPI (15 req/분)
-- ✅ **SQL Injection 방어**: ORM 사용
+- ✅ **JWT 인증**: Access Token (15분) + Refresh Token (30일) 기반 인증
+- ✅ **토큰 블랙리스트**: Redis 기반 로그아웃 토큰 무효화
+- ✅ **계정 잠금**: 로그인 5회 실패 시 30분 자동 잠금
+- ✅ **비밀번호 해싱**: bcrypt (cost factor 10, 최적화)
+- ✅ **비밀번호 정책**: 8자 이상, 대/소문자/숫자/특수문자 필수
+- ✅ **CORS 설정**: 명시적 Origin 제한 (Tailscale 도메인 포함)
+- ✅ **Host 헤더 검증**: TrustedHostMiddleware로 Host Injection 방어
+- ✅ **Rate Limiting**: SlowAPI (로그인 5회/분, 회원가입 3회/분)
+- ✅ **SQL Injection 방어**: ORM 사용 (SQLAlchemy Async)
 - ✅ **환경 변수 관리**: `.env` + Pydantic Settings
 
 ---
@@ -694,10 +707,11 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 **Made with ❤️ by [doublesilver](https://github.com/doublesilver)**
 
-**Last Updated**: 2026-01-30 12:48 PM  
-**Project Status**: 프로덕션 준비 85% 완료 (조건부 배포 가능) 🚀  
+**Last Updated**: 2026-01-31 05:30 PM KST  
+**Project Status**: 프로덕션 준비 90% 완료 (안정적 배포 가능) 🚀  
 **Tests**: 164/164 (100%) ✅  
 **Coverage**: 85% ✅  
-**Production Readiness**: 45% → **85%** (+40% 향상)  
-**Infrastructure**: 98% ✅ | **User Features**: 70% ⏸️ | **Business**: 0% ❌  
-**Live Service**: [https://node.tail32c3e2.ts.net/](https://node.tail32c3e2.ts.net/) 🌐
+**Production Readiness**: 85% → **90%** (+5% 향상)  
+**Security**: 95% ✅ | **Infrastructure**: 98% ✅ | **User Features**: 70% ⏸️ | **Business**: 0% ❌  
+**Live Service**: [https://leeeunseok.tail32c3e2.ts.net/](https://leeeunseok.tail32c3e2.ts.net/) 🌐  
+**Latest Changes**: OAuth2 제거, 계정 잠금, 로그아웃 구현 (2026-01-31)

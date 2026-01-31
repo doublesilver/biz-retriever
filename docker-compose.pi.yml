@@ -108,14 +108,14 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Celery Worker
-  celery-worker:
+  # Taskiq Worker (Celery 대체 - 70% 메모리 절감)
+  taskiq-worker:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: biz-retriever-worker
     restart: always
-    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=2 --max-tasks-per-child=100 -Q main-queue
+    command: taskiq worker app.worker.taskiq_app:broker --fs-discover
     environment:
       - SECRET_KEY=${SECRET_KEY:-changeme}
       - POSTGRES_SERVER=postgres
@@ -139,10 +139,12 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 384M
           cpus: '0.5'
+        reservations:
+          memory: 192M
     healthcheck:
-      test: [ "CMD-SHELL", "celery -A app.worker.celery_app inspect ping" ]
+      test: [ "CMD", "pgrep", "-f", "taskiq worker" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -153,14 +155,14 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Celery Beat (Scheduler)
-  celery-beat:
+  # Taskiq Scheduler (Celery Beat 대체)
+  taskiq-scheduler:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: biz-retriever-beat
+    container_name: biz-retriever-scheduler
     restart: always
-    command: celery -A app.worker.celery_app beat --loglevel=info
+    command: taskiq scheduler app.worker.taskiq_app:scheduler
     environment:
       - SECRET_KEY=${SECRET_KEY:-changeme}
       - POSTGRES_SERVER=postgres
@@ -178,16 +180,18 @@ services:
     depends_on:
       - postgres
       - redis
-      - celery-worker
+      - taskiq-worker
     networks:
       - pi-network
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 192M
           cpus: '0.25'
+        reservations:
+          memory: 96M
     healthcheck:
-      test: [ "CMD-SHELL", "celery -A app.worker.celery_app inspect ping" ]
+      test: [ "CMD", "pgrep", "-f", "taskiq scheduler" ]
       interval: 30s
       timeout: 10s
       retries: 3

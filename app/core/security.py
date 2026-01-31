@@ -114,7 +114,7 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_db)
 ) -> User:
     """
-    현재 인증된 사용자 조회
+    현재 인증된 사용자 조회 (토큰 블랙리스트 체크 포함)
 
     Args:
         token: JWT 토큰
@@ -124,13 +124,18 @@ async def get_current_user(
         User 객체
 
     Raises:
-        HTTPException: 인증 실패 시
+        HTTPException: 인증 실패 시 또는 토큰이 블랙리스트에 있을 때
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # Check if token is blacklisted (logged out)
+    if await is_token_blacklisted(token, "access"):
+        logger.warning("Attempt to use blacklisted token")
+        raise credentials_exception
 
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
@@ -217,3 +222,57 @@ async def verify_refresh_token(refresh_token: str, session: AsyncSession) -> Use
         raise credentials_exception
 
     return user
+
+
+async def blacklist_token(token: str, token_type: str = "access") -> None:
+    """
+    토큰을 블랙리스트에 추가 (로그아웃 시 사용)
+    
+    Args:
+        token: JWT 토큰
+        token_type: "access" or "refresh"
+    """
+    try:
+        from app.core.cache import get_redis_client
+        
+        # Decode token to get expiry time
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        exp_timestamp = payload.get("exp")
+        
+        if exp_timestamp:
+            # Calculate TTL (time to live) - how long until token expires
+            now = datetime.utcnow().timestamp()
+            ttl = int(exp_timestamp - now)
+            
+            if ttl > 0:
+                # Store in Redis with TTL matching token expiry
+                redis_client = get_redis_client()
+                key = f"blacklist:{token_type}:{token}"
+                await redis_client.setex(key, ttl, "1")
+                logger.info(f"Token blacklisted: {token_type}, TTL: {ttl}s")
+    except Exception as e:
+        logger.error(f"Failed to blacklist token: {e}")
+        # Non-critical error - don't raise
+
+
+async def is_token_blacklisted(token: str, token_type: str = "access") -> bool:
+    """
+    토큰이 블랙리스트에 있는지 확인
+    
+    Args:
+        token: JWT 토큰
+        token_type: "access" or "refresh"
+        
+    Returns:
+        True if blacklisted, False otherwise
+    """
+    try:
+        from app.core.cache import get_redis_client
+        
+        redis_client = get_redis_client()
+        key = f"blacklist:{token_type}:{token}"
+        result = await redis_client.get(key)
+        return result is not None
+    except Exception as e:
+        logger.error(f"Failed to check token blacklist: {e}")
+        return False  # Fail open - allow request if Redis is down
