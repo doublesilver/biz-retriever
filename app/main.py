@@ -42,7 +42,9 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         origin = request.headers.get("origin", "")
 
-        logger.info(f"[CORS DEBUG] Method: {request.method}, Origin: '{origin}', Path: {request.url.path}")
+        logger.info(
+            f"[CORS DEBUG] Method: {request.method}, Origin: '{origin}', Path: {request.url.path}"
+        )
 
         # Preflight OPTIONS 요청 처리
         if request.method == "OPTIONS":
@@ -57,7 +59,9 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
                 "Authorization, Content-Type, Accept, Origin, X-Requested-With"
             )
             response.headers["Access-Control-Max-Age"] = "600"
-            logger.info(f"[CORS DEBUG] OPTIONS response headers: {dict(response.headers)}")
+            logger.info(
+                f"[CORS DEBUG] OPTIONS response headers: {dict(response.headers)}"
+            )
             return response
 
         # 일반 요청 처리
@@ -69,7 +73,9 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Expose-Headers"] = "*"
-            logger.info(f"[CORS DEBUG] Response headers: {list(response.headers.keys())}")
+            logger.info(
+                f"[CORS DEBUG] Response headers: {list(response.headers.keys())}"
+            )
         else:
             logger.warning(f"[CORS DEBUG] No origin header, skipping CORS")
 
