@@ -51,70 +51,79 @@
     <!-- Main Content -->
     <main class="dashboard-container" style="padding-top: 60px;">
         <div class="container-fluid" style="padding: 0 1.5rem;">
+            <!-- Pipeline Flow Indicator -->
+            <div class="pipeline-indicator">
+                <div class="pipeline-stage">
+                    <div class="pipeline-badge badge-amber">
+                        <span id="count-new">0</span>
+                    </div>
+                    <div class="pipeline-label">신규</div>
+                </div>
+                <div class="pipeline-arrow">→</div>
+                <div class="pipeline-stage">
+                    <div class="pipeline-badge badge-blue">
+                        <span id="count-reviewing">0</span>
+                    </div>
+                    <div class="pipeline-label">분석</div>
+                </div>
+                <div class="pipeline-arrow">→</div>
+                <div class="pipeline-stage">
+                    <div class="pipeline-badge badge-purple">
+                        <span id="count-bidding">0</span>
+                    </div>
+                    <div class="pipeline-label">준비</div>
+                </div>
+                <div class="pipeline-arrow">→</div>
+                <div class="pipeline-stage">
+                    <div class="pipeline-badge badge-emerald">
+                        <span id="count-submitted">0</span>
+                    </div>
+                    <div class="pipeline-label">완료</div>
+                </div>
+            </div>
+
             <div class="kanban-board" id="kanbanBoard">
 
-                <!-- 1. Inbox (AI 추천) -->
+                <!-- 1. New (신규) -->
                 <div class="kanban-column column-new">
                     <div class="kanban-header">
-                        <h3>🤖 AI 추천 (Inbox)</h3>
-                        <span class="column-count" id="count-new">0</span>
+                        <h3>신규 (New)</h3>
+                        <span class="column-count" id="count-new-display">0</span>
                     </div>
                     <div class="kanban-body" id="col-new" data-status="new">
                         <!-- Cards injected here -->
                     </div>
                 </div>
 
-                <!-- 2. Analyzing (분석 중) -->
+                <!-- 2. Analysis (분석) -->
                 <div class="kanban-column column-reviewing">
                     <div class="kanban-header">
-                        <h3>🧐 분석/검토 (Analyzing)</h3>
-                        <span class="column-count" id="count-reviewing">0</span>
+                        <h3>분석 (Analysis)</h3>
+                        <span class="column-count" id="count-reviewing-display">0</span>
                     </div>
                     <div class="kanban-body" id="col-reviewing" data-status="reviewing">
                         <!-- Cards injected here -->
                     </div>
                 </div>
 
-                <!-- 3. Bidding (입찰 준비) -->
+                <!-- 3. Preparing (준비) -->
                 <div class="kanban-column column-bidding">
                     <div class="kanban-header">
-                        <h3>📝 입찰 준비 (Bidding)</h3>
-                        <span class="column-count" id="count-bidding">0</span>
+                        <h3>준비 (Preparing)</h3>
+                        <span class="column-count" id="count-bidding-display">0</span>
                     </div>
                     <div class="kanban-body" id="col-bidding" data-status="bidding">
                         <!-- Cards injected here -->
                     </div>
                 </div>
 
-                <!-- 4. Submitted (투찰 완료) -->
+                <!-- 4. Submitted (완료) -->
                 <div class="kanban-column column-submitted">
                     <div class="kanban-header">
-                        <h3>🚀 투찰 완료 (Submitted)</h3>
-                        <span class="column-count" id="count-submitted">0</span>
+                        <h3>완료 (Submitted)</h3>
+                        <span class="column-count" id="count-submitted-display">0</span>
                     </div>
                     <div class="kanban-body" id="col-submitted" data-status="submitted">
-                        <!-- Cards injected here -->
-                    </div>
-                </div>
-
-                <!-- 5. Won (낙찰) -->
-                <div class="kanban-column column-won">
-                    <div class="kanban-header">
-                        <h3>🎉 낙찰 (Won)</h3>
-                        <span class="column-count" id="count-won">0</span>
-                    </div>
-                    <div class="kanban-body" id="col-won" data-status="won">
-                        <!-- Cards injected here -->
-                    </div>
-                </div>
-
-                <!-- 6. Lost (탈락) -->
-                <div class="kanban-column column-lost">
-                    <div class="kanban-header">
-                        <h3>😢 탈락 (Lost)</h3>
-                        <span class="column-count" id="count-lost">0</span>
-                    </div>
-                    <div class="kanban-body" id="col-lost" data-status="lost">
                         <!-- Cards injected here -->
                     </div>
                 </div>
@@ -161,12 +170,10 @@
                 <div class="form-group">
                     <label>상태 변경</label>
                     <select id="modalStatus" class="form-control">
-                        <option value="new">AI 추천 (Inbox)</option>
-                        <option value="reviewing">분석/검토</option>
-                        <option value="bidding">입찰 준비</option>
-                        <option value="submitted">투찰 완료</option>
-                        <option value="won">낙찰</option>
-                        <option value="lost">탈락</option>
+                        <option value="new">신규 (New)</option>
+                        <option value="reviewing">분석 (Analysis)</option>
+                        <option value="bidding">준비 (Preparing)</option>
+                        <option value="submitted">완료 (Submitted)</option>
                     </select>
                 </div>
 

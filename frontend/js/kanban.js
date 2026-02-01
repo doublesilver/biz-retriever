@@ -25,18 +25,23 @@ const columns = {
     'new': document.getElementById('col-new'),
     'reviewing': document.getElementById('col-reviewing'),
     'bidding': document.getElementById('col-bidding'),
-    'submitted': document.getElementById('col-submitted'),
-    'won': document.getElementById('col-won'),
-    'lost': document.getElementById('col-lost')
+    'submitted': document.getElementById('col-submitted')
 };
 
+// Pipeline indicator counts
 const counts = {
     'new': document.getElementById('count-new'),
     'reviewing': document.getElementById('count-reviewing'),
     'bidding': document.getElementById('count-bidding'),
-    'submitted': document.getElementById('count-submitted'),
-    'won': document.getElementById('count-won'),
-    'lost': document.getElementById('count-lost')
+    'submitted': document.getElementById('count-submitted')
+};
+
+// Column header counts
+const countDisplays = {
+    'new': document.getElementById('count-new-display'),
+    'reviewing': document.getElementById('count-reviewing-display'),
+    'bidding': document.getElementById('count-bidding-display'),
+    'submitted': document.getElementById('count-submitted-display')
 };
 
 // Modal Elements
@@ -132,8 +137,13 @@ function createCard(bid) {
 function updateCounts() {
     Object.keys(columns).forEach(status => {
         const count = columns[status].children.length;
+        // Update pipeline indicator
         if (counts[status]) {
             counts[status].textContent = count;
+        }
+        // Update column header
+        if (countDisplays[status]) {
+            countDisplays[status].textContent = count;
         }
     });
 }

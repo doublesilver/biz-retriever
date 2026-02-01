@@ -1,12 +1,71 @@
 /* Kanban Board specific styles */
 
+/* Pipeline Flow Indicator */
+.pipeline-indicator {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+}
+
+.pipeline-stage {
+    text-align: center;
+}
+
+.pipeline-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    margin: 0 auto 8px;
+}
+
+.pipeline-badge.badge-amber {
+    background: #fef3c7;
+    color: #f59e0b;
+}
+
+.pipeline-badge.badge-blue {
+    background: #dbeafe;
+    color: #3b82f6;
+}
+
+.pipeline-badge.badge-purple {
+    background: #ede9fe;
+    color: #8b5cf6;
+}
+
+.pipeline-badge.badge-emerald {
+    background: #d1fae5;
+    color: #10b981;
+}
+
+.pipeline-label {
+    font-size: var(--font-size-xs);
+    color: var(--gray-600);
+}
+
+.pipeline-arrow {
+    color: var(--gray-300);
+    font-size: 1.25rem;
+    font-weight: 300;
+}
+
 .kanban-board {
     display: flex;
     overflow-x: auto;
     gap: var(--spacing-md);  /* KRDS 표준 간격 (24px) */
     padding: var(--spacing-md) 0;
-    height: calc(100vh - 80px);
-    /* Adjust based on navbar height */
+    height: calc(100vh - 200px);
+    /* Adjust based on navbar height + pipeline indicator */
     align-items: flex-start;
 }
 
@@ -125,36 +184,26 @@
     color: #2563eb;
 }
 
-/* Status Colors */
+/* Status Colors - 4 Stage Pipeline */
 .column-new .kanban-header {
-    border-top: 4px solid var(--text-secondary);
+    border-bottom: 2px solid #f59e0b;
+    /* Amber */
 }
 
 .column-reviewing .kanban-header {
-    border-top: 4px solid #f59e0b;
+    border-bottom: 2px solid #3b82f6;
+    /* Blue */
 }
 
-/* Amber */
 .column-bidding .kanban-header {
-    border-top: 4px solid #3b82f6;
+    border-bottom: 2px solid #8b5cf6;
+    /* Purple */
 }
 
-/* Blue */
 .column-submitted .kanban-header {
-    border-top: 4px solid #8b5cf6;
+    border-bottom: 2px solid #10b981;
+    /* Emerald */
 }
-
-/* Purple */
-.column-won .kanban-header {
-    border-top: 4px solid #10b981;
-}
-
-/* Green */
-.column-lost .kanban-header {
-    border-top: 4px solid #ef4444;
-}
-
-/* Red */
 
 /* Modal Styles */
 .modal-overlay {
@@ -311,4 +360,34 @@
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 2px rgba(37, 110, 244, 0.1);  /* KRDS 정부24 블루 */
+}
+
+/* Responsive Mobile */
+@media (max-width: 768px) {
+    .pipeline-indicator {
+        gap: 8px;
+    }
+
+    .pipeline-badge {
+        width: 36px;
+        height: 36px;
+        font-size: 0.875rem;
+    }
+
+    .pipeline-label {
+        font-size: 0.7rem;
+    }
+
+    .pipeline-arrow {
+        font-size: 1rem;
+    }
+
+    .kanban-column {
+        min-width: 280px;
+        width: 280px;
+    }
+
+    .kanban-board {
+        height: calc(100vh - 240px);
+    }
 }
