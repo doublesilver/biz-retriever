@@ -6,29 +6,140 @@
 */
 
 /* ============================================
-   Login Page - 페이히어 스타일
+   Login Page - Reference Design Split Layout
    ============================================ */
 .login-container {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg-secondary);
-    padding: var(--spacing-6);
+    background: linear-gradient(to bottom right, var(--gray-900), var(--gray-800), var(--gray-900));  /* Reference gradient */
+    padding: var(--spacing-8);
 }
 
+/* Desktop Split Layout (Reference Style) */
+@media (min-width: 1024px) {
+    .login-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-12);
+        max-width: 1536px;
+        margin: 0 auto;
+        padding: var(--spacing-8);
+    }
+
+    .login-info {
+        display: flex !important;
+        align-items: center;
+        color: white;
+    }
+
+    .mobile-only {
+        display: none !important;
+    }
+}
+
+/* Left Branding Panel (Reference Style) */
 .login-info {
     display: none;
 }
 
+.info-content {
+    max-width: 500px;
+}
+
+.info-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-4);
+    margin-bottom: var(--spacing-10);
+}
+
+.info-logo .logo-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--primary);  /* Blue background (Reference) */
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+}
+
+.info-logo h1 {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: white;
+    margin: 0;
+}
+
+.login-info h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: white;
+    margin-bottom: var(--spacing-3);
+}
+
+.login-info > div > p {
+    font-size: var(--font-size-base);
+    color: var(--gray-400);  /* Slate 400 for secondary text */
+    line-height: var(--line-height-relaxed);
+    margin-bottom: var(--spacing-8);
+}
+
+.feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--spacing-8) 0;
+}
+
+.feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-4);
+    margin-bottom: var(--spacing-5);
+}
+
+.feature-list li span {
+    width: 40px;
+    height: 40px;
+    background: var(--gray-800);  /* Slate 800 background */
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.25rem;
+}
+
+.feature-list h4 {
+    font-weight: var(--font-weight-medium);
+    color: white;
+    margin-bottom: var(--spacing-2);
+    font-size: var(--font-size-base);
+}
+
+.feature-list p {
+    font-size: var(--font-size-sm);
+    color: var(--gray-400);
+    line-height: var(--line-height-relaxed);
+}
+
+/* Right Login Card (Reference Style) */
 .login-card {
     width: 100%;
-    max-width: 400px;
-    background: var(--bg-primary);
-    padding: var(--spacing-10);
+    max-width: 450px;
+    background: white;
+    padding: var(--spacing-12);  /* Generous padding (Reference) */
     border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-lg);
-    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-xl);  /* Large shadow (Reference) */
+}
+
+@media (max-width: 1023px) {
+    .login-card {
+        max-width: 400px;
+        padding: var(--spacing-10);
+    }
 }
 
 .logo {
