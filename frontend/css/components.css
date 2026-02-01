@@ -76,7 +76,7 @@
 }
 
 .btn:hover {
-    opacity: 0.9;
+    transform: translateY(-1px);
 }
 
 .btn:active {
@@ -250,24 +250,19 @@
     color: var(--text-secondary);
 }
 
-/* Card - KRDS 정부24 스타일 + 애니메이션 */
+/* Card - Reference Design Style (Clean & Minimal) */
 .card {
     background: var(--bg-primary);
-    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
-    border: 1px solid var(--gray-200);  /* 명확한 테두리 */
-    box-shadow: 
-        0 1px 3px 0 rgba(0, 0, 0, 0.1),
-        0 1px 2px -1px rgba(0, 0, 0, 0.1);  /* 계층적 그림자 */
-    padding: var(--spacing-md);  /* KRDS 표준 여백 (24px) */
-    transition: all var(--transition-base) cubic-bezier(0.16, 1, 0.3, 1);
-    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: var(--radius-lg);  /* 12px (Reference) */
+    border: 1px solid var(--gray-200);  /* Subtle Slate border */
+    box-shadow: var(--shadow-sm);  /* Minimal shadow */
+    padding: var(--spacing-5);  /* 20px (Reference) */
+    transition: all var(--transition-base);
 }
 
 .card:hover {
-    box-shadow:
-        0 10px 15px -3px rgba(0, 0, 0, 0.1),
-        0 4px 6px -4px rgba(0, 0, 0, 0.1);  /* 호버 시 강화된 그림자 */
-    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);  /* Subtle elevation on hover */
+    border-color: var(--border-color-strong);
 }
 
 /* Modal */
@@ -294,26 +289,15 @@
 
 .modal-content {
     position: relative;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);  /* Safari 지원 */
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
-    box-shadow: 
-        0 20px 25px -5px rgba(0, 0, 0, 0.1),
-        0 10px 10px -5px rgba(0, 0, 0, 0.04);  /* 강화된 그림자 */
+    background: var(--bg-primary);  /* Solid background (Reference) */
+    border-radius: var(--radius-xl);  /* 16px rounded (Reference) */
+    box-shadow: var(--shadow-xl);  /* Large shadow for elevation */
     max-width: 500px;
     width: 90%;
     max-height: 90vh;
     overflow-y: auto;
     z-index: var(--z-modal);
     animation: modalSlideIn var(--transition-base);
-}
-
-/* Dark Mode에서는 글래스모피즘 색상 조정 */
-body.dark-mode .modal-content {
-    background: rgba(30, 41, 59, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 @keyframes modalSlideIn {

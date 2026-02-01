@@ -113,16 +113,17 @@
 }
 
 .navbar {
-    background: var(--bg-primary);
-    border-bottom: 1px solid var(--border-color);
-    padding: 0 var(--spacing-6);
-    height: 60px;
+    background: var(--gray-800);  /* Trust Navy (Reference Header) */
+    border-bottom: none;  /* Clean, no border */
+    padding: 0 var(--spacing-8);
+    height: 64px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     position: sticky;
     top: 0;
     z-index: var(--z-sticky);
+    box-shadow: var(--shadow-sm);
 }
 
 .navbar-brand {
@@ -131,7 +132,7 @@
     gap: var(--spacing-3);
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-bold);
-    color: var(--text-primary);
+    color: white;  /* White brand text on dark background */
     text-decoration: none;
 }
 
@@ -154,7 +155,7 @@
     gap: var(--spacing-2);
     padding: var(--spacing-2) var(--spacing-4);
     border-radius: var(--radius-md);
-    color: var(--text-secondary);
+    color: var(--gray-300);  /* Slate 300 text (Reference) */
     text-decoration: none;
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
@@ -162,13 +163,13 @@
 }
 
 .nav-link:hover {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
+    background: rgba(51, 65, 85, 0.5);  /* Slate 700 with 50% opacity (Reference) */
+    color: white;
 }
 
 .nav-link.active {
-    background: var(--primary-light);
-    color: var(--primary);
+    background: var(--gray-700);  /* Slate 700 for active state (Reference) */
+    color: white;
 }
 
 .navbar-actions {

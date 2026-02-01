@@ -1,51 +1,51 @@
 :root {
-    /* Primary Colors - 네이버/카카오 스타일 절제된 컬러 */
-    --primary: #3182f6;        /* 페이히어 블루 */
-    --primary-hover: #1b64da;
-    --primary-light: #e8f3ff;
+    /* Primary Colors - Reference Design Slate Style */
+    --primary: #2563EB;        /* Action Blue (Reference) */
+    --primary-hover: #1d4ed8;
+    --primary-light: #dbeafe;
     --primary-dark: #1e40af;
     
-    /* Accent Colors */
-    --accent: #00c73c;         /* 네이버 그린 */
-    --accent-kakao: #fee500;   /* 카카오 옐로우 */
+    /* Accent Colors - Slate Based */
+    --accent: #059669;         /* Success Green (Emerald 600) */
+    --accent-secondary: #8b5cf6; /* Purple for variety */
 
-    /* Secondary Colors */
-    --secondary: #4e5968;
-    --secondary-hover: #363d47;
+    /* Secondary Colors - Slate Tones */
+    --secondary: #475569;      /* Slate 600 */
+    --secondary-hover: #334155; /* Slate 700 */
 
-    /* Status Colors - 차분한 톤 */
-    --success: #00c73c;
-    --success-light: #e5f8ed;
-    --warning: #ff9500;
-    --warning-light: #fff4e5;
-    --danger: #ff3b30;
-    --danger-light: #ffe5e5;
-    --info: #3182f6;
-    --info-light: #e8f3ff;
+    /* Status Colors - Reference Design */
+    --success: #059669;        /* Emerald 600 */
+    --success-light: #d1fae5;  /* Emerald 100 */
+    --warning: #d97706;        /* Amber 600 */
+    --warning-light: #fef3c7;  /* Amber 100 */
+    --danger: #dc2626;         /* Red 600 */
+    --danger-light: #fee2e2;   /* Red 100 */
+    --info: #2563EB;           /* Blue 600 */
+    --info-light: #dbeafe;     /* Blue 100 */
 
-    /* Neutral Colors - 네이버/페이히어 스타일 */
-    --gray-50: #fafbfc;
-    --gray-100: #f2f4f6;
-    --gray-200: #e5e8eb;
-    --gray-300: #d1d6db;
-    --gray-400: #b0b8c1;
-    --gray-500: #8b95a1;
-    --gray-600: #6b7684;
-    --gray-700: #4e5968;
-    --gray-800: #333d4b;
-    --gray-900: #191f28;
+    /* Neutral Colors - Slate Scale (Reference Design) */
+    --gray-50: #f8fafc;        /* Slate 50 */
+    --gray-100: #f1f5f9;       /* Slate 100 (Admin Gray) */
+    --gray-200: #e2e8f0;       /* Slate 200 (Borders) */
+    --gray-300: #cbd5e1;       /* Slate 300 */
+    --gray-400: #94a3b8;       /* Slate 400 */
+    --gray-500: #64748b;       /* Slate 500 */
+    --gray-600: #475569;       /* Slate 600 (Body text) */
+    --gray-700: #334155;       /* Slate 700 */
+    --gray-800: #1e293b;       /* Slate 800 (Trust Navy/Header) */
+    --gray-900: #0f172a;       /* Slate 900 (Darkest) */
 
-    /* Light Mode - 페이히어/네이버 스타일 */
+    /* Light Mode - Reference Design Style */
     --bg-primary: #ffffff;
-    --bg-secondary: var(--gray-50);
-    --bg-tertiary: var(--gray-100);
-    --text-primary: var(--gray-900);
-    --text-secondary: var(--gray-600);
-    --text-tertiary: var(--gray-500);
-    --text-disabled: var(--gray-400);
-    --border-color: var(--gray-200);
-    --border-color-strong: var(--gray-300);
-    --divider-color: var(--gray-200);
+    --bg-secondary: var(--gray-50);      /* #f8fafc */
+    --bg-tertiary: var(--gray-100);      /* #f1f5f9 (Page background) */
+    --text-primary: var(--gray-900);     /* #0f172a */
+    --text-secondary: var(--gray-600);   /* #475569 */
+    --text-tertiary: var(--gray-500);    /* #64748b */
+    --text-disabled: var(--gray-400);    /* #94a3b8 */
+    --border-color: var(--gray-200);     /* #e2e8f0 */
+    --border-color-strong: var(--gray-300); /* #cbd5e1 */
+    --divider-color: var(--gray-200);    /* #e2e8f0 */
     
     /* Shadows - 자연스럽고 미묘하게 */
     --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -124,24 +124,24 @@
     --z-tooltip: 1070;
 }
 
-/* Dark Mode - 네이버/카카오 스타일 */
+/* Dark Mode - Reference Design Slate Style */
 body.dark-mode {
-    --bg-primary: #17171c;
-    --bg-secondary: #1e1e23;
-    --bg-tertiary: #2c2c35;
-    --text-primary: #f2f4f6;
-    --text-secondary: #b0b8c1;
-    --text-tertiary: #8b95a1;
-    --text-disabled: #6b7684;
-    --border-color: #2c2c35;
-    --border-color-strong: #3e3e4a;
-    --divider-color: #2c2c35;
+    --bg-primary: #0f172a;     /* Slate 900 */
+    --bg-secondary: #1e293b;   /* Slate 800 */
+    --bg-tertiary: #334155;    /* Slate 700 */
+    --text-primary: #f1f5f9;   /* Slate 100 */
+    --text-secondary: #94a3b8; /* Slate 400 */
+    --text-tertiary: #64748b;  /* Slate 500 */
+    --text-disabled: #475569;  /* Slate 600 */
+    --border-color: #334155;   /* Slate 700 */
+    --border-color-strong: #475569; /* Slate 600 */
+    --divider-color: #334155;  /* Slate 700 */
     
-    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
-    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
 }
 
 /* Priority Colors */
