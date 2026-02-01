@@ -321,15 +321,30 @@
 }
 
 .stat-card {
-    background: var(--bg-primary);
+    background: white;  /* Reference: white cards */
     border-radius: var(--radius-lg);
     padding: var(--spacing-5);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--gray-200);  /* Reference: Slate 200 border */
+    box-shadow: var(--shadow-sm);  /* Reference: subtle shadow */
     transition: all var(--transition-base);
 }
 
 .stat-card:hover {
+    border-color: var(--gray-300);  /* Reference: subtle border change */
     box-shadow: var(--shadow-md);
+}
+
+/* Colored stat cards (Reference style) */
+.stat-card.success {
+    border-top: 3px solid var(--success);  /* Top accent border */
+}
+
+.stat-card.warning {
+    border-top: 3px solid var(--warning);
+}
+
+.stat-card.info {
+    border-top: 3px solid var(--info);
 }
 
 .stat-label {
