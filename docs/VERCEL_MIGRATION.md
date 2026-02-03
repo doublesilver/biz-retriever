@@ -169,3 +169,66 @@ git checkout -- api/index.py
 - [ ] T6: Migrate WebSocket to Server-Sent Events (SSE)
 - [ ] T7: Test all API endpoints on Vercel
 - [ ] T8: Configure Vercel Cron Jobs for scheduled tasks
+
+---
+
+## Wave 3: Prometheus Removal (T8)
+
+### 2026-02-03: Prometheus Removal Verification
+
+#### Changes Made
+
+1. **Confirmed Prometheus Removal from `api/index.py`**:
+   - ✅ No active Prometheus imports
+   - ✅ No PrometheusMiddleware initialization
+   - ✅ No /metrics endpoint
+   - Only comments remain noting removal
+
+2. **Removed `prometheus-client` from `requirements-vercel.txt`**:
+   ```diff
+   - prometheus-client==0.19.0
+   + # prometheus-client==0.19.0  # Removed - use Vercel Analytics instead
+   ```
+
+3. **Rationale**:
+   - Prometheus metrics are in-memory and lost on serverless container restart
+   - Vercel provides built-in Analytics for basic request metrics
+   - For custom metrics, use external push-based service (Datadog, Grafana Cloud, New Relic)
+
+#### What Remains (Intentional)
+
+- ✅ `app/core/metrics.py` - Kept for Raspberry Pi deployment
+- ✅ Prometheus in `app/main.py` - Kept for Raspberry Pi (local monitoring)
+- ✅ Prometheus in `requirements.txt` - Kept for local/Pi deployment
+
+#### Verification
+
+```bash
+# Prometheus removed from Vercel entry point
+grep -i "prometheus" api/index.py
+# No matches (only comments)
+
+# Prometheus-client commented in Vercel requirements
+grep "prometheus" requirements-vercel.txt
+# prometheus-client==0.19.0  # Removed - use Vercel Analytics instead
+
+# /metrics endpoint not in Vercel entry point
+grep '"/metrics"' api/index.py
+# No matches
+```
+
+#### Alternatives for Metrics
+
+| Use Case | Solution | Cost | Setup |
+|----------|----------|------|-------|
+| Basic metrics | Vercel Analytics | Free | Built-in |
+| Custom metrics | Vercel Analytics API | Free | API integration |
+| Advanced monitoring | Datadog | $15-50/mo | Agent + API |
+| Open-source | Grafana Cloud | Free tier | Push gateway |
+| Simple APM | New Relic | Free tier | Agent |
+
+#### Next Steps
+
+- [ ] T9: Test all endpoints on Vercel (no Prometheus dependency)
+- [ ] T10: Configure Vercel Analytics dashboard
+- [ ] T11: Set up external monitoring (optional)
