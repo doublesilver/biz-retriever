@@ -1,7 +1,8 @@
 """
-Redis 캐싱 유틸리티
+Redis 캐싱 유틸리티 (Stateless for Serverless)
 
-fastapi-cache2 제거로 인해 Redis 직접 사용하여 캐싱 구현
+Per-request connection pattern for serverless environments.
+Graceful degradation when Redis unavailable.
 """
 
 import json
@@ -12,60 +13,81 @@ from redis import asyncio as aioredis
 from app.core.config import settings
 from app.core.logging import logger
 
-# Redis 클라이언트 (싱글톤)
-_redis_client: Optional[aioredis.Redis] = None
 
+async def get_redis_client() -> Optional[aioredis.Redis]:
+    """
+    Create Redis connection for single request (stateless).
 
-async def get_redis() -> aioredis.Redis:
-    """Redis 클라이언트 가져오기 (싱글톤)"""
-    global _redis_client
-    if _redis_client is None:
-        _redis_client = await aioredis.from_url(
+    Returns:
+        Redis client or None if connection fails (graceful degradation)
+    """
+    try:
+        client = await aioredis.from_url(
             settings.REDIS_URL,
             encoding="utf-8",
-            decode_responses=True,  # JSON 직렬화를 위해
+            decode_responses=True,
+            socket_connect_timeout=5,
+            socket_timeout=5,
         )
-    return _redis_client
+        return client
+    except Exception as e:
+        logger.warning(f"Redis connection failed: {e}")
+        return None  # Graceful degradation
+
+
+async def get_redis() -> Optional[aioredis.Redis]:
+    """Alias for get_redis_client (backward compatibility)"""
+    return await get_redis_client()
 
 
 async def get_cached(key: str) -> Optional[Any]:
     """
-    Redis에서 캐시된 데이터 조회
+    Redis에서 캐시된 데이터 조회 (stateless, graceful degradation)
 
     Args:
         key: 캐시 키
 
     Returns:
-        캐시된 데이터 (없으면 None)
+        캐시된 데이터 (없으면 None, Redis 실패시에도 None)
     """
+    client = await get_redis_client()
+    if client is None:
+        return None  # Graceful degradation - cache miss
+
     try:
-        redis = await get_redis()
-        data = await redis.get(key)
+        data = await client.get(key)
         if data:
             logger.debug(f"Cache HIT: {key}")
             return json.loads(data)
         logger.debug(f"Cache MISS: {key}")
         return None
     except Exception as e:
-        logger.error(f"Redis GET 오류: {e}")
-        return None
+        logger.warning(f"Redis GET failed: {e}")
+        return None  # Graceful degradation
+    finally:
+        await client.aclose()
 
 
-async def set_cached(key: str, value: Any, expire: int = 300) -> bool:
+async def set_cached(key: str, value: Any, expire: Optional[int] = None) -> bool:
     """
-    Redis에 데이터 캐싱
+    Redis에 데이터 캐싱 (stateless, graceful degradation)
 
     Args:
         key: 캐시 키
         value: 저장할 데이터 (JSON 직렬화 가능해야 함)
-        expire: TTL (초 단위, 기본 5분)
+        expire: TTL (초 단위, None이면 config에서 기본값 사용)
 
     Returns:
-        성공 여부
+        성공 여부 (Redis 실패시 False, 하지만 앱은 계속 동작)
     """
-    try:
-        redis = await get_redis()
+    client = await get_redis_client()
+    if client is None:
+        return False  # Graceful degradation - cache write skipped
 
+    # Use TTL from config if not specified
+    ttl = expire if expire is not None else settings.CACHE_DEFAULT_TTL
+
+    try:
         # Pydantic 모델 직렬화 처리
         if isinstance(value, list):
             serialized = [
@@ -77,52 +99,64 @@ async def set_cached(key: str, value: Any, expire: int = 300) -> bool:
         else:
             serialized = value
 
-        await redis.setex(key, expire, json.dumps(serialized, ensure_ascii=False))
-        logger.debug(f"Cache SET: {key} (expire={expire}s)")
+        await client.setex(key, ttl, json.dumps(serialized, ensure_ascii=False))
+        logger.debug(f"Cache SET: {key} (expire={ttl}s)")
         return True
     except Exception as e:
-        logger.error(f"Redis SET 오류: {e}")
-        return False
+        logger.warning(f"Redis SET failed: {e}")
+        return False  # Graceful degradation
+    finally:
+        await client.aclose()
 
 
 async def delete_cached(key: str) -> bool:
     """
-    Redis에서 캐시 삭제
+    Redis에서 캐시 삭제 (stateless, graceful degradation)
 
     Args:
         key: 캐시 키
 
     Returns:
-        성공 여부
+        성공 여부 (Redis 실패시 False)
     """
+    client = await get_redis_client()
+    if client is None:
+        return False  # Graceful degradation
+
     try:
-        redis = await get_redis()
-        await redis.delete(key)
+        await client.delete(key)
         logger.debug(f"Cache DELETE: {key}")
         return True
     except Exception as e:
-        logger.error(f"Redis DELETE 오류: {e}")
+        logger.warning(f"Redis DELETE failed: {e}")
         return False
+    finally:
+        await client.aclose()
 
 
 async def clear_cache_pattern(pattern: str) -> int:
     """
-    패턴에 매칭되는 모든 캐시 삭제
+    패턴에 매칭되는 모든 캐시 삭제 (stateless, graceful degradation)
 
     Args:
         pattern: 캐시 키 패턴 (예: "bids:*")
 
     Returns:
-        삭제된 키 개수
+        삭제된 키 개수 (Redis 실패시 0)
     """
+    client = await get_redis_client()
+    if client is None:
+        return 0  # Graceful degradation
+
     try:
-        redis = await get_redis()
-        keys = await redis.keys(pattern)
+        keys = await client.keys(pattern)
         if keys:
-            count = await redis.delete(*keys)
-            logger.info(f"Cache CLEAR: {pattern} ({count}개 키 삭제)")
+            count = await client.delete(*keys)
+            logger.info(f"Cache CLEAR: {pattern} ({count} keys deleted)")
             return count
         return 0
     except Exception as e:
-        logger.error(f"Redis CLEAR 오류: {e}")
+        logger.warning(f"Redis CLEAR failed: {e}")
         return 0
+    finally:
+        await client.aclose()
