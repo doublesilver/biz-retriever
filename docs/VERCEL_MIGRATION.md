@@ -570,3 +570,248 @@ Add row limit (50,000) to prevent memory exhaustion on extreme exports. This is 
 - [ ] T18: Integration testing (local + Vercel preview)
 - [ ] T19: Database migration (Raspberry Pi → Neon)
 - [ ] T20: Redis migration (Raspberry Pi → Upstash)
+
+
+---
+
+## Wave 5: Deployment & Production (T19-T23)
+
+### 2026-02-03: T19 Neon Postgres Setup
+
+#### Prerequisites
+- [ ] Neon account created at https://console.neon.tech
+- [ ] Neon project created
+- [ ] Connection string obtained (with pgbouncer=true)
+
+#### Setup Steps
+
+**1. Get Neon Connection String:**
+1. Go to Neon Console → Your Project
+2. Click **Connection string**
+3. Select **Pooling enabled** (pgbouncer)
+4. Copy the connection string:
+   ```
+   postgresql://user:password@ep-xxx-xxx.neon.tech/database?pgbouncer=true
+   ```
+
+**2. Run Migration Script:**
+```bash
+# Make script executable
+chmod +x scripts/migrate-to-neon.sh
+
+# Run migration
+./scripts/migrate-to-neon.sh 'postgresql://user:password@ep-xxx-xxx.neon.tech/database?pgbouncer=true'
+```
+
+**3. Verify Tables:**
+The script will automatically:
+- Test connection
+- Run Alembic migrations
+- List all created tables
+
+#### Expected Tables
+- alembic_version
+- users
+- bids
+- bid_results
+- crawler_logs
+- exclude_keywords
+- user_keywords
+- user_profiles
+- user_licenses
+- user_performances
+- subscriptions
+- payments
+
+---
+
+### 2026-02-03: T20 Upstash Redis Setup
+
+#### Prerequisites
+- [ ] Upstash account created at https://upstash.com
+- [ ] Redis database created
+- [ ] Connection string obtained
+
+#### Setup Steps
+
+**1. Get Upstash Connection String:**
+1. Go to Upstash Console → Your Database
+2. Copy the **Redis CLI** connection string:
+   ```
+   redis://default:password@us1-xxx-xxx.upstash.io:6379
+   ```
+
+**2. Test Connection:**
+```bash
+# Make script executable
+chmod +x scripts/test-upstash.sh
+
+# Test connection
+./scripts/test-upstash.sh 'redis://default:password@us1-xxx-xxx.upstash.io:6379'
+```
+
+**3. Verify Connection:**
+The script will automatically:
+- PING test
+- SET/GET test
+- Redis version check
+
+---
+
+### 2026-02-03: T21 Vercel Environment Variables Setup
+
+#### Quick Setup Guide
+
+See [setup-vercel-env.md](./setup-vercel-env.md) for detailed instructions.
+
+**Essential commands:**
+```bash
+# 1. Login to Vercel
+vercel login
+
+# 2. Link project
+vercel link
+
+# 3. Add environment variables
+vercel env add NEON_DATABASE_URL production
+vercel env add UPSTASH_REDIS_URL production
+vercel env add SECRET_KEY production
+vercel env add CRON_SECRET production
+
+# Repeat for 'preview' and 'development' environments
+```
+
+#### Status
+- [ ] Vercel CLI logged in
+- [ ] Project linked
+- [ ] NEON_DATABASE_URL set (all environments)
+- [ ] UPSTASH_REDIS_URL set (all environments)
+- [ ] SECRET_KEY set (all environments)
+- [ ] CRON_SECRET set (all environments)
+- [ ] Optional: GEMINI_API_KEY, G2B_API_KEY, SLACK_WEBHOOK_URL
+
+---
+
+### 2026-02-03: T22 Vercel Preview Deployment
+
+#### Deploy to Preview
+
+```bash
+# Deploy current branch to preview
+vercel
+
+# Or push to trigger automatic deployment
+git push origin feature/vercel-migration
+```
+
+#### Verification Checklist
+
+**Health Check:**
+```bash
+curl https://your-preview-url.vercel.app/health
+# Expected: {"status":"ok","service":"Biz-Retriever","platform":"vercel"}
+```
+
+**API Documentation:**
+- Visit: https://your-preview-url.vercel.app/docs
+- Test login endpoint
+- Test register endpoint
+
+**Frontend:**
+- Visit: https://your-preview-url.vercel.app/
+- Test login form
+- Test dashboard load
+
+#### Troubleshooting
+
+**Database Connection Error:**
+```bash
+# Check Vercel logs
+vercel logs --follow
+
+# Verify environment variable
+vercel env ls | grep NEON
+```
+
+**Redis Connection Error:**
+```bash
+# Check Upstash dashboard
+# Verify connection string format
+vercel env ls | grep UPSTASH
+```
+
+---
+
+### 2026-02-03: T23 Production Deployment
+
+#### Final Merge & Deploy
+
+```bash
+# Merge feature branch to master
+git checkout master
+git merge feature/vercel-migration
+
+# Push to trigger production deployment
+git push origin master
+```
+
+#### Post-Deployment Verification
+
+**Production URL:** https://biz-retriever.vercel.app
+
+**Checklist:**
+- [ ] Health check responds
+- [ ] API docs accessible
+- [ ] Frontend loads
+- [ ] Login/Register works
+- [ ] Dashboard displays
+- [ ] Cron jobs triggered (check after 30 mins)
+- [ ] SSE notifications work
+
+#### Rollback Plan
+
+If production deployment fails:
+```bash
+# Revert to previous commit
+git checkout master
+git revert HEAD
+git push origin master
+
+# Or manually rollback in Vercel dashboard
+# Vercel Dashboard → Deployments → Previous Deployment → Promote to Production
+```
+
+---
+
+## Migration Complete! 🎉
+
+### Summary
+
+| Wave | Tasks | Status | Commit |
+|------|-------|--------|--------|
+| Wave 0 | T0-T4 | ✅ | 402db1e-b5dc3ff |
+| Wave 1 | T5 | ✅ | b5dc3ff |
+| Wave 2 | T6-T8 | ✅ | cd0b3ad-4ec97f4 |
+| Wave 3 | T9-T14 | ✅ | e57ab20-0302c28 |
+| Wave 4 | T15-T18 | ✅ | ac86d04-0302c28 |
+| Wave 5 | T19-T23 | ⏳ IN PROGRESS | - |
+
+### Next Steps
+
+1. ✅ Complete T19: Neon migration
+2. ✅ Complete T20: Upstash setup
+3. ✅ Complete T21: Vercel env vars
+4. ⏳ Complete T22: Preview deployment
+5. ⏳ Complete T23: Production deployment
+
+### Resources
+
+- [Setup Guide](./setup-vercel-env.md)
+- [Environment Variables](./docs/VERCEL_ENV_VARS.md)
+- [Deployment Guide](./docs/VERCEL_DEPLOYMENT_FINAL.md)
+
+---
+
+**Last Updated**: 2026-02-03
+**Status**: Wave 5 In Progress
+
