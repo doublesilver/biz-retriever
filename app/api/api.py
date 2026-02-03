@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 
 from app.api.endpoints import (analysis, analytics, auth, bids, crawler,
-                               export, filters, keywords, payment, profile,
-                               websocket)
+                               export, filters, jobs, keywords, payment,
+                               profile, websocket)
 
 api_router = APIRouter()
 
@@ -29,3 +29,4 @@ api_router.include_router(websocket.router, prefix="/realtime", tags=["realtime"
 api_router.include_router(profile.router, prefix="/profile", tags=["profile"])
 api_router.include_router(keywords.router, prefix="/keywords", tags=["keywords"])
 api_router.include_router(payment.router, prefix="/payment", tags=["payment"])
+api_router.include_router(jobs.router, prefix="/jobs", tags=["jobs"])

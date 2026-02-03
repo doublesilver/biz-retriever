@@ -154,6 +154,12 @@ class User(Base, TimestampMixin):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    jobs: Mapped[List["Job"]] = relationship(
+        "Job",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}')>"
@@ -494,3 +500,48 @@ class PaymentHistory(Base, TimestampMixin):
 
     # Relationship
     user: Mapped["User"] = relationship("User", back_populates="payments")
+
+
+class Job(Base, TimestampMixin):
+    """
+    Job model for async task tracking (Job+Polling pattern).
+
+    Used for long-running tasks like:
+    - Gemini AI analysis
+    - File processing
+    - Bulk operations
+
+    Status flow: PENDING → PROCESSING → SUCCESS | FAILURE
+    """
+
+    __tablename__ = "jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)  # UUID
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="PENDING", index=True
+    )  # PENDING, PROCESSING, SUCCESS, FAILURE, CANCELLED
+    task_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=True
+    )  # 'gemini_analysis', 'file_export', etc.
+    input_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    result: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    progress: Mapped[int] = mapped_column(Integer, default=0)  # 0-100 percentage
+
+    # Relationships
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user: Mapped["User"] = relationship("User", back_populates="jobs")
+
+    # Timestamps
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    # Cleanup
+    expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, index=True
+    )  # Auto-delete old jobs
+
+    def __repr__(self):
+        return f"<Job(id={self.id}, task_type='{self.task_type}', status='{self.status}')>"
