@@ -1,6 +1,20 @@
 {
-  "cleanUrls": true,
-  "trailingSlash": false,
+  "version": 2,
+  "functions": {
+    "api/**/*.py": {
+      "runtime": "python3.9"
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/crawl-g2b",
+      "schedule": "0 8,12,18 * * *"
+    },
+    {
+      "path": "/api/cron/morning-digest",
+      "schedule": "30 8 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
