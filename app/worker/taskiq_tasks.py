@@ -245,3 +245,79 @@ async def process_bid_analysis(bid_id: int):
         await session.commit()
 
         logger.info(f"AI 분석 완료: {bid.title}")
+
+
+# ============================================
+# RAG Analysis Job (Job+Polling Pattern)
+# ============================================
+
+
+@broker.task(task_name="rag_analysis_job")
+async def rag_analysis_job(job_id: str, bid_id: int):
+    """
+    공고 RAG AI 분석 (Job+Polling 패턴)
+
+    JobService를 통해 작업 상태를 업데이트하고, 결과를 저장합니다.
+
+    Args:
+        job_id: 작업 ID (UUID)
+        bid_id: 분석할 공고 ID
+    """
+    from app.schemas.job import JobUpdate
+    from app.services.job_service import JobService
+
+    logger.info(f"RAG 분석 Job 시작: job_id={job_id}, bid_id={bid_id}")
+
+    async with AsyncSessionLocal() as session:
+        # 1. 작업 시작 표시
+        await JobService.mark_processing(session, job_id)
+
+        try:
+            # 2. 공고 조회
+            stmt = select(BidAnnouncement).where(BidAnnouncement.id == bid_id)
+            result = await session.execute(stmt)
+            bid = result.scalar_one_or_none()
+
+            if not bid:
+                await JobService.mark_failure(
+                    session, job_id, f"공고를 찾을 수 없습니다: bid_id={bid_id}"
+                )
+                return
+
+            # 3. AI 분석 (RAG Service)
+            await JobService.update_progress(session, job_id, 30)
+
+            full_text = f"{bid.title} {bid.content or ''}"
+            rag = RAGService()
+            analysis_result = await rag.analyze_bid(full_text)
+
+            await JobService.update_progress(session, job_id, 70)
+
+            # 4. 결과 DB 저장
+            bid.ai_summary = analysis_result.get("summary")
+            bid.ai_keywords = analysis_result.get("keywords")
+            bid.region_code = analysis_result.get("region_code")
+            bid.license_requirements = analysis_result.get("license_requirements")
+            bid.min_performance = analysis_result.get("min_performance")
+            bid.processed = True
+            await session.commit()
+
+            # 5. Job 완료 처리
+            await JobService.mark_success(
+                session,
+                job_id,
+                result={
+                    "bid_id": bid_id,
+                    "summary": analysis_result.get("summary"),
+                    "keywords": analysis_result.get("keywords"),
+                    "region_code": analysis_result.get("region_code"),
+                    "license_requirements": analysis_result.get("license_requirements"),
+                    "min_performance": analysis_result.get("min_performance"),
+                },
+            )
+
+            logger.info(f"RAG 분석 Job 완료: job_id={job_id}, bid_id={bid_id}")
+
+        except Exception as e:
+            logger.error(f"RAG 분석 Job 실패: {e}", exc_info=True)
+            await JobService.mark_failure(session, job_id, str(e))

@@ -199,3 +199,56 @@ async def smart_search(
         error_msg = f"Smart Search Error: {str(e)}\n{traceback.format_exc()}"
         logger.error(error_msg)
         return {"error": str(e), "traceback": traceback.format_exc(), "results": []}
+
+
+@router.post("/analyze/{bid_id}", status_code=202)
+async def analyze_bid_rag(
+    bid_id: int = Path(..., ge=1, description="공고 ID (양수)"),
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    RAG 기반 공고 AI 분석 (Job+Polling 패턴)
+
+    비동기로 AI 분석을 실행하고 즉시 job_id를 반환합니다.
+    클라이언트는 /jobs/{job_id}로 폴링하여 결과를 확인합니다.
+
+    Background Task:
+        - RAGService.analyze_bid()를 통한 AI 분석 수행
+        - 결과는 DB에 저장됨 (BidAnnouncement.ai_summary, ai_keywords 등)
+
+    Returns:
+        - job_id: 작업 ID (UUID)
+        - status: PENDING
+
+    Polling interval: 2초 권장
+    """
+    # 1. 공고 존재 확인
+    result = await session.execute(
+        select(BidAnnouncement).where(BidAnnouncement.id == bid_id)
+    )
+    bid = result.scalar_one_or_none()
+
+    if not bid:
+        raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
+
+    # 2. Job 생성
+    from app.schemas.job import JobCreate
+    from app.services.job_service import JobService
+
+    job = await JobService.create_job(
+        session,
+        user_id=current_user.id,
+        job_data=JobCreate(task_type="rag_analysis", input_data={"bid_id": bid_id}),
+    )
+
+    # 3. Taskiq 비동기 작업 트리거
+    from app.worker.taskiq_tasks import rag_analysis_job
+
+    await rag_analysis_job.kiq(job.id, bid_id)
+
+    logger.info(
+        f"RAG 분석 작업 생성: job_id={job.id}, bid_id={bid_id}, user={current_user.email}"
+    )
+
+    return {"job_id": job.id, "status": "PENDING"}
