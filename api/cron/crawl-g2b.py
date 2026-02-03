@@ -2,9 +2,7 @@
 Vercel Cron Job: G2B 크롤링
 매일 08:00, 12:00, 18:00 실행
 
-Performance Optimized:
-- Lazy imports for heavy libraries (FastAPI, SQLAlchemy, Services)
-- Reduced cold start time by ~300ms
+Full crawl logic from taskiq_tasks.py adapted for Vercel serverless.
 """
 import asyncio
 import json
@@ -14,6 +12,18 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
+from fastapi import Header, Request
+from fastapi.responses import JSONResponse
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+
+from app.core.logging import logger
+from app.db.models import BidAnnouncement, ExcludeKeyword, User, UserKeyword
+from app.db.session import AsyncSessionLocal
+from app.services.crawler_service import G2BCrawlerService
+from app.services.notification_service import NotificationService
+from app.services.rag_service import RAGService
+
 # Vercel Cron Secret (보안)
 CRON_SECRET = os.getenv("CRON_SECRET", "default-secret-change-me")
 
@@ -21,7 +31,7 @@ CRON_SECRET = os.getenv("CRON_SECRET", "default-secret-change-me")
 TIMEOUT_SECONDS = 50
 
 
-async def handler(request, authorization = None):
+async def handler(request: Request, authorization: str = Header(None)):
     """
     G2B 크롤링 Cron Job
     
@@ -34,17 +44,6 @@ async def handler(request, authorization = None):
     - User keyword matching and notifications
     - AI analysis trigger for important bids (importance_score >= 2)
     """
-    # Lazy imports (performance optimization)
-    from fastapi.responses import JSONResponse
-    from sqlalchemy import select
-    from sqlalchemy.orm import selectinload
-    from app.core.logging import logger
-    from app.db.models import BidAnnouncement, ExcludeKeyword, User, UserKeyword
-    from app.db.session import AsyncSessionLocal
-    from app.services.crawler_service import G2BCrawlerService
-    from app.services.notification_service import NotificationService
-    from app.services.rag_service import RAGService
-    
     # Verify Cron Secret
     if not authorization or authorization != f"Bearer {CRON_SECRET}":
         return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
