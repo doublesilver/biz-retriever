@@ -1,6 +1,6 @@
 """
-Vercel Cron Job: G2B 크롤링
-매일 08:00, 12:00, 18:00 실행
+Vercel Cron Job: OnBid 크롤링
+매일 08:00, 12:00, 18:00 실행 (G2B와 동일 스케줄)
 
 Performance Optimized:
 - Lazy imports for heavy libraries (FastAPI, SQLAlchemy, Services)
@@ -22,18 +22,7 @@ TIMEOUT_SECONDS = 50
 
 
 async def handler(request, authorization = None):
-    """
-    G2B 크롤링 Cron Job
-    
-    Vercel Cron에서 호출됨:
-    - Schedule: "0 8,12,18 * * *" (08:00, 12:00, 18:00)
-    - Authorization: Bearer <CRON_SECRET>
-    
-    Full logic from taskiq_tasks.py:
-    - Dynamic keyword loading from DB
-    - User keyword matching and notifications
-    - AI analysis trigger for important bids (importance_score >= 2)
-    """
+    """OnBid 크롤링 Cron Job - Performance Optimized"""
     # Lazy imports (performance optimization)
     from fastapi.responses import JSONResponse
     from sqlalchemy import select
@@ -41,10 +30,21 @@ async def handler(request, authorization = None):
     from app.core.logging import logger
     from app.db.models import BidAnnouncement, ExcludeKeyword, User, UserKeyword
     from app.db.session import AsyncSessionLocal
-    from app.services.crawler_service import G2BCrawlerService
+    from app.services.onbid_crawler import OnbidCrawlerService
     from app.services.notification_service import NotificationService
     from app.services.rag_service import RAGService
+    """
+    OnBid 크롤링 Cron Job
     
+    Vercel Cron에서 호출됨:
+    - Schedule: "0 8,12,18 * * *" (08:00, 12:00, 18:00)
+    - Authorization: Bearer <CRON_SECRET>
+    
+    Logic:
+    - OnBid 임대 공고 수집
+    - User keyword matching and notifications
+    - AI analysis trigger for important bids (importance_score >= 2)
+    """
     # Verify Cron Secret
     if not authorization or authorization != f"Bearer {CRON_SECRET}":
         return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
@@ -62,50 +62,24 @@ async def handler(request, authorization = None):
     try:
         async with AsyncSessionLocal() as session:
             # ============================================
-            # 1. 동적 키워드 조회
+            # 1. 크롤러 서비스 초기화
             # ============================================
-            stmt_exclude = select(ExcludeKeyword.word).where(
-                ExcludeKeyword.is_active == True
-            )
-            result = await session.execute(stmt_exclude)
-            dynamic_excludes = result.scalars().all()
+            crawler = OnbidCrawlerService()
 
-            stmt_include = (
-                select(UserKeyword.keyword)
-                .where(UserKeyword.is_active == True, UserKeyword.category == "include")
-                .distinct()
-            )
-            result = await session.execute(stmt_include)
-            dynamic_includes = result.scalars().all()
+            logger.info("OnBid 크롤링 시작")
 
             # ============================================
-            # 2. 크롤러 서비스 초기화
+            # 2. 크롤링 실행 (Async)
             # ============================================
-            crawler = G2BCrawlerService()
-
-            exclude_keywords = list(
-                set(crawler.DEFAULT_EXCLUDE_KEYWORDS + list(dynamic_excludes))
-            )
-            include_keywords = list(dynamic_includes) or (
-                crawler.INCLUDE_KEYWORDS_CONCESSION + crawler.INCLUDE_KEYWORDS_FLOWER
-            )
-
-            logger.info(
-                f"크롤링 시작: include={len(include_keywords)}개, "
-                f"exclude={len(exclude_keywords)}개"
-            )
-
-            # ============================================
-            # 3. 크롤링 실행 (Async)
-            # ============================================
-            announcements = await crawler.fetch_new_announcements(
-                exclude_keywords=exclude_keywords, include_keywords=include_keywords
+            announcements = await crawler.fetch_rental_announcements(
+                max_pages=5  # 최대 5페이지 (100건)
             )
 
             stats["total_crawled"] = len(announcements)
-            logger.info(f"G2B 크롤링 완료: {len(announcements)}건")
+            logger.info(f"OnBid 크롤링 완료: {len(announcements)}건")
 
             if not announcements:
+                await crawler.close()
                 return JSONResponse(
                     status_code=200,
                     content={
@@ -116,7 +90,7 @@ async def handler(request, authorization = None):
                 )
 
             # ============================================
-            # 4. 활성 사용자 조회 (알림용)
+            # 3. 활성 사용자 조회 (알림용)
             # ============================================
             stmt = (
                 select(User)
@@ -127,7 +101,7 @@ async def handler(request, authorization = None):
             active_users = result.scalars().all()
 
             # ============================================
-            # 5. 중복 체크를 위한 기존 URL 일괄 조회 (N+1 쿼리 방지)
+            # 4. 중복 체크를 위한 기존 URL 일괄 조회 (N+1 쿼리 방지)
             # ============================================
             announcement_urls = [a["url"] for a in announcements]
             stmt = select(BidAnnouncement.url).where(
@@ -137,7 +111,7 @@ async def handler(request, authorization = None):
             existing_urls = set(result.scalars().all())
 
             # ============================================
-            # 6. 공고 저장 및 알림
+            # 5. 공고 저장 및 알림
             # ============================================
             rag_service = RAGService()
 
@@ -159,11 +133,8 @@ async def handler(request, authorization = None):
                     continue
 
                 try:
-                    # 중요도 계산
-                    importance_score = crawler.calculate_importance_score(
-                        announcement_data
-                    )
-                    announcement_data["importance_score"] = importance_score
+                    # 중요도 점수는 이미 계산됨
+                    importance_score = announcement_data.get("importance_score", 1)
 
                     # DB 저장
                     new_announcement = BidAnnouncement(**announcement_data)
@@ -261,9 +232,12 @@ async def handler(request, authorization = None):
                     stats["errors"].append(f"Processing failed: {str(e)[:50]}")
                     continue
 
+            # 크롤러 종료
+            await crawler.close()
+
         elapsed_total = time.time() - start_time
         logger.info(
-            f"크롤링 작업 완료: {stats['new_saved']}건 저장, "
+            f"OnBid 크롤링 작업 완료: {stats['new_saved']}건 저장, "
             f"{stats['notifications_sent']}건 알림, "
             f"{elapsed_total:.1f}초 소요"
         )
@@ -279,7 +253,7 @@ async def handler(request, authorization = None):
         )
 
     except Exception as e:
-        logger.error(f"크롤링 작업 실패: {e}")
+        logger.error(f"OnBid 크롤링 작업 실패: {e}")
         return JSONResponse(
             status_code=500,
             content={
