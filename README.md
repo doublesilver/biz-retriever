@@ -30,13 +30,13 @@
 | 항목 | 내용 |
 |------|------|
 | **프로젝트명** | Biz-Retriever (입찰 공고 자동 수집 및 AI 분석 시스템) |
-| **개발 기간** | **10일** (2026.01.22 ~ 2026.01.31) |
+| **개발 기간** | **14일** (2026.01.22 ~ 2026.02.04) |
 | **개발 인원** | 1인 (기획, 설계, 개발, 테스트, 배포) |
-| **백엔드** | FastAPI (Async/Await) |
+| **백엔드** | Vercel Serverless Functions (Python 3.12) |
 | **프론트엔드** | Vanilla JavaScript (Payhera/Naver 디자인 시스템) |
 | **AI** | Google Gemini 2.5 Flash |
 | **데이터** | G2B 나라장터 + 온비드 API |
-| **성과** | 20,000+ lines, 164 tests (100%), 85%+ coverage, 프로덕션 배포 완료 |
+| **성과** | 22,000+ lines, 164 tests (100%), 85%+ coverage, 12 API endpoints (100%), Vercel 프로덕션 배포 완료 |
 
 ---
 
@@ -157,6 +157,27 @@ mindmap
   - 자동 배포: GitHub push 시 2-3분 내 자동 배포
   - CDN 최적화: 글로벌 엣지 네트워크
 
+### ☁️ Phase 13: Vercel Serverless API 완성 (완료 - 2026.02.04)
+- ✅ **API 마이그레이션**: FastAPI → Vercel Serverless Functions (Python 3.12)
+- ✅ **12개 Serverless Endpoints** (100% 완성):
+  - `api/auth.py` - 인증 (회원가입, 로그인, 프로필 조회)
+  - `api/bids.py` - 공고 관리 (목록, 상세, 생성, 삭제)
+  - `api/keywords.py` - 키워드 관리 (목록, 생성, 삭제, 제외어)
+  - `api/payment.py` - 결제 관리 (구독 정보, 결제 내역, 상태 조회)
+  - `api/profile.py` - 프로필 관리 (CRUD, 면허/실적 조회)
+  - `api/upload.py` - PDF 업로드 및 AI 분석
+  - `api/webhooks.py` - TossPayments 웹훅
+  - `api/health.py` - Health Check
+  - `api/cron/*.py` - 5개 Cron Jobs (공고 수집, 구독 갱신, 일일 요약)
+- ✅ **데이터베이스**: Neon PostgreSQL (Serverless Postgres)
+- ✅ **캐싱**: Upstash Redis (Serverless Redis)
+- ✅ **배포 최적화**: 
+  - Build 시간: ~17초 (uv 패키지 관리자)
+  - Function 크기: <250MB (의존성 최적화)
+  - Cold Start: <2초 (asyncpg 직접 연결)
+- ✅ **Production URL**: [https://sideproject-one.vercel.app](https://sideproject-one.vercel.app)
+- ✅ **API Documentation**: [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) (650+ lines)
+
 ---
 
 ## 기술 스택
@@ -174,19 +195,18 @@ mindmap
 - **Live URL**: [https://biz-retriever.vercel.app](https://biz-retriever.vercel.app)
 
 ### Backend
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat&logo=fastapi&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-4169E1?style=flat&logo=postgresql&logoColor=white)
-![Valkey](https://img.shields.io/badge/Valkey-8-DC382D?style=flat&logo=redis&logoColor=white)
-![Taskiq](https://img.shields.io/badge/Taskiq-0.11+-00C7B7?style=flat)
+![Vercel](https://img.shields.io/badge/Vercel-Serverless-000000?style=flat&logo=vercel&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)
+![Neon](https://img.shields.io/badge/Neon-PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)
+![Upstash](https://img.shields.io/badge/Upstash-Redis-DC382D?style=flat&logo=redis&logoColor=white)
 
-- **Framework**: FastAPI (Async/Await 패턴)
-- **ORM**: SQLAlchemy 2.0 (Async)
-- **Migration**: Alembic
-- **Task Queue**: Taskiq + Valkey (70% 메모리 절감)
-- **Cache**: Valkey (Redis fork)
-- **Authentication**: JWT + Refresh Token (python-jose)
-- **Validation**: Pydantic 2.10 + Instructor AI
+- **Platform**: Vercel Serverless Functions (Hobby Plan - FREE)
+- **Runtime**: Python 3.12
+- **Database**: Neon PostgreSQL (Serverless Postgres with asyncpg)
+- **Cache**: Upstash Redis (Serverless Redis)
+- **Authentication**: JWT (python-jose)
+- **Validation**: Pydantic 2.10
+- **API Endpoints**: 12 Serverless Functions (100% complete)
 
 ### AI & APIs
 ![Gemini](https://img.shields.io/badge/Gemini-2.5_Flash-4285F4?style=flat&logo=google&logoColor=white)
@@ -537,20 +557,28 @@ taskiq scheduler app.worker.taskiq_app:scheduler
 
 #### 🚀 Live Demo & Access
 
-**Frontend (Vercel)**:
-- **Live Site**: [https://biz-retriever.vercel.app](https://biz-retriever.vercel.app) ⭐
-- **Alt URL**: [https://sideproject-doublesilvers-projects.vercel.app](https://sideproject-doublesilvers-projects.vercel.app)
-- **특징**: 자동 배포, CDN 최적화, HTTPS
+**🌐 Production (Vercel Serverless)**:
+- **Frontend**: [https://biz-retriever.vercel.app](https://biz-retriever.vercel.app) ⭐
+- **Backend API**: [https://sideproject-one.vercel.app](https://sideproject-one.vercel.app) 🚀
+- **API Health**: [https://sideproject-one.vercel.app/api/health](https://sideproject-one.vercel.app/api/health)
+- **특징**: 
+  - 완전 Serverless (무료 호스팅)
+  - 글로벌 CDN (빠른 응답 속도)
+  - Auto-scaling (트래픽 급증 대응)
+  - HTTPS 기본 제공
 
-**Backend (Raspberry Pi + Tailscale)**:
-- **API Service**: [https://leeeunseok.tail32c3e2.ts.net/](https://leeeunseok.tail32c3e2.ts.net/)
-- **Swagger UI**: [https://leeeunseok.tail32c3e2.ts.net/docs](https://leeeunseok.tail32c3e2.ts.net/docs)
-- **ReDoc**: [https://leeeunseok.tail32c3e2.ts.net/redoc](https://leeeunseok.tail32c3e2.ts.net/redoc)
-- **특징**: Tailscale Funnel 외부 접속, SSL 인증서, 모니터링
+**📖 API Documentation**:
+- **API Reference**: [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md)
+- **Cron Setup Guide**: [`docs/CRON_AUTOMATION_GUIDE.md`](docs/CRON_AUTOMATION_GUIDE.md)
+- **Quick Start**: [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md)
 
-**Local Development**:
-- API: http://localhost:8000
+**🛠️ Legacy (Raspberry Pi + Tailscale)** - Deprecated:
+- **API Service**: [https://leeeunseok.tail32c3e2.ts.net/](https://leeeunseok.tail32c3e2.ts.net/) (Archived)
+- **Note**: Migrated to Vercel Serverless (2026-02-04)
+
+**💻 Local Development**:
 - Frontend: http://localhost:3001
+- Backend: Use Vercel production API or local Python server
 
 ---
 
@@ -772,13 +800,14 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 **Made with ❤️ by [doublesilver](https://github.com/doublesilver)**
 
-**Last Updated**: 2026-01-31 08:30 PM KST  
-**Project Status**: 프로덕션 준비 95% 완료 (안정적 배포 완료) 🚀  
+**Last Updated**: 2026-02-04 09:36 PM KST  
+**Project Status**: 🎉 100% 완성 - Vercel Serverless 프로덕션 배포 완료 🚀  
+**API Completion**: 12/12 Endpoints (100%) ✅  
 **Tests**: 164/164 (100%) ✅  
 **Coverage**: 85% ✅  
-**Production Readiness**: 90% → **95%** (+5% 향상)  
-**Security**: 95% ✅ | **Infrastructure**: 98% ✅ | **User Features**: 85% ✅ (+15%) | **Business**: 0% ❌  
+**Production Readiness**: 95% → **100%** (+5% 향상)  
+**Security**: 95% ✅ | **Infrastructure**: 100% ✅ (+2%) | **API Completion**: 100% ✅ | **Business**: 0% ❌  
 **Live Services**:
   - **Frontend**: [https://biz-retriever.vercel.app](https://biz-retriever.vercel.app) 🌐
-  - **Backend API**: [https://leeeunseok.tail32c3e2.ts.net/](https://leeeunseok.tail32c3e2.ts.net/) 🌐  
-**Latest Changes**: UI/UX 전면 재디자인 (Payhera/Naver 스타일), 14개 편의 기능 추가, Vercel 배포 (2026-01-31)
+  - **Backend API**: [https://sideproject-one.vercel.app](https://sideproject-one.vercel.app) 🌐  
+**Latest Changes**: Vercel Serverless API 100% 완성 (12개 엔드포인트), Neon PostgreSQL + Upstash Redis 연동 (2026-02-04)
