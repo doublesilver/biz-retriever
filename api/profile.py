@@ -183,17 +183,19 @@ class handler(BaseHTTPRequestHandler):
             if existing:
                 raise ValueError("Profile already exists. Use ?action=update to modify.")
             
-            # 프로필 생성
+            # 프로필 생성 (알림 기본값 포함)
             query = """
                 INSERT INTO user_profiles (
-                    user_id, company_name, brn, location_code, keywords, credit_rating
+                    user_id, company_name, brn, location_code, keywords, credit_rating,
+                    is_email_enabled, is_slack_enabled
                 )
-                VALUES ($1, $2, $3, $4, $5, $6)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING id, company_name, brn, location_code, keywords, credit_rating, created_at
             """
             row = await conn.fetchrow(
                 query, user_id, req.company_name, req.brn, 
-                req.location_code, req.keywords, req.credit_rating
+                req.location_code, req.keywords, req.credit_rating,
+                True, False  # 이메일 알림 기본 활성화, Slack 비활성화
             )
             
             return {
