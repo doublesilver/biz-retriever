@@ -1,186 +1,393 @@
-# Biz-Retriever API Reference
+# 📚 Biz-Retriever API Reference
 
-**Version**: 2.0 (Serverless)
-**Base URL**: `https://your-api.vercel.app`
-**Authentication**: JWT Bearer Token
+**Version**: 1.0.0  
+**Base URL**: `https://sideproject-one.vercel.app`  
+**Authentication**: JWT Bearer Token  
+**Last Updated**: 2026-02-04
 
 ---
 
-## Table of Contents
+## 📋 목차
 
-1. [Authentication](#authentication)
-2. [Bids](#bids)
-3. [Profile](#profile)
-4. [Keywords](#keywords)
-5. [Payment](#payment)
-6. [Upload](#upload)
-7. [Webhooks](#webhooks)
+1. [인증 (Authentication)](#인증-authentication)
+2. [공고 관리 (Bids)](#공고-관리-bids)
+3. [키워드 관리 (Keywords)](#키워드-관리-keywords)
+4. [결제 관리 (Payment)](#결제-관리-payment)
+5. [프로필 관리 (Profile)](#프로필-관리-profile)
+6. [파일 업로드 (Upload)](#파일-업로드-upload)
+7. [웹훅 (Webhooks)](#웹훅-webhooks)
 8. [Cron Jobs](#cron-jobs)
-9. [Error Codes](#error-codes)
+9. [에러 코드](#에러-코드)
 
 ---
 
-## Authentication
+## 🔐 인증 (Authentication)
 
-### Register
-```http
-POST /api/auth/register
-Content-Type: application/json
+### 회원가입
+회원가입하여 새 계정을 생성합니다.
 
+**Endpoint**: `POST /api/auth?action=register`
+
+**Request**:
+```json
 {
   "email": "user@example.com",
   "password": "SecurePass123!",
-  "company_name": "테스트 회사"
+  "name": "홍길동"
 }
 ```
 
-**Response** (201):
+**Response** (201 Created):
 ```json
 {
-  "access_token": "eyJhbGc...",
-  "token_type": "bearer",
-  "expires_in": 3600
+  "id": 1,
+  "email": "user@example.com",
+  "name": "홍길동",
+  "is_active": true,
+  "created_at": "2026-02-04T00:36:29.633739",
+  "message": "User registered successfully"
 }
 ```
 
-### Login
-```http
-POST /api/auth/login
-Content-Type: application/json
+**Errors**:
+- `400 Bad Request`: 이메일 중복
+- `422 Unprocessable Entity`: 유효성 검증 실패
 
+---
+
+### 로그인
+JWT 토큰을 발급받습니다.
+
+**Endpoint**: `POST /api/auth?action=login`
+
+**Request**:
+```json
 {
   "email": "user@example.com",
   "password": "SecurePass123!"
 }
 ```
 
-**Response** (200):
+**Response** (200 OK):
 ```json
 {
-  "access_token": "eyJhbGc...",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "bearer",
-  "expires_in": 3600
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "홍길동"
+  }
 }
 ```
 
-### Get Current User
-```http
-GET /api/auth/me
-Authorization: Bearer eyJhbGc...
+**Errors**:
+- `401 Unauthorized`: 이메일/비밀번호 불일치
+
+---
+
+### 내 정보 조회
+현재 로그인한 사용자 정보를 조회합니다.
+
+**Endpoint**: `GET /api/auth?action=me`  
+**Auth**: Required (Bearer Token)
+
+**Request Headers**:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-**Response** (200):
+**Response** (200 OK):
 ```json
 {
   "id": 1,
   "email": "user@example.com",
-  "company_name": "테스트 회사",
-  "plan": "basic",
-  "created_at": "2026-02-03T12:00:00Z"
+  "name": "홍길동",
+  "is_active": true,
+  "created_at": "2026-02-04T00:36:29.633739"
 }
 ```
 
+**Errors**:
+- `401 Unauthorized`: 토큰 없음 또는 유효하지 않음
+
 ---
 
-## Bids
+## 📄 공고 관리 (Bids)
 
-### List Bids
-```http
-GET /api/bids/list?page=1&limit=20&keyword=시설&agency=서울시
-Authorization: Bearer eyJhbGc...
-```
+### 공고 목록 조회
+입찰 공고 목록을 페이지네이션과 필터링으로 조회합니다.
+
+**Endpoint**: `GET /api/bids?action=list`  
+**Auth**: Required (Bearer Token)
 
 **Query Parameters**:
-- `page` (int, optional): Page number (default: 1)
-- `limit` (int, optional): Items per page (default: 20, max: 100)
-- `keyword` (string, optional): Search keyword
-- `agency` (string, optional): Filter by agency
-- `source` (string, optional): g2b | onbid
-- `status` (string, optional): active | closed
+| 파라미터 | 타입 | 필수 | 기본값 | 설명 |
+|---------|------|------|--------|------|
+| `page` | int | No | 1 | 페이지 번호 |
+| `page_size` | int | No | 20 | 페이지당 항목 수 (최대 100) |
+| `keyword` | string | No | - | 제목/내용 검색 |
+| `agency` | string | No | - | 기관명 검색 |
+| `source` | string | No | - | 출처 필터 (g2b, onbid) |
+| `status` | string | No | - | 상태 필터 (new, reviewed, bidding, done) |
 
-**Response** (200):
+**Request Example**:
+```bash
+curl -X GET "https://sideproject-one.vercel.app/api/bids?action=list&page=1&page_size=10&keyword=AI" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+**Response** (200 OK):
 ```json
 {
   "items": [
     {
       "id": 123,
-      "title": "2026년 공공 시설 관리 용역",
-      "agency": "서울특별시",
+      "title": "AI 기반 시스템 구축 사업",
+      "content": "인공지능 기술을 활용한...",
+      "agency": "한국정보화진흥원",
+      "posted_at": "2026-02-01T09:00:00",
+      "url": "https://g2b.go.kr/...",
+      "source": "g2b",
+      "deadline": "2026-02-15T18:00:00",
       "estimated_price": 50000000,
-      "deadline": "2026-03-15",
       "importance_score": 3,
-      "ai_summary": "서울시 공공시설 관리 용역 입찰"
+      "status": "new",
+      "created_at": "2026-02-01T09:05:00",
+      "updated_at": "2026-02-01T09:05:00"
     }
   ],
   "total": 150,
   "page": 1,
-  "page_size": 20,
-  "total_pages": 8
+  "page_size": 10,
+  "total_pages": 15
 }
 ```
 
-### Get Bid Detail
-```http
-GET /api/bids/123
-Authorization: Bearer eyJhbGc...
+---
+
+### 공고 상세 조회
+특정 공고의 상세 정보를 조회합니다 (AI 분석 포함).
+
+**Endpoint**: `GET /api/bids?action=detail&id={bid_id}`  
+**Auth**: Required (Bearer Token)
+
+**Request Example**:
+```bash
+curl -X GET "https://sideproject-one.vercel.app/api/bids?action=detail&id=123" \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-**Response** (200):
+**Response** (200 OK):
 ```json
 {
   "id": 123,
-  "title": "2026년 공공 시설 관리 용역",
-  "agency": "서울특별시",
-  "content": "입찰 공고 상세 내용...",
+  "title": "AI 기반 시스템 구축 사업",
+  "content": "인공지능 기술을 활용한 시스템 구축 (전체 내용)...",
+  "agency": "한국정보화진흥원",
+  "posted_at": "2026-02-01T09:00:00",
+  "url": "https://g2b.go.kr/...",
+  "processed": true,
+  "ai_summary": "AI 기술을 활용한 시스템 구축 사업으로, Python/TensorFlow 경험 필수",
+  "ai_keywords": ["AI", "머신러닝", "Python", "TensorFlow"],
+  "source": "g2b",
+  "deadline": "2026-02-15T18:00:00",
   "estimated_price": 50000000,
-  "deadline": "2026-03-15T23:59:59Z",
-  "region_code": "11000",
-  "license_requirements": ["건설업"],
-  "min_performance": 30000000,
   "importance_score": 3,
-  "ai_summary": "서울시 공공시설 관리 용역 입찰",
-  "ai_keywords": ["시설관리", "용역", "서울시"],
-  "created_at": "2026-02-01T10:00:00Z"
+  "keywords_matched": ["AI", "Python"],
+  "is_notified": true,
+  "crawled_at": "2026-02-01T09:00:00",
+  "attachment_content": null,
+  "region_code": "11",
+  "min_performance": 30000000,
+  "license_requirements": "정보처리기사",
+  "status": "new",
+  "assigned_to": null,
+  "assignee": null,
+  "notes": null,
+  "created_at": "2026-02-01T09:05:00",
+  "updated_at": "2026-02-01T09:05:00"
 }
 ```
 
-### Analyze Bid (RAG)
-```http
-POST /api/bids/123/analyze
-Authorization: Bearer eyJhbGc...
-```
+**Errors**:
+- `400 Bad Request`: ID 파라미터 누락
+- `404 Not Found`: 공고를 찾을 수 없음
 
-**Response** (200):
+---
+
+## 🔑 키워드 관리 (Keywords)
+
+### 키워드 목록 조회
+사용자가 등록한 키워드 목록을 조회합니다.
+
+**Endpoint**: `GET /api/keywords?action=list`  
+**Auth**: Required (Bearer Token)
+
+**Response** (200 OK):
 ```json
 {
-  "id": 123,
-  "ai_summary": "서울시 공공시설 관리 용역 입찰",
-  "ai_keywords": ["시설관리", "용역", "서울시"],
-  "region_code": "11000",
-  "license_requirements": ["건설업"],
-  "min_performance": 30000000,
-  "analyzed_at": "2026-02-03T22:00:00Z"
+  "items": [
+    {
+      "id": 1,
+      "keyword": "AI",
+      "category": "include",
+      "is_active": true,
+      "created_at": "2026-02-04T00:40:18.956086"
+    },
+    {
+      "id": 2,
+      "keyword": "블록체인",
+      "category": "exclude",
+      "is_active": true,
+      "created_at": "2026-02-03T15:20:00"
+    }
+  ],
+  "total": 2
 }
 ```
 
-### Get Matched Bids (Hard Match)
-```http
-GET /api/bids/matched?sort_by=deadline&page=1&limit=20
-Authorization: Bearer eyJhbGc...
+---
+
+### 키워드 생성
+새 키워드를 등록합니다.
+
+**Endpoint**: `POST /api/keywords?action=create`  
+**Auth**: Required (Bearer Token)
+
+**Request**:
+```json
+{
+  "keyword": "Python",
+  "category": "include",
+  "is_active": true
+}
 ```
+
+**Response** (201 Created):
+```json
+{
+  "id": 3,
+  "keyword": "Python",
+  "category": "include",
+  "is_active": true,
+  "created_at": "2026-02-04T01:00:00",
+  "message": "Keyword created successfully"
+}
+```
+
+**Errors**:
+- `400 Bad Request`: 중복 키워드
+
+---
+
+### 키워드 삭제
+등록된 키워드를 삭제합니다.
+
+**Endpoint**: `DELETE /api/keywords?action=delete&id={keyword_id}`  
+**Auth**: Required (Bearer Token)
+
+**Response** (200 OK):
+```json
+{
+  "message": "Keyword deleted successfully",
+  "id": 3
+}
+```
+
+**Errors**:
+- `400 Bad Request`: ID 파라미터 누락
+- `404 Not Found`: 키워드를 찾을 수 없음 또는 권한 없음
+
+---
+
+### 제외 키워드 목록 조회
+전역 제외 키워드 목록을 조회합니다 (관리자 설정).
+
+**Endpoint**: `GET /api/keywords?action=exclude`  
+**Auth**: Required (Bearer Token)
+
+**Response** (200 OK):
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "word": "불법",
+      "is_active": true,
+      "created_at": "2026-01-01T00:00:00"
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
+## 💳 결제 관리 (Payment)
+
+### 구독 정보 조회
+현재 사용자의 구독 정보를 조회합니다.
+
+**Endpoint**: `GET /api/payment?action=subscription`  
+**Auth**: Required (Bearer Token)
+
+**Response** (200 OK):
+```json
+{
+  "id": 5,
+  "plan_name": "pro",
+  "is_active": true,
+  "stripe_subscription_id": "sub_1234567890",
+  "start_date": "2026-01-01T00:00:00",
+  "next_billing_date": "2026-02-01T00:00:00",
+  "created_at": "2026-01-01T00:00:00",
+  "updated_at": "2026-01-01T00:00:00"
+}
+```
+
+**Response (Free Plan)**:
+```json
+{
+  "plan_name": "free",
+  "is_active": true,
+  "start_date": null,
+  "next_billing_date": null,
+  "message": "No active subscription. Using free plan."
+}
+```
+
+---
+
+### 결제 내역 조회
+사용자의 결제 내역을 페이지네이션으로 조회합니다.
+
+**Endpoint**: `GET /api/payment?action=history`  
+**Auth**: Required (Bearer Token)
 
 **Query Parameters**:
-- `sort_by` (string, optional): deadline | price | importance_score (default: deadline)
-- `page` (int, optional): Page number
-- `limit` (int, optional): Items per page
+| 파라미터 | 타입 | 필수 | 기본값 | 설명 |
+|---------|------|------|--------|------|
+| `page` | int | No | 1 | 페이지 번호 |
+| `page_size` | int | No | 20 | 페이지당 항목 수 (최대 100) |
 
-**Response** (200):
+**Response** (200 OK):
 ```json
 {
-  "items": [...],
-  "total": 10,
-  "limit": 3,
-  "plan": "free",
+  "items": [
+    {
+      "id": 1,
+      "amount": 29000,
+      "currency": "KRW",
+      "status": "completed",
+      "payment_method": "card",
+      "transaction_id": "txn_1234567890",
+      "description": "Pro Plan - Monthly",
+      "created_at": "2026-01-01T00:00:00",
+      "updated_at": "2026-01-01T00:00:05"
+    }
+  ],
+  "total": 12,
   "page": 1,
   "page_size": 20,
   "total_pages": 1
@@ -189,565 +396,378 @@ Authorization: Bearer eyJhbGc...
 
 ---
 
-## Profile
+### 결제 상태 조회
+특정 결제 건의 상태를 조회합니다.
 
-### Get Profile
-```http
-GET /api/profile
-Authorization: Bearer eyJhbGc...
-```
+**Endpoint**: `GET /api/payment?action=status&payment_id={transaction_id}`  
+**Auth**: Required (Bearer Token)
 
-**Response** (200):
+**Response** (200 OK):
 ```json
 {
   "id": 1,
-  "company_name": "테스트 회사",
-  "brn": "123-45-67890",
-  "representative": "홍길동",
-  "address": "서울특별시 강남구...",
-  "location_code": "11000",
-  "licenses": [
-    {
-      "id": 1,
-      "license_name": "건설업",
-      "license_number": "2024-1234",
-      "issue_date": "2024-01-01"
-    }
-  ],
-  "performances": [
-    {
-      "id": 1,
-      "project_name": "OO 공사",
-      "amount": 50000000,
-      "completion_date": "2025-12-31"
-    }
-  ]
-}
-```
-
-### Update Profile
-```http
-PUT /api/profile
-Authorization: Bearer eyJhbGc...
-Content-Type: application/json
-
-{
-  "company_name": "새로운 회사명",
-  "representative": "김철수",
-  "address": "서울특별시 서초구..."
-}
-```
-
-**Response** (200):
-```json
-{
-  "success": true,
-  "profile": {...}
-}
-```
-
-### Add License
-```http
-POST /api/profile/licenses
-Authorization: Bearer eyJhbGc...
-Content-Type: application/json
-
-{
-  "license_name": "건설업",
-  "license_number": "2024-1234",
-  "issue_date": "2024-01-01"
-}
-```
-
-**Response** (201):
-```json
-{
-  "id": 2,
-  "license_name": "건설업",
-  "license_number": "2024-1234",
-  "issue_date": "2024-01-01"
-}
-```
-
-### Delete License
-```http
-DELETE /api/profile/licenses/2
-Authorization: Bearer eyJhbGc...
-```
-
-**Response** (200):
-```json
-{
-  "success": true,
-  "message": "License deleted"
-}
-```
-
-### Add Performance
-```http
-POST /api/profile/performances
-Authorization: Bearer eyJhbGc...
-Content-Type: application/json
-
-{
-  "project_name": "OO 공사",
-  "amount": 50000000,
-  "completion_date": "2025-12-31"
-}
-```
-
-**Response** (201):
-```json
-{
-  "id": 2,
-  "project_name": "OO 공사",
-  "amount": 50000000,
-  "completion_date": "2025-12-31"
-}
-```
-
-### Delete Performance
-```http
-DELETE /api/profile/performances/2
-Authorization: Bearer eyJhbGc...
-```
-
-**Response** (200):
-```json
-{
-  "success": true,
-  "message": "Performance deleted"
-}
-```
-
-### Update Region
-```http
-PUT /api/profile/region
-Authorization: Bearer eyJhbGc...
-Content-Type: application/json
-
-{
-  "location_code": "11000"
-}
-```
-
-**Response** (200):
-```json
-{
-  "success": true,
-  "location_code": "11000"
-}
-```
-
----
-
-## Keywords
-
-### List Keywords
-```http
-GET /api/keywords
-Authorization: Bearer eyJhbGc...
-```
-
-**Response** (200):
-```json
-{
-  "keywords": [
-    {
-      "id": 1,
-      "text": "시설관리",
-      "category": "include",
-      "created_at": "2026-02-01T10:00:00Z"
-    }
-  ],
-  "total": 5,
-  "limit": 5,
-  "plan": "free"
-}
-```
-
-### Add Keyword
-```http
-POST /api/keywords
-Authorization: Bearer eyJhbGc...
-Content-Type: application/json
-
-{
-  "text": "건설",
-  "category": "include"
-}
-```
-
-**Response** (201):
-```json
-{
-  "id": 2,
-  "text": "건설",
-  "category": "include",
-  "created_at": "2026-02-03T22:00:00Z"
-}
-```
-
-**Error** (403 - Limit Exceeded):
-```json
-{
-  "detail": "Keyword limit reached for Free plan (5/5)"
-}
-```
-
-### Delete Keyword
-```http
-DELETE /api/keywords/2
-Authorization: Bearer eyJhbGc...
-```
-
-**Response** (200):
-```json
-{
-  "success": true,
-  "message": "Keyword deleted"
-}
-```
-
-### List Exclude Keywords
-```http
-GET /api/keywords/exclude
-Authorization: Bearer eyJhbGc...
-```
-
-**Response** (200):
-```json
-{
-  "keywords": [
-    {
-      "id": 1,
-      "text": "폐기물",
-      "category": "exclude"
-    }
-  ]
-}
-```
-
----
-
-## Payment
-
-### Create Payment
-```http
-POST /api/payment/create
-Authorization: Bearer eyJhbGc...
-Content-Type: application/json
-
-{
-  "plan": "basic",
-  "payment_method": "card"
-}
-```
-
-**Response** (201):
-```json
-{
-  "orderId": "20260203220000-USER1",
-  "amount": 9900,
-  "client_key": "test_ck_...",
-  "checkout_url": "https://tosspayments.com/..."
-}
-```
-
-### Confirm Payment
-```http
-POST /api/payment/confirm
-Authorization: Bearer eyJhbGc...
-Content-Type: application/json
-
-{
-  "orderId": "20260203220000-USER1",
-  "paymentKey": "tviva20231201...",
-  "amount": 9900
-}
-```
-
-**Response** (200):
-```json
-{
-  "success": true,
-  "subscription": {
-    "plan_name": "basic",
-    "is_active": true,
-    "start_date": "2026-02-03T22:00:00Z",
-    "next_billing_date": "2026-03-03T22:00:00Z"
-  }
-}
-```
-
-### Get Payment Status
-```http
-GET /api/payment/status?orderId=20260203220000-USER1
-Authorization: Bearer eyJhbGc...
-```
-
-**Response** (200):
-```json
-{
-  "orderId": "20260203220000-USER1",
-  "status": "paid",
-  "amount": 9900,
+  "amount": 29000,
+  "currency": "KRW",
+  "status": "completed",
   "payment_method": "card",
-  "created_at": "2026-02-03T22:00:00Z"
+  "transaction_id": "txn_1234567890",
+  "description": "Pro Plan - Monthly",
+  "created_at": "2026-01-01T00:00:00",
+  "updated_at": "2026-01-01T00:00:05"
 }
 ```
 
-### Register Billing Key (Auto-renewal)
-```http
-POST /api/payment/billing-key
-Authorization: Bearer eyJhbGc...
-Content-Type: application/json
+**Errors**:
+- `400 Bad Request`: payment_id 파라미터 누락
+- `404 Not Found`: 결제 내역을 찾을 수 없음
 
-{
-  "customerKey": "USER_1",
-  "authKey": "billing_auth_key_..."
-}
-```
+---
 
-**Response** (200):
+## 👤 프로필 관리 (Profile)
+
+### 프로필 조회
+사용자의 기업 프로필을 조회합니다.
+
+**Endpoint**: `GET /api/profile?action=get`  
+**Auth**: Required (Bearer Token)
+
+**Response** (200 OK):
 ```json
 {
-  "billingKey": "billing_key_...",
-  "card_info": {
-    "number": "1234-****-****-5678",
-    "type": "신용"
-  }
+  "id": 2,
+  "company_name": "Test Company Ltd.",
+  "brn": "123-45-67890",
+  "location_code": "11",
+  "keywords": null,
+  "credit_rating": "AAA",
+  "created_at": "2026-02-04T00:42:57.031683",
+  "updated_at": "2026-02-04T00:55:56.881320"
+}
+```
+
+**Response (No Profile)**:
+```json
+{
+  "profile": null,
+  "message": "Profile not found. Please create a profile first."
 }
 ```
 
 ---
 
-## Upload
+### 프로필 생성
+새 기업 프로필을 생성합니다.
 
-### Upload PDF (Business Registration Certificate)
-```http
-POST /api/upload/pdf
-Authorization: Bearer eyJhbGc...
-Content-Type: multipart/form-data
+**Endpoint**: `POST /api/profile?action=create`  
+**Auth**: Required (Bearer Token)
 
-file: (binary PDF data)
-```
-
-**Response** (200):
+**Request**:
 ```json
 {
-  "success": true,
-  "extracted": {
-    "company_name": "테스트 회사",
-    "brn": "123-45-67890",
-    "representative": "홍길동",
-    "address": "서울특별시 강남구..."
-  },
-  "profile_updated": true,
-  "message": "Business registration certificate processed successfully"
+  "company_name": "Test Company Ltd.",
+  "brn": "123-45-67890",
+  "location_code": "11",
+  "keywords": "AI, Python, FastAPI",
+  "credit_rating": "A+"
 }
 ```
 
-**Error** (413 - File Too Large):
+**Response** (201 Created):
 ```json
 {
-  "detail": "File size exceeds 10MB limit"
+  "id": 2,
+  "company_name": "Test Company Ltd.",
+  "brn": "123-45-67890",
+  "location_code": "11",
+  "keywords": "AI, Python, FastAPI",
+  "credit_rating": "A+",
+  "created_at": "2026-02-04T00:42:57.031683",
+  "message": "Profile created successfully"
+}
+```
+
+**Errors**:
+- `400 Bad Request`: 프로필이 이미 존재함
+
+---
+
+### 프로필 수정
+기존 프로필을 수정합니다 (부분 업데이트 지원).
+
+**Endpoint**: `PUT /api/profile?action=update`  
+**Auth**: Required (Bearer Token)
+
+**Request** (일부 필드만 수정 가능):
+```json
+{
+  "company_name": "Updated Company Name",
+  "credit_rating": "AAA"
+}
+```
+
+**Response** (200 OK):
+```json
+{
+  "id": 2,
+  "company_name": "Updated Company Name",
+  "brn": "123-45-67890",
+  "location_code": "11",
+  "keywords": "AI, Python, FastAPI",
+  "credit_rating": "AAA",
+  "updated_at": "2026-02-04T00:55:56.881320",
+  "message": "Profile updated successfully"
+}
+```
+
+**Errors**:
+- `400 Bad Request`: 프로필이 존재하지 않음 (create 필요)
+
+---
+
+### 보유 면허 조회
+사용자 프로필에 등록된 면허 목록을 조회합니다.
+
+**Endpoint**: `GET /api/profile?action=licenses`  
+**Auth**: Required (Bearer Token)
+
+**Response** (200 OK):
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "license_name": "정보처리기사",
+      "license_number": "12345678",
+      "issue_date": "2020-05-15",
+      "expiry_date": null,
+      "issuing_agency": "한국산업인력공단",
+      "created_at": "2026-02-01T10:00:00"
+    }
+  ],
+  "total": 1
 }
 ```
 
 ---
 
-## Webhooks
+### 시공 실적 조회
+사용자 프로필에 등록된 시공/용역 실적을 조회합니다.
 
-### Tosspayments Webhook
-```http
-POST /api/webhooks/tosspayments
-Content-Type: application/json
-X-Tosspayments-Signature: hmac-sha256-signature
+**Endpoint**: `GET /api/profile?action=performances`  
+**Auth**: Required (Bearer Token)
 
-{
-  "eventType": "payment.confirmed",
-  "orderId": "20260203220000-USER1",
-  "paymentKey": "tviva20231201...",
-  "status": "DONE",
-  "totalAmount": 9900
-}
-```
-
-**Response** (200):
+**Response** (200 OK):
 ```json
 {
-  "success": true,
-  "message": "Webhook processed"
+  "items": [
+    {
+      "id": 1,
+      "project_name": "서울시청 AI 시스템 구축",
+      "client_name": "서울특별시",
+      "amount": 50000000,
+      "start_date": "2025-01-01",
+      "completion_date": "2025-06-30",
+      "project_type": "용역",
+      "location": "서울",
+      "description": "AI 기반 민원 처리 시스템",
+      "created_at": "2026-02-01T10:00:00"
+    }
+  ],
+  "total": 1
 }
 ```
 
 ---
 
-## Cron Jobs
+## 📤 파일 업로드 (Upload)
 
-**Note**: All cron jobs require `CRON_SECRET` in Authorization header.
+### PDF 업로드 및 AI 분석
+PDF 파일을 업로드하고 Gemini AI로 내용을 추출합니다.
 
-### Crawl G2B
-```http
-GET /api/cron/crawl-g2b
-Authorization: Bearer {CRON_SECRET}
+**Endpoint**: `POST /api/upload`  
+**Auth**: Required (Bearer Token)  
+**Content-Type**: `multipart/form-data`
+
+**Request** (Form Data):
+```
+file: [PDF File]
 ```
 
-**Response** (200):
-```json
-{
-  "success": true,
-  "message": "Crawling completed successfully",
-  "stats": {
-    "total_crawled": 50,
-    "new_saved": 30,
-    "duplicates_skipped": 20,
-    "notifications_sent": 5
-  }
-}
-```
-
-### Crawl OnBid
-```http
-GET /api/cron/crawl-onbid
-Authorization: Bearer {CRON_SECRET}
-```
-
-### Morning Digest
-```http
-GET /api/cron/morning-digest
-Authorization: Bearer {CRON_SECRET}
-```
-
-### Renew Subscriptions
-```http
-GET /api/cron/renew-subscriptions
-Authorization: Bearer {CRON_SECRET}
-```
-
-**Response** (200):
-```json
-{
-  "success": true,
-  "processed": 10,
-  "renewed": 8,
-  "failed": 2,
-  "canceled": 0,
-  "elapsed_seconds": 12.34
-}
-```
-
----
-
-## Error Codes
-
-| Code | Meaning | Description |
-|------|---------|-------------|
-| 200 | OK | Request successful |
-| 201 | Created | Resource created |
-| 400 | Bad Request | Invalid input data |
-| 401 | Unauthorized | Missing or invalid JWT token |
-| 403 | Forbidden | Permission denied (e.g., plan limit exceeded) |
-| 404 | Not Found | Resource not found |
-| 409 | Conflict | Duplicate resource (e.g., duplicate orderId) |
-| 413 | Payload Too Large | File size exceeds limit |
-| 500 | Internal Server Error | Server error |
-
-### Error Response Format
-```json
-{
-  "detail": "Error message describing what went wrong"
-}
-```
-
----
-
-## Rate Limiting
-
-**Free Plan**:
-- 100 requests/hour
-- 1,000 requests/day
-
-**Basic Plan**:
-- 1,000 requests/hour
-- 10,000 requests/day
-
-**Pro Plan**:
-- 10,000 requests/hour
-- 100,000 requests/day
-
-**429 Too Many Requests**:
-```json
-{
-  "detail": "Rate limit exceeded. Try again in 60 seconds."
-}
-```
-
----
-
-## Pagination
-
-All list endpoints support pagination:
-
-**Query Parameters**:
-- `page` (int): Page number (default: 1)
-- `limit` (int): Items per page (default: 20, max: 100)
-
-**Response Format**:
-```json
-{
-  "items": [...],
-  "total": 150,
-  "page": 1,
-  "page_size": 20,
-  "total_pages": 8
-}
-```
-
----
-
-## Examples
-
-### Complete User Journey
-
+**Request Example** (curl):
 ```bash
-# 1. Register
-curl -X POST https://your-api.vercel.app/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"SecurePass123!","company_name":"테스트 회사"}'
+curl -X POST https://sideproject-one.vercel.app/api/upload \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@document.pdf"
+```
 
-# 2. Login
-TOKEN=$(curl -X POST https://your-api.vercel.app/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"SecurePass123!"}' \
-  | jq -r '.access_token')
+**Response** (200 OK):
+```json
+{
+  "success": true,
+  "profile": {
+    "company_name": "주식회사 ABC",
+    "brn": "123-45-67890",
+    "licenses": ["정보처리기사", "건축기사"],
+    "performances": [
+      {
+        "project_name": "서울시청 시스템 구축",
+        "amount": 50000000,
+        "completion_date": "2025-06-30"
+      }
+    ]
+  },
+  "message": "PDF processed and profile updated successfully"
+}
+```
 
-# 3. Update Profile
-curl -X PUT https://your-api.vercel.app/api/profile/region \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"location_code":"11000"}'
+**Errors**:
+- `400 Bad Request`: 파일 없음 또는 PDF가 아님
+- `413 Payload Too Large`: 파일 크기 초과 (최대 10MB)
 
-# 4. Add Keywords
-curl -X POST https://your-api.vercel.app/api/keywords \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"text":"시설관리","category":"include"}'
+---
 
-# 5. Get Matched Bids
-curl -X GET "https://your-api.vercel.app/api/bids/matched?limit=3" \
-  -H "Authorization: Bearer $TOKEN"
+## 🔔 웹훅 (Webhooks)
 
-# 6. Subscribe to Basic Plan
-curl -X POST https://your-api.vercel.app/api/payment/create \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"plan":"basic","payment_method":"card"}'
+### Tosspayments 결제 웹훅
+Tosspayments에서 결제 이벤트 발생 시 호출됩니다.
+
+**Endpoint**: `POST /api/webhooks`  
+**Auth**: HMAC-SHA256 Signature Verification
+
+**Request Headers**:
+```
+X-Signature: HMAC-SHA256 signature
+Content-Type: application/json
+```
+
+**Request**:
+```json
+{
+  "event": "payment.completed",
+  "orderId": "order_1234567890",
+  "paymentKey": "txn_abcdefg",
+  "amount": 29000,
+  "status": "DONE"
+}
+```
+
+**Response** (200 OK):
+```json
+{
+  "success": true,
+  "message": "Webhook processed successfully"
+}
+```
+
+**Errors**:
+- `401 Unauthorized`: Signature 검증 실패
+- `400 Bad Request`: 유효하지 않은 요청
+
+---
+
+## ⏰ Cron Jobs
+
+### G2B 크롤링
+나라장터 공고를 크롤링합니다 (하루 3회 실행).
+
+**Endpoint**: `GET /api/cron/crawl-g2b`  
+**Auth**: `Authorization: Bearer CRON_SECRET`  
+**Schedule**: 08:00, 12:00, 18:00 KST
+
+**Response** (200 OK):
+```json
+{
+  "status": "success",
+  "total_fetched": 150,
+  "total_new": 12,
+  "total_duplicates": 138,
+  "duration_seconds": 45
+}
 ```
 
 ---
 
-**Last Updated**: 2026-02-03
-**API Version**: 2.0 (Serverless)
-**Support**: https://github.com/doublesilver/biz-retriever/issues
+### 모닝 브리핑
+전날 수집한 공고를 Slack으로 전송합니다.
+
+**Endpoint**: `GET /api/cron/morning-digest`  
+**Auth**: `Authorization: Bearer CRON_SECRET`  
+**Schedule**: 08:30 KST
+
+**Response** (200 OK):
+```json
+{
+  "status": "success",
+  "notifications_sent": 5,
+  "message": "Morning digest sent successfully"
+}
+```
+
+---
+
+### 구독 갱신
+만료된 구독을 갱신합니다.
+
+**Endpoint**: `GET /api/cron/renew-subscriptions`  
+**Auth**: `Authorization: Bearer CRON_SECRET`  
+**Schedule**: 00:00 KST
+
+**Response** (200 OK):
+```json
+{
+  "status": "success",
+  "renewed_count": 3,
+  "message": "Subscriptions renewed successfully"
+}
+```
+
+---
+
+## ⚠️ 에러 코드
+
+| 코드 | 의미 | 설명 |
+|------|------|------|
+| `200` | OK | 성공 |
+| `201` | Created | 리소스 생성 성공 |
+| `400` | Bad Request | 잘못된 요청 (파라미터 누락, 중복 등) |
+| `401` | Unauthorized | 인증 실패 (토큰 없음/유효하지 않음) |
+| `404` | Not Found | 리소스를 찾을 수 없음 |
+| `413` | Payload Too Large | 파일 크기 초과 |
+| `422` | Unprocessable Entity | 유효성 검증 실패 (Pydantic) |
+| `500` | Internal Server Error | 서버 내부 오류 |
+
+### 에러 응답 형식
+```json
+{
+  "error": true,
+  "message": "Error description",
+  "status_code": 400,
+  "details": {
+    "field": "email",
+    "error": "Email already registered"
+  }
+}
+```
+
+---
+
+## 🔧 Rate Limiting
+
+현재 Vercel Hobby 플랜에서는 Rate Limiting이 적용되지 않습니다.
+
+향후 Pro 플랜 업그레이드 시 다음 제한이 적용될 예정:
+- **인증 API**: 5 req/분
+- **일반 API**: 100 req/분
+- **Cron API**: CRON_SECRET 인증 필수
+
+---
+
+## 📞 지원
+
+**문제 신고**: GitHub Issues  
+**이메일**: support@biz-retriever.com  
+**문서 업데이트**: 2026-02-04
+
+---
+
+**Made with ❤️ by Biz-Retriever Team**
