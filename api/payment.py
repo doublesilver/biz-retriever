@@ -79,9 +79,8 @@ class handler(BaseHTTPRequestHandler):
             query = """
                 SELECT 
                     id, plan_name, is_active, 
-                    stripe_subscription_id, stripe_customer_id,
-                    current_period_start, current_period_end,
-                    cancel_at_period_end, canceled_at,
+                    stripe_subscription_id,
+                    start_date, next_billing_date,
                     created_at, updated_at
                 FROM subscriptions
                 WHERE user_id = $1
@@ -95,9 +94,8 @@ class handler(BaseHTTPRequestHandler):
                 return {
                     "plan_name": "free",
                     "is_active": True,
-                    "current_period_start": None,
-                    "current_period_end": None,
-                    "cancel_at_period_end": False,
+                    "start_date": None,
+                    "next_billing_date": None,
                     "message": "No active subscription. Using free plan."
                 }
             
@@ -106,11 +104,8 @@ class handler(BaseHTTPRequestHandler):
                 "plan_name": row['plan_name'],
                 "is_active": row['is_active'],
                 "stripe_subscription_id": row['stripe_subscription_id'],
-                "stripe_customer_id": row['stripe_customer_id'],
-                "current_period_start": row['current_period_start'].isoformat() if row['current_period_start'] else None,
-                "current_period_end": row['current_period_end'].isoformat() if row['current_period_end'] else None,
-                "cancel_at_period_end": row['cancel_at_period_end'],
-                "canceled_at": row['canceled_at'].isoformat() if row['canceled_at'] else None,
+                "start_date": row['start_date'].isoformat() if row['start_date'] else None,
+                "next_billing_date": row['next_billing_date'].isoformat() if row['next_billing_date'] else None,
                 "created_at": row['created_at'].isoformat() if row['created_at'] else None,
                 "updated_at": row['updated_at'].isoformat() if row['updated_at'] else None
             }
