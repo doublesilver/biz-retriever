@@ -6,9 +6,7 @@ RateLimiter 단위 테스트
 - rate_limit 데코레이터
 """
 
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from app.services.rate_limiter import RateLimiter
 

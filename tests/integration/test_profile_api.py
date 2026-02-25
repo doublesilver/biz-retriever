@@ -6,11 +6,7 @@ Profile API 통합 테스트
 - POST/GET/DELETE /api/v1/profile/performances
 """
 
-import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.db.models import User
 
 
 class TestGetProfile:
@@ -95,9 +91,7 @@ class TestLicenses:
         assert create_resp.status_code == 201
         license_id = create_resp.json()["id"]
 
-        delete_resp = await authenticated_profile_client.delete(
-            f"/api/v1/profile/licenses/{license_id}"
-        )
+        delete_resp = await authenticated_profile_client.delete(f"/api/v1/profile/licenses/{license_id}")
         assert delete_resp.status_code == 204
 
     async def test_unauthenticated_add(self, async_client: AsyncClient):
@@ -146,9 +140,7 @@ class TestPerformances:
         assert create_resp.status_code == 201
         perf_id = create_resp.json()["id"]
 
-        delete_resp = await authenticated_profile_client.delete(
-            f"/api/v1/profile/performances/{perf_id}"
-        )
+        delete_resp = await authenticated_profile_client.delete(f"/api/v1/profile/performances/{perf_id}")
         assert delete_resp.status_code == 204
 
     async def test_unauthenticated_add(self, async_client: AsyncClient):

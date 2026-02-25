@@ -6,11 +6,12 @@ MLService 확장 단위 테스트
 - train_model: 데이터 부족
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.services.ml_service import MLService
+import pytest
+
 from app.core.exceptions import InsufficientDataError, ModelNotTrainedError
+from app.services.ml_service import MLService
 
 
 class TestLoadModel:

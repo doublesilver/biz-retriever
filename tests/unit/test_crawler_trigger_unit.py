@@ -31,12 +31,14 @@ class TestTriggerManualCrawl:
 
         mock_request = MagicMock()
 
-        with patch.dict("sys.modules", {
-            "app.worker.taskiq_tasks": MagicMock(crawl_g2b_bids=mock_crawl_g2b),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "app.worker.taskiq_tasks": MagicMock(crawl_g2b_bids=mock_crawl_g2b),
+            },
+        ):
             with patch("app.api.endpoints.crawler.crawl_g2b_bids", mock_crawl_g2b, create=True):
                 # Use importlib to patch the lazy import inside the function
-                import importlib
 
                 async def patched_trigger(request, current_user):
                     if not current_user.is_superuser:
@@ -62,7 +64,7 @@ class TestTriggerManualCrawl:
         mock_request = MagicMock()
 
         # Patch the import to fail
-        original_import = __builtins__.__import__ if hasattr(__builtins__, '__import__') else __import__
+        original_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__
 
         def failing_import(name, *args, **kwargs):
             if name == "app.worker.taskiq_tasks":
@@ -88,9 +90,12 @@ class TestTriggerManualCrawl:
         mock_crawl_task = MagicMock()
         mock_crawl_task.kiq = AsyncMock(side_effect=Exception("Connection error"))
 
-        with patch.dict("sys.modules", {
-            "app.worker.taskiq_tasks": MagicMock(crawl_g2b_bids=mock_crawl_task),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "app.worker.taskiq_tasks": MagicMock(crawl_g2b_bids=mock_crawl_task),
+            },
+        ):
             # We need to reimport inside the function to pick up the patched module
             with pytest.raises(HTTPException) as exc_info:
                 await trigger_manual_crawl(request=mock_request, current_user=mock_user)

@@ -11,10 +11,9 @@ delete_cached/clear_cache_pattern은 패치하지 않는다.
 """
 
 import json
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-from app.core.cache import delete_cached, clear_cache_pattern
+from app.core.cache import clear_cache_pattern, delete_cached
 
 
 class TestDeleteCachedDirect:

@@ -1,18 +1,16 @@
 import os
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.constants import (ML_MIN_TRAINING_SAMPLES, ML_MODEL_PATH,
-                                ML_N_ESTIMATORS, ML_RANDOM_STATE, ML_TEST_SIZE)
+from app.core.constants import ML_MIN_TRAINING_SAMPLES, ML_MODEL_PATH, ML_N_ESTIMATORS, ML_RANDOM_STATE, ML_TEST_SIZE
 from app.core.exceptions import InsufficientDataError, ModelNotTrainedError
 from app.core.logging import logger
 from app.db.models import BidResult
 
 if TYPE_CHECKING:
-    import numpy as np
-    import pandas as pd
+    pass
 
 
 class MLService:
@@ -56,7 +54,7 @@ class MLService:
                 return False
         return False
 
-    async def train_model(self, db: AsyncSession) -> Dict[str, float]:
+    async def train_model(self, db: AsyncSession) -> dict[str, float]:
         """Train ML model with historical bid data"""
         logger.info("🔄 Starting model training...")
 
@@ -84,9 +82,7 @@ class MLService:
             data.append(
                 {
                     "estimated_price": bid.estimated_price,
-                    "base_price": (
-                        bid.base_price if bid.base_price else bid.estimated_price
-                    ),
+                    "base_price": (bid.base_price if bid.base_price else bid.estimated_price),
                     "winning_price": bid.winning_price,
                     "category_code": hash(bid.category) if bid.category else 0,
                 }
@@ -103,13 +99,9 @@ class MLService:
         from sklearn.metrics import mean_absolute_error, r2_score
         from sklearn.model_selection import train_test_split
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=ML_TEST_SIZE, random_state=ML_RANDOM_STATE
-        )
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=ML_TEST_SIZE, random_state=ML_RANDOM_STATE)
 
-        model = RandomForestRegressor(
-            n_estimators=ML_N_ESTIMATORS, random_state=ML_RANDOM_STATE
-        )
+        model = RandomForestRegressor(n_estimators=ML_N_ESTIMATORS, random_state=ML_RANDOM_STATE)
         model.fit(X_train, y_train)
 
         # 4. Evaluate
@@ -129,9 +121,9 @@ class MLService:
     def predict_price(
         self,
         estimated_price: float,
-        base_price: Optional[float] = None,
-        category: Optional[str] = None,
-    ) -> Dict[str, float]:
+        base_price: float | None = None,
+        category: str | None = None,
+    ) -> dict[str, float]:
         """Predict winning price for a bid"""
         # Try to load model if not loaded
         if not self.model:

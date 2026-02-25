@@ -6,8 +6,9 @@ PaymentService API 호출 테스트 (mock httpx)
 - get_payment_info: exception 케이스
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.core.exceptions import (
     PaymentConfirmationError,

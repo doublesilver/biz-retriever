@@ -1,5 +1,4 @@
-import os
-from typing import Any, Dict
+from typing import Any
 
 import instructor
 from pydantic import BaseModel, Field
@@ -23,15 +22,9 @@ class BidAnalysisResult(BaseModel):
 
     summary: str = Field(..., description="공고 핵심 내용을 1문장으로 요약")
     keywords: list[str] = Field(default_factory=list, description="중요 키워드 3-5개")
-    region_code: str | None = Field(
-        None, description="공사/용역 현장 지역 (광역시도명 또는 '전국')"
-    )
-    license_requirements: list[str] = Field(
-        default_factory=list, description="필요한 면허/자격 목록"
-    )
-    min_performance: float = Field(
-        default=0.0, description="실적 제한 금액 (숫자, 없으면 0)"
-    )
+    region_code: str | None = Field(None, description="공사/용역 현장 지역 (광역시도명 또는 '전국')")
+    license_requirements: list[str] = Field(default_factory=list, description="필요한 면허/자격 목록")
+    min_performance: float = Field(default=0.0, description="실적 제한 금액 (숫자, 없으면 0)")
 
 
 class RAGService:
@@ -64,18 +57,12 @@ class RAGService:
                 logger.error(f"Gemini 초기화 실패: {e}. OpenAI로 대체")
 
         # Gemini가 없으면 OpenAI 확인
-        if (
-            not self.client
-            and settings.OPENAI_API_KEY
-            and settings.OPENAI_API_KEY.startswith("sk-")
-        ):
+        if not self.client and settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.startswith("sk-"):
             self.api_key_type = "openai"
             logger.info("RAG 서비스: OpenAI API 사용 (Lightweight)")
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=6)
-    )
-    async def analyze_bid(self, content: str) -> Dict[str, Any]:
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=6))
+    async def analyze_bid(self, content: str) -> dict[str, Any]:
         """
         입찰 공고 내용을 AI로 분석하여 요약 및 키워드 추출
 
@@ -113,9 +100,7 @@ class RAGService:
                 gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
                 # Instructor로 Gemini 클라이언트 래핑
-                instructor_client = instructor.from_gemini(
-                    client=gemini_client, mode=instructor.Mode.GEMINI_JSON
-                )
+                instructor_client = instructor.from_gemini(client=gemini_client, mode=instructor.Mode.GEMINI_JSON)
 
                 # Pydantic 모델로 자동 검증된 응답 받기
                 result: BidAnalysisResult = instructor_client.chat.completions.create(
@@ -137,13 +122,11 @@ class RAGService:
                 instructor_client = instructor.from_openai(openai_client)
 
                 # Pydantic 모델로 자동 검증된 응답 받기
-                result: BidAnalysisResult = (
-                    await instructor_client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        response_model=BidAnalysisResult,
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=0,
-                    )
+                result: BidAnalysisResult = await instructor_client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    response_model=BidAnalysisResult,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0,
                 )
 
                 return result.model_dump()

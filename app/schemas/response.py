@@ -22,7 +22,7 @@
 """
 
 from datetime import datetime
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -39,8 +39,8 @@ class ErrorDetail(BaseModel):
 
     code: str = Field(..., description="도메인별 에러 코드 (예: AUTH_001)")
     message: str = Field(..., description="사용자용 에러 메시지")
-    details: Optional[Any] = Field(default=None, description="추가 에러 상세 (개발 환경 전용)")
-    path: Optional[str] = Field(default=None, description="요청 경로")
+    details: Any | None = Field(default=None, description="추가 에러 상세 (개발 환경 전용)")
+    path: str | None = Field(default=None, description="요청 경로")
 
 
 # ============================================
@@ -71,9 +71,9 @@ class ApiResponse(BaseModel, Generic[T]):
     """
 
     success: bool = Field(..., description="요청 성공 여부")
-    data: Optional[T] = Field(default=None, description="응답 데이터")
-    error: Optional[ErrorDetail] = Field(default=None, description="에러 정보 (실패 시)")
-    meta: Optional[dict[str, Any]] = Field(default=None, description="메타 정보 (페이지네이션 등)")
+    data: T | None = Field(default=None, description="응답 데이터")
+    error: ErrorDetail | None = Field(default=None, description="에러 정보 (실패 시)")
+    meta: dict[str, Any] | None = Field(default=None, description="메타 정보 (페이지네이션 등)")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="응답 시각 (UTC)")
 
 
@@ -166,4 +166,4 @@ class ErrorResponse(BaseModel):
 
     code: str
     message: str
-    details: Optional[Any] = None
+    details: Any | None = None

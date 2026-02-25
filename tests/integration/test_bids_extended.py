@@ -15,7 +15,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from httpx import AsyncClient
 
-
 # Pre-inject fake app.worker.tasks module so the lazy import inside
 # upload_bid (line 287: from app.worker.tasks import process_bid_analysis)
 # does not fail when taskiq is not installed.
@@ -69,9 +68,7 @@ class TestUploadBid:
         pdf_content = b"%PDF-1.4 test content for upload"
 
         with patch("app.api.endpoints.bids.file_service") as mock_fs:
-            mock_fs.get_text_from_file = AsyncMock(
-                return_value="추출된 공고 텍스트 내용입니다."
-            )
+            mock_fs.get_text_from_file = AsyncMock(return_value="추출된 공고 텍스트 내용입니다.")
             with patch("app.api.endpoints.bids.bid_service") as mock_bs:
                 mock_bid = _make_bid_mock(
                     id=999,
@@ -138,7 +135,5 @@ class TestUploadBid:
     async def test_upload_unauthenticated(self, async_client: AsyncClient):
         """미인증 시 401"""
         files = {"file": ("test.pdf", b"fake pdf content", "application/pdf")}
-        response = await async_client.post(
-            "/api/v1/bids/upload", files=files, params={"title": "테스트"}
-        )
+        response = await async_client.post("/api/v1/bids/upload", files=files, params={"title": "테스트"})
         assert response.status_code == 401

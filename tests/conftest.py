@@ -3,30 +3,27 @@ pytest 설정 및 Fixtures
 """
 
 import asyncio
+from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta
-from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
 # FastAPICache for testing (Removed due to dependency conflict)
 # from fastapi_cache import FastAPICache
 # from fastapi_cache.backends.inmemory import InMemoryBackend
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
-                                    create_async_engine)
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from app.api import deps
-from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash
 from app.db import session as db_session_module
 from app.db.base import Base
 from app.db.models import (
     BidAnnouncement,
-    ExcludeKeyword,
     Subscription,
     User,
-    UserKeyword,
     UserLicense,
     UserPerformance,
     UserProfile,
@@ -52,6 +49,7 @@ def disable_rate_limiting():
 
     # endpoint 데코레이터가 이미 캡처한 원본 limiter 객체를 직접 비활성화
     from app.services.rate_limiter import limiter as original_limiter
+
     original_limiter.enabled = False
 
     yield
@@ -73,6 +71,7 @@ def mock_redis_cache():
         with patch("app.core.cache.get_cached", new_callable=AsyncMock, return_value=None):
             with patch("app.core.cache.set_cached", new_callable=AsyncMock, return_value=True):
                 yield mock_client
+
 
 # Test Database URL (In-memory SQLite for fast tests)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -112,9 +111,7 @@ async def test_db() -> AsyncGenerator[AsyncSession, None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    test_session_maker = async_sessionmaker(
-        bind=engine, class_=AsyncSession, expire_on_commit=False
-    )
+    test_session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
     # Dependency override 함수
     async def override_get_db():
@@ -219,9 +216,7 @@ def auth_headers(auth_token: str) -> dict:
 
 
 @pytest.fixture
-async def sample_bid(
-    test_db: AsyncSession, sample_announcement_data: dict
-) -> BidAnnouncement:
+async def sample_bid(test_db: AsyncSession, sample_announcement_data: dict) -> BidAnnouncement:
     """DB에 저장된 샘플 공고"""
     bid = BidAnnouncement(
         title=sample_announcement_data["title"],
@@ -366,9 +361,7 @@ def mock_openai():
     with patch("app.services.rag_service.ChatOpenAI") as mock:
         mock_llm = AsyncMock()
         mock_response = MagicMock()
-        mock_response.content = (
-            "테스트 요약 결과입니다. 주요 키워드: 테스트, 입찰, 공고"
-        )
+        mock_response.content = "테스트 요약 결과입니다. 주요 키워드: 테스트, 입찰, 공고"
         mock_llm.apredict_messages = AsyncMock(return_value=mock_response)
 
         mock.return_value = mock_llm
@@ -389,16 +382,12 @@ async def async_client(test_db: AsyncSession) -> AsyncGenerator[AsyncClient, Non
 
 
 @pytest.fixture
-async def authenticated_client(
-    test_user: User, test_db: AsyncSession
-) -> AsyncGenerator[AsyncClient, None]:
+async def authenticated_client(test_user: User, test_db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """인증된 비동기 HTTP 클라이언트 - test_db, test_user 의존"""
     token = create_access_token(subject=test_user.email)
     headers = {"Authorization": f"Bearer {token}"}
     transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport, base_url="http://test", headers=headers
-    ) as client:
+    async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as client:
         yield client
 
 
@@ -518,7 +507,5 @@ async def authenticated_profile_client(
     token = create_access_token(subject=test_user_with_profile.email)
     headers = {"Authorization": f"Bearer {token}"}
     transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport, base_url="http://test", headers=headers
-    ) as client:
+    async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as client:
         yield client

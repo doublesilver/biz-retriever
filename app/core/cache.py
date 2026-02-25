@@ -5,7 +5,7 @@ fastapi-cache2 제거로 인해 Redis 직접 사용하여 캐싱 구현
 """
 
 import json
-from typing import Any, Optional
+from typing import Any
 
 from redis import asyncio as aioredis
 
@@ -13,7 +13,7 @@ from app.core.config import settings
 from app.core.logging import logger
 
 # Redis 클라이언트 (싱글톤)
-_redis_client: Optional[aioredis.Redis] = None
+_redis_client: aioredis.Redis | None = None
 
 
 async def get_redis() -> aioredis.Redis:
@@ -28,7 +28,7 @@ async def get_redis() -> aioredis.Redis:
     return _redis_client
 
 
-async def get_cached(key: str) -> Optional[Any]:
+async def get_cached(key: str) -> Any | None:
     """
     Redis에서 캐시된 데이터 조회
 
@@ -68,10 +68,7 @@ async def set_cached(key: str, value: Any, expire: int = 300) -> bool:
 
         # Pydantic 모델 직렬화 처리
         if isinstance(value, list):
-            serialized = [
-                item.model_dump() if hasattr(item, "model_dump") else item
-                for item in value
-            ]
+            serialized = [item.model_dump() if hasattr(item, "model_dump") else item for item in value]
         elif hasattr(value, "model_dump"):
             serialized = value.model_dump()
         else:

@@ -4,9 +4,9 @@ main.py 예외 핸들러 및 미들웨어 분기 테스트
 - general_exception_handler
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
+import pytest
 from httpx import ASGITransport, AsyncClient
 
 
@@ -36,8 +36,9 @@ class TestGeneralExceptionHandler:
 
     async def test_returns_500_json(self):
         """Unhandled exception -> 500 JSON response"""
-        from app.main import app
         from fastapi import APIRouter
+
+        from app.main import app
 
         error_router = APIRouter()
 
@@ -55,14 +56,13 @@ class TestGeneralExceptionHandler:
             assert data["success"] is False
             assert data["error"]["code"] == "INTERNAL_ERROR"
         finally:
-            app.routes[:] = [
-                r for r in app.routes if getattr(r, "path", "") != "/test-general-exc"
-            ]
+            app.routes[:] = [r for r in app.routes if getattr(r, "path", "") != "/test-general-exc"]
 
     async def test_production_hides_details(self):
         """production -> details=None"""
-        from app.main import app
         from fastapi import APIRouter
+
+        from app.main import app
 
         error_router = APIRouter()
 
@@ -81,14 +81,13 @@ class TestGeneralExceptionHandler:
             data = response.json()
             assert data["error"].get("details") is None
         finally:
-            app.routes[:] = [
-                r for r in app.routes if getattr(r, "path", "") != "/test-exc-prod"
-            ]
+            app.routes[:] = [r for r in app.routes if getattr(r, "path", "") != "/test-exc-prod"]
 
     async def test_development_shows_details(self):
         """development -> details 포함"""
-        from app.main import app
         from fastapi import APIRouter
+
+        from app.main import app
 
         error_router = APIRouter()
 
@@ -108,6 +107,4 @@ class TestGeneralExceptionHandler:
             assert data["error"]["details"] is not None
             assert data["error"]["details"]["exception"] == "ValueError"
         finally:
-            app.routes[:] = [
-                r for r in app.routes if getattr(r, "path", "") != "/test-exc-dev"
-            ]
+            app.routes[:] = [r for r in app.routes if getattr(r, "path", "") != "/test-exc-dev"]

@@ -14,9 +14,7 @@ class TestWebSocketEndpoint:
     def test_ws_invalid_token(self):
         """유효하지 않은 토큰으로 연결 시도 - 연결 종료"""
         client = TestClient(app)
-        with client.websocket_connect(
-            "/api/v1/realtime/notifications?token=invalid_token"
-        ) as ws:
+        with client.websocket_connect("/api/v1/realtime/notifications?token=invalid_token") as ws:
             # 서버가 인증 실패로 연결을 닫음 (policy violation)
             # close 메시지를 받아야 함
             pass
@@ -25,7 +23,5 @@ class TestWebSocketEndpoint:
         """토큰 없이 연결 시도 - 422"""
         client = TestClient(app)
         with pytest.raises(Exception):
-            with client.websocket_connect(
-                "/api/v1/realtime/notifications"
-            ) as ws:
+            with client.websocket_connect("/api/v1/realtime/notifications") as ws:
                 pass

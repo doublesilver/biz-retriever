@@ -28,14 +28,13 @@ Sentry는 "버그"를 자동으로 감지하고 기록합니다.
 - 변경 후: Sentry 대시보드에서 실시간 에러 모니터링, Slack 자동 알림
 """
 
+import logging
 import os
 
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
-
-import logging
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
 
 def _before_send(event: dict, hint: dict) -> dict | None:

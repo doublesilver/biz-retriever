@@ -1,14 +1,13 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import (JSON, Boolean, DateTime, Float, ForeignKey, Integer,
-                        String, Text)
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
-    from typing import List as ListType
+    pass
 
 
 class BidAnnouncement(Base, TimestampMixin):
@@ -23,60 +22,34 @@ class BidAnnouncement(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String, index=True, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)  # Full text content
-    agency: Mapped[Optional[str]] = mapped_column(String, index=True)  # Ordering Agency
+    agency: Mapped[str | None] = mapped_column(String, index=True)  # Ordering Agency
     posted_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    url: Mapped[str] = mapped_column(
-        String, unique=True, nullable=False
-    )  # Original Link
-    processed: Mapped[bool] = mapped_column(
-        Boolean, default=False
-    )  # RAG Processing Status
-    ai_summary: Mapped[Optional[str]] = mapped_column(Text)  # AI 요약
-    ai_keywords: Mapped[Optional[List[str]]] = mapped_column(
-        JSON, default=list
-    )  # AI 추출 키워드
+    url: Mapped[str] = mapped_column(String, unique=True, nullable=False)  # Original Link
+    processed: Mapped[bool] = mapped_column(Boolean, default=False)  # RAG Processing Status
+    ai_summary: Mapped[str | None] = mapped_column(Text)  # AI 요약
+    ai_keywords: Mapped[list[str] | None] = mapped_column(JSON, default=list)  # AI 추출 키워드
 
     # Phase 1 추가 필드
-    source: Mapped[str] = mapped_column(
-        String, index=True, default="G2B"
-    )  # "G2B", "Onbid", etc.
-    deadline: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, index=True
-    )  # 마감일시
-    estimated_price: Mapped[Optional[float]] = mapped_column(Float)  # 추정가 (원)
-    importance_score: Mapped[int] = mapped_column(
-        Integer, default=1, index=True
-    )  # 1~3 (별점)
-    keywords_matched: Mapped[Optional[List[str]]] = mapped_column(
-        JSON, default=list
-    )  # 매칭된 키워드 목록
+    source: Mapped[str] = mapped_column(String, index=True, default="G2B")  # "G2B", "Onbid", etc.
+    deadline: Mapped[datetime | None] = mapped_column(DateTime, index=True)  # 마감일시
+    estimated_price: Mapped[float | None] = mapped_column(Float)  # 추정가 (원)
+    importance_score: Mapped[int] = mapped_column(Integer, default=1, index=True)  # 1~3 (별점)
+    keywords_matched: Mapped[list[str] | None] = mapped_column(JSON, default=list)  # 매칭된 키워드 목록
     is_notified: Mapped[bool] = mapped_column(Boolean, default=False)  # Slack 알림 여부
-    crawled_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow
-    )  # 크롤링 시간
-    attachment_content: Mapped[Optional[str]] = mapped_column(
-        Text
-    )  # OCR/Parsed content from HWP/PDF
+    crawled_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)  # 크롤링 시간
+    attachment_content: Mapped[str | None] = mapped_column(Text)  # OCR/Parsed content from HWP/PDF
 
     # Phase 3: Hard Match용 제약 조건
-    region_code: Mapped[Optional[str]] = mapped_column(
-        String, index=True
-    )  # 공사 현장 지역 코드 (서울: 11 등)
-    min_performance: Mapped[Optional[float]] = mapped_column(
-        Float, default=0.0
-    )  # 최소 실적 요건(금액)
-    license_requirements: Mapped[Optional[List[str]]] = mapped_column(
-        JSON, default=list
-    )  # 필요 면허 목록
+    region_code: Mapped[str | None] = mapped_column(String, index=True)  # 공사 현장 지역 코드 (서울: 11 등)
+    min_performance: Mapped[float | None] = mapped_column(Float, default=0.0)  # 최소 실적 요건(금액)
+    license_requirements: Mapped[list[str] | None] = mapped_column(JSON, default=list)  # 필요 면허 목록
 
     # Phase 2 추가 필드 (Kanban 상태 관리)
-    status: Mapped[str] = mapped_column(
-        String, default="new", index=True
-    )  # new, reviewing, bidding, completed
-    assigned_to: Mapped[Optional[int]] = mapped_column(
+    status: Mapped[str] = mapped_column(String, default="new", index=True)  # new, reviewing, bidding, completed
+    assigned_to: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )  # 담당자
-    notes: Mapped[Optional[str]] = mapped_column(Text)  # 메모
+    notes: Mapped[str | None] = mapped_column(Text)  # 메모
 
     # Relationship: BidAnnouncement -> User (담당자)
     assignee: Mapped[Optional["User"]] = relationship(
@@ -103,45 +76,23 @@ class User(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Security & Login Management
-    failed_login_attempts: Mapped[int] = mapped_column(
-        Integer, default=0
-    )  # 로그인 실패 횟수
-    locked_until: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, nullable=True
-    )  # 계정 잠금 해제 시간
-    last_login_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, nullable=True
-    )  # 마지막 로그인 시간
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0)  # 로그인 실패 횟수
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # 계정 잠금 해제 시간
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # 마지막 로그인 시간
 
     # Password Reset
-    password_reset_token: Mapped[Optional[str]] = mapped_column(
-        String, nullable=True, index=True
-    )  # 비밀번호 재설정 토큰
-    password_reset_expires: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, nullable=True
-    )  # 토큰 만료 시간
+    password_reset_token: Mapped[str | None] = mapped_column(String, nullable=True, index=True)  # 비밀번호 재설정 토큰
+    password_reset_expires: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # 토큰 만료 시간
 
     # Email Verification
-    is_email_verified: Mapped[bool] = mapped_column(
-        Boolean, default=False
-    )  # 이메일 인증 완료 여부
-    email_verification_token: Mapped[Optional[str]] = mapped_column(
-        String, nullable=True, index=True
-    )  # 이메일 인증 토큰
-    email_verification_expires: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, nullable=True
-    )  # 인증 토큰 만료 시간
+    is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False)  # 이메일 인증 완료 여부
+    email_verification_token: Mapped[str | None] = mapped_column(String, nullable=True, index=True)  # 이메일 인증 토큰
+    email_verification_expires: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # 인증 토큰 만료 시간
 
     # OAuth2 Fields (Deprecated - kept for backward compatibility)
-    provider: Mapped[str] = mapped_column(
-        String, default="email"
-    )  # email (OAuth removed)
-    provider_id: Mapped[Optional[str]] = mapped_column(
-        String, nullable=True
-    )  # Deprecated
-    profile_image: Mapped[Optional[str]] = mapped_column(
-        String, nullable=True
-    )  # Profile Image URL
+    provider: Mapped[str] = mapped_column(String, default="email")  # email (OAuth removed)
+    provider_id: Mapped[str | None] = mapped_column(String, nullable=True)  # Deprecated
+    profile_image: Mapped[str | None] = mapped_column(String, nullable=True)  # Profile Image URL
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
@@ -152,7 +103,7 @@ class User(Base, TimestampMixin):
         lazy="selectin",
         cascade="all, delete-orphan",
     )
-    assigned_bids: Mapped[List["BidAnnouncement"]] = relationship(
+    assigned_bids: Mapped[list["BidAnnouncement"]] = relationship(
         back_populates="assignee", cascade="all, delete-orphan", lazy="selectin"
     )
 
@@ -164,10 +115,8 @@ class User(Base, TimestampMixin):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
-    payments: Mapped[List["PaymentHistory"]] = relationship(
-        "PaymentHistory", back_populates="user", lazy="selectin"
-    )
-    keywords: Mapped[List["UserKeyword"]] = relationship(
+    payments: Mapped[list["PaymentHistory"]] = relationship("PaymentHistory", back_populates="user", lazy="selectin")
+    keywords: Mapped[list["UserKeyword"]] = relationship(
         "UserKeyword",
         back_populates="user",
         cascade="all, delete-orphan",
@@ -192,55 +141,35 @@ class UserProfile(Base, TimestampMixin):
     )
 
     # 기업 기본 정보
-    company_name: Mapped[Optional[str]] = mapped_column(
-        String, index=True
-    )  # 상호/법인명
-    brn: Mapped[Optional[str]] = mapped_column(
-        String, unique=True, index=True
-    )  # 사업자등록번호
-    representative: Mapped[Optional[str]] = mapped_column(String)  # 대표자명
-    address: Mapped[Optional[str]] = mapped_column(String)  # 본사 주소
-    location_code: Mapped[Optional[str]] = mapped_column(
-        String, index=True
-    )  # 지역 코드 (서울: 11 등)
-    company_type: Mapped[Optional[str]] = mapped_column(
-        String
-    )  # 기업 구분 (중소기업, 소상공인 등)
-    keywords: Mapped[Optional[List[str]]] = mapped_column(
-        JSON, default=list
-    )  # 관심 키워드 (Phase 3 Soft Match)
+    company_name: Mapped[str | None] = mapped_column(String, index=True)  # 상호/법인명
+    brn: Mapped[str | None] = mapped_column(String, unique=True, index=True)  # 사업자등록번호
+    representative: Mapped[str | None] = mapped_column(String)  # 대표자명
+    address: Mapped[str | None] = mapped_column(String)  # 본사 주소
+    location_code: Mapped[str | None] = mapped_column(String, index=True)  # 지역 코드 (서울: 11 등)
+    company_type: Mapped[str | None] = mapped_column(String)  # 기업 구분 (중소기업, 소상공인 등)
+    keywords: Mapped[list[str] | None] = mapped_column(JSON, default=list)  # 관심 키워드 (Phase 3 Soft Match)
 
     # Phase 6.1: Detailed Profile
-    credit_rating: Mapped[Optional[str]] = mapped_column(
-        String
-    )  # 신용등급 (e.g. "A-", "BBB+")
-    employee_count: Mapped[Optional[int]] = mapped_column(Integer)  # 직원 수
-    founding_year: Mapped[Optional[int]] = mapped_column(Integer)  # 설립연도
-    main_bank: Mapped[Optional[str]] = mapped_column(String)  # 주거래 은행
-    standard_industry_codes: Mapped[Optional[List[str]]] = mapped_column(
-        JSON, default=list
-    )  # 표준산업분류코드
+    credit_rating: Mapped[str | None] = mapped_column(String)  # 신용등급 (e.g. "A-", "BBB+")
+    employee_count: Mapped[int | None] = mapped_column(Integer)  # 직원 수
+    founding_year: Mapped[int | None] = mapped_column(Integer)  # 설립연도
+    main_bank: Mapped[str | None] = mapped_column(String)  # 주거래 은행
+    standard_industry_codes: Mapped[list[str] | None] = mapped_column(JSON, default=list)  # 표준산업분류코드
 
     # Phase 8: Notification Settings
-    slack_webhook_url: Mapped[Optional[str]] = mapped_column(
-        String, nullable=True
-    )  # Slack Webhook URL
-    is_email_enabled: Mapped[bool] = mapped_column(
-        Boolean, default=False
-    )  # 이메일 알림 사용 여부
-    is_slack_enabled: Mapped[bool] = mapped_column(
-        Boolean, default=False
-    )  # Slack 알림 사용 여부
+    slack_webhook_url: Mapped[str | None] = mapped_column(String, nullable=True)  # Slack Webhook URL
+    is_email_enabled: Mapped[bool] = mapped_column(Boolean, default=False)  # 이메일 알림 사용 여부
+    is_slack_enabled: Mapped[bool] = mapped_column(Boolean, default=False)  # Slack 알림 사용 여부
 
     # Relationship
     user: Mapped["User"] = relationship("User", back_populates="full_profile")
-    licenses: Mapped[List["UserLicense"]] = relationship(
+    licenses: Mapped[list["UserLicense"]] = relationship(
         "UserLicense",
         back_populates="profile",
         cascade="all, delete-orphan",
         lazy="selectin",
     )
-    performances: Mapped[List["UserPerformance"]] = relationship(
+    performances: Mapped[list["UserPerformance"]] = relationship(
         "UserPerformance",
         back_populates="profile",
         cascade="all, delete-orphan",
@@ -260,20 +189,14 @@ class UserLicense(Base, TimestampMixin):
     __tablename__ = "user_licenses"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    profile_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False
-    )
+    profile_id: Mapped[int] = mapped_column(Integer, ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False)
 
-    license_name: Mapped[str] = mapped_column(
-        String, index=True, nullable=False
-    )  # 면허명
-    license_number: Mapped[Optional[str]] = mapped_column(String)  # 면허번호
-    issue_date: Mapped[Optional[datetime]] = mapped_column(DateTime)  # 취득일
+    license_name: Mapped[str] = mapped_column(String, index=True, nullable=False)  # 면허명
+    license_number: Mapped[str | None] = mapped_column(String)  # 면허번호
+    issue_date: Mapped[datetime | None] = mapped_column(DateTime)  # 취득일
 
     # Relationship
-    profile: Mapped["UserProfile"] = relationship(
-        "UserProfile", back_populates="licenses"
-    )
+    profile: Mapped["UserProfile"] = relationship("UserProfile", back_populates="licenses")
 
     def __repr__(self):
         return f"<UserLicense(id={self.id}, name='{self.license_name}')>"
@@ -288,18 +211,14 @@ class UserPerformance(Base, TimestampMixin):
     __tablename__ = "user_performances"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    profile_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False
-    )
+    profile_id: Mapped[int] = mapped_column(Integer, ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False)
 
     project_name: Mapped[str] = mapped_column(String, nullable=False)  # 프로젝트명
     amount: Mapped[float] = mapped_column(Float, default=0.0)  # 계약금액
-    completion_date: Mapped[Optional[datetime]] = mapped_column(DateTime)  # 준공일
+    completion_date: Mapped[datetime | None] = mapped_column(DateTime)  # 준공일
 
     # Relationship
-    profile: Mapped["UserProfile"] = relationship(
-        "UserProfile", back_populates="performances"
-    )
+    profile: Mapped["UserProfile"] = relationship("UserProfile", back_populates="performances")
 
     def __repr__(self):
         return f"<UserPerformance(id={self.id}, project='{self.project_name}', amount={self.amount})>"
@@ -316,7 +235,7 @@ class BidResult(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
     # 원본 공고 연결
-    bid_announcement_id: Mapped[Optional[int]] = mapped_column(
+    bid_announcement_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("bid_announcements.id", ondelete="SET NULL"),
         nullable=True,
@@ -326,41 +245,31 @@ class BidResult(Base, TimestampMixin):
     # 공고 기본 정보 (공고가 삭제되어도 결과는 보존)
     bid_number: Mapped[str] = mapped_column(String, unique=True, index=True)  # 입찰번호
     title: Mapped[str] = mapped_column(String, index=True)
-    agency: Mapped[Optional[str]] = mapped_column(String, index=True)
+    agency: Mapped[str | None] = mapped_column(String, index=True)
     source: Mapped[str] = mapped_column(String, default="G2B", index=True)
 
     # 낙찰 정보
     winning_company: Mapped[str] = mapped_column(String, index=True)  # 낙찰업체명
     winning_price: Mapped[float] = mapped_column(Float, index=True)  # 낙찰금액
-    base_price: Mapped[Optional[float]] = mapped_column(Float)  # 기초금액
-    estimated_price: Mapped[Optional[float]] = mapped_column(Float)  # 추정가
-    winning_rate: Mapped[Optional[float]] = mapped_column(
-        Float
-    )  # 낙찰률 (낙찰가/추정가 * 100)
+    base_price: Mapped[float | None] = mapped_column(Float)  # 기초금액
+    estimated_price: Mapped[float | None] = mapped_column(Float)  # 추정가
+    winning_rate: Mapped[float | None] = mapped_column(Float)  # 낙찰률 (낙찰가/추정가 * 100)
 
     # 입찰 참여 정보
-    participant_count: Mapped[Optional[int]] = mapped_column(Integer)  # 참여업체 수
-    bid_method: Mapped[Optional[str]] = mapped_column(
-        String
-    )  # 입찰방식 (전자입찰, 협상계약 등)
+    participant_count: Mapped[int | None] = mapped_column(Integer)  # 참여업체 수
+    bid_method: Mapped[str | None] = mapped_column(String)  # 입찰방식 (전자입찰, 협상계약 등)
 
     # 일시 정보
-    bid_open_date: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, index=True
-    )  # 개찰일시
-    contract_date: Mapped[Optional[datetime]] = mapped_column(DateTime)  # 계약일
+    bid_open_date: Mapped[datetime | None] = mapped_column(DateTime, index=True)  # 개찰일시
+    contract_date: Mapped[datetime | None] = mapped_column(DateTime)  # 계약일
 
     # 카테고리 (ML 학습용)
-    category: Mapped[Optional[str]] = mapped_column(
-        String, index=True
-    )  # 공사, 용역, 물품 등
-    sub_category: Mapped[Optional[str]] = mapped_column(String)  # 세부 카테고리
-    keywords: Mapped[Optional[List[str]]] = mapped_column(
-        JSON, default=list
-    )  # 관련 키워드
+    category: Mapped[str | None] = mapped_column(String, index=True)  # 공사, 용역, 물품 등
+    sub_category: Mapped[str | None] = mapped_column(String)  # 세부 카테고리
+    keywords: Mapped[list[str] | None] = mapped_column(JSON, default=list)  # 관련 키워드
 
     # 메타데이터
-    raw_data: Mapped[Optional[dict]] = mapped_column(JSON)  # 원본 API 응답 데이터
+    raw_data: Mapped[dict | None] = mapped_column(JSON)  # 원본 API 응답 데이터
 
     # Relationship
     bid_announcement: Mapped[Optional["BidAnnouncement"]] = relationship(
@@ -371,7 +280,7 @@ class BidResult(Base, TimestampMixin):
         return f"<BidResult(id={self.id}, bid_number='{self.bid_number}', winning_price={self.winning_price})>"
 
     @property
-    def winning_rate_calculated(self) -> Optional[float]:
+    def winning_rate_calculated(self) -> float | None:
         """낙찰률 계산 (낙찰가/추정가 * 100)"""
         if self.estimated_price and self.estimated_price > 0:
             return round((self.winning_price / self.estimated_price) * 100, 2)
@@ -390,17 +299,13 @@ class CrawlerLog(Base, TimestampMixin):
 
     # 크롤링 정보
     source: Mapped[str] = mapped_column(String, index=True)  # G2B, Onbid
-    task_id: Mapped[Optional[str]] = mapped_column(
-        String, unique=True
-    )  # Celery task ID
-    status: Mapped[str] = mapped_column(
-        String, index=True
-    )  # started, completed, failed
+    task_id: Mapped[str | None] = mapped_column(String, unique=True)  # Celery task ID
+    status: Mapped[str] = mapped_column(String, index=True)  # started, completed, failed
 
     # 실행 통계
     started_at: Mapped[datetime] = mapped_column(DateTime, index=True)
-    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    duration_seconds: Mapped[Optional[float]] = mapped_column(Float)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    duration_seconds: Mapped[float | None] = mapped_column(Float)
 
     # 결과 통계
     total_fetched: Mapped[int] = mapped_column(Integer, default=0)  # 총 수집 건수
@@ -409,17 +314,17 @@ class CrawlerLog(Base, TimestampMixin):
     total_duplicate: Mapped[int] = mapped_column(Integer, default=0)  # 중복 건수
 
     # 에러 정보
-    error_message: Mapped[Optional[str]] = mapped_column(Text)
-    error_traceback: Mapped[Optional[str]] = mapped_column(Text)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    error_traceback: Mapped[str | None] = mapped_column(Text)
 
     # 검색 조건
-    search_params: Mapped[Optional[dict]] = mapped_column(JSON)  # 검색 파라미터
+    search_params: Mapped[dict | None] = mapped_column(JSON)  # 검색 파라미터
 
     def __repr__(self):
         return f"<CrawlerLog(id={self.id}, source='{self.source}', status='{self.status}')>"
 
     @property
-    def success_rate(self) -> Optional[float]:
+    def success_rate(self) -> float | None:
         """성공률 계산"""
         if self.total_fetched > 0:
             return round((self.total_new / self.total_fetched) * 100, 2)
@@ -483,31 +388,27 @@ class Subscription(Base, TimestampMixin):
     plan_name: Mapped[str] = mapped_column(String, default="free")  # free, basic, pro
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     start_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    end_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)  # 구독 종료일
-    next_billing_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    end_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # 구독 종료일
+    next_billing_date: Mapped[datetime | None] = mapped_column(DateTime)
 
     # 구독 상태 (active, cancelled, expired, past_due)
-    status: Mapped[str] = mapped_column(
-        String, default="active", index=True
-    )
+    status: Mapped[str] = mapped_column(String, default="active", index=True)
     # 해지 요청 시각 (해지 예약 — 기간 만료 시 실제 해지)
-    cancelled_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    cancel_reason: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    cancel_reason: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Tosspayments 빌링키 (자동 갱신 결제용)
-    billing_key: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    billing_key: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     # 레거시 호환 (stripe_subscription_id → payment_key로 저장)
-    stripe_subscription_id: Mapped[Optional[str]] = mapped_column(String, index=True)
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String, index=True)
 
     # 결제 실패 추적
     failed_payment_count: Mapped[int] = mapped_column(Integer, default=0)
-    last_payment_attempt: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_payment_attempt: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Relationship
     user: Mapped["User"] = relationship("User", back_populates="subscription")
-    invoices: Mapped[List["Invoice"]] = relationship(
-        "Invoice", back_populates="subscription", lazy="selectin"
-    )
+    invoices: Mapped[list["Invoice"]] = relationship("Invoice", back_populates="subscription", lazy="selectin")
 
 
 class PaymentHistory(Base, TimestampMixin):
@@ -524,18 +425,14 @@ class PaymentHistory(Base, TimestampMixin):
 
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     currency: Mapped[str] = mapped_column(String, default="KRW")
-    status: Mapped[str] = mapped_column(
-        String, default="pending"
-    )  # pending, paid, failed, refunded
+    status: Mapped[str] = mapped_column(String, default="pending")  # pending, paid, failed, refunded
     payment_method: Mapped[str] = mapped_column(String, default="card")
-    transaction_id: Mapped[Optional[str]] = mapped_column(String, index=True)
+    transaction_id: Mapped[str | None] = mapped_column(String, index=True)
 
     # 멱등성 키 (중복 결제 방지)
-    idempotency_key: Mapped[Optional[str]] = mapped_column(
-        String, unique=True, nullable=True, index=True
-    )
+    idempotency_key: Mapped[str | None] = mapped_column(String, unique=True, nullable=True, index=True)
     # 주문 ID (Tosspayments orderId)
-    order_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    order_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     # 결제 유형 (subscription_create, subscription_renew, refund 등)
     payment_type: Mapped[str] = mapped_column(String, default="subscription_create")
 
@@ -552,9 +449,7 @@ class Invoice(Base, TimestampMixin):
     __tablename__ = "invoices"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    invoice_number: Mapped[str] = mapped_column(
-        String, unique=True, nullable=False, index=True
-    )
+    invoice_number: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
     subscription_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("subscriptions.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -570,22 +465,18 @@ class Invoice(Base, TimestampMixin):
     currency: Mapped[str] = mapped_column(String, default="KRW")
 
     # 상태 및 기간
-    status: Mapped[str] = mapped_column(
-        String, default="pending", index=True
-    )  # pending, paid, failed, void, refunded
-    billing_period_start: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    billing_period_end: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String, default="pending", index=True)  # pending, paid, failed, void, refunded
+    billing_period_start: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    billing_period_end: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # 결제 참조
-    payment_key: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    payment_key: Mapped[str | None] = mapped_column(String, nullable=True)
     plan_name: Mapped[str] = mapped_column(String, nullable=False)
 
     # 설명
-    description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    description: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Relationships
-    subscription: Mapped["Subscription"] = relationship(
-        "Subscription", back_populates="invoices"
-    )
+    subscription: Mapped["Subscription"] = relationship("Subscription", back_populates="invoices")
     user: Mapped[Optional["User"]] = relationship("User")

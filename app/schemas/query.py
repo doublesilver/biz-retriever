@@ -4,7 +4,6 @@ API 엔드포인트의 입력 검증을 위한 Pydantic 모델
 """
 
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -40,23 +39,15 @@ class BidsQueryParams(BaseModel):
 
     skip: int = Field(default=0, ge=0, description="건너뛸 개수")
     limit: int = Field(default=100, ge=1, le=500, description="조회 개수 (최대 500)")
-    keyword: Optional[str] = Field(
-        default=None, min_length=1, max_length=100, description="검색 키워드"
-    )
-    agency: Optional[str] = Field(
-        default=None, min_length=1, max_length=200, description="기관명"
-    )
-    source: Optional[BidSource] = Field(
-        default=None, description="출처 필터 (G2B, Onbid)"
-    )
-    status: Optional[BidStatus] = Field(default=None, description="상태 필터")
-    importance_score: Optional[int] = Field(
-        default=None, ge=1, le=3, description="중요도 (1-3)"
-    )
+    keyword: str | None = Field(default=None, min_length=1, max_length=100, description="검색 키워드")
+    agency: str | None = Field(default=None, min_length=1, max_length=200, description="기관명")
+    source: BidSource | None = Field(default=None, description="출처 필터 (G2B, Onbid)")
+    status: BidStatus | None = Field(default=None, description="상태 필터")
+    importance_score: int | None = Field(default=None, ge=1, le=3, description="중요도 (1-3)")
 
     @field_validator("keyword")
     @classmethod
-    def sanitize_keyword(cls, v: Optional[str]) -> Optional[str]:
+    def sanitize_keyword(cls, v: str | None) -> str | None:
         """키워드에서 위험한 문자 제거"""
         if v:
             # SQL Injection 방지를 위한 특수문자 제거
@@ -70,13 +61,9 @@ class BidsQueryParams(BaseModel):
 class ExcelExportParams(BaseModel):
     """엑셀 내보내기 쿼리 파라미터"""
 
-    importance_score: Optional[int] = Field(
-        default=None, ge=1, le=3, description="중요도 필터 (1-3)"
-    )
-    source: Optional[BidSource] = Field(default=None, description="출처 필터")
-    agency: Optional[str] = Field(
-        default=None, min_length=1, max_length=200, description="기관명 필터"
-    )
+    importance_score: int | None = Field(default=None, ge=1, le=3, description="중요도 필터 (1-3)")
+    source: BidSource | None = Field(default=None, description="출처 필터")
+    agency: str | None = Field(default=None, min_length=1, max_length=200, description="기관명 필터")
 
 
 # ===========================================
@@ -85,9 +72,7 @@ class ExcelExportParams(BaseModel):
 class PriorityAgenciesParams(BaseModel):
     """우선 기관 엑셀 내보내기 쿼리 파라미터"""
 
-    agencies: str = Field(
-        ..., min_length=1, max_length=1000, description="콤마로 구분된 기관명"
-    )
+    agencies: str = Field(..., min_length=1, max_length=1000, description="콤마로 구분된 기관명")
 
     @field_validator("agencies")
     @classmethod
@@ -136,9 +121,7 @@ class FileUploadParams(BaseModel):
 
     title: str = Field(..., min_length=1, max_length=200, description="공고 제목")
     agency: str = Field(default="Unknown", max_length=200, description="기관명")
-    url: str = Field(
-        default="http://uploaded.file", max_length=500, description="원본 URL"
-    )
+    url: str = Field(default="http://uploaded.file", max_length=500, description="원본 URL")
 
 
 # ===========================================
@@ -156,9 +139,7 @@ class AnnouncementIdPath(BaseModel):
 class TaskIdPath(BaseModel):
     """Celery Task ID 경로 파라미터"""
 
-    task_id: str = Field(
-        ..., min_length=1, max_length=100, description="Celery Task ID"
-    )
+    task_id: str = Field(..., min_length=1, max_length=100, description="Celery Task ID")
 
     @field_validator("task_id")
     @classmethod

@@ -1,8 +1,6 @@
 import pytest
 from httpx import AsyncClient
 
-from app.main import app
-
 
 @pytest.mark.asyncio
 async def test_update_bid_status(authenticated_client: AsyncClient, sample_bid):
@@ -11,9 +9,7 @@ async def test_update_bid_status(authenticated_client: AsyncClient, sample_bid):
     """
     update_data = {"status": "reviewing", "notes": "Checking details"}
 
-    response = await authenticated_client.patch(
-        f"/api/v1/bids/{sample_bid.id}", json=update_data
-    )
+    response = await authenticated_client.patch(f"/api/v1/bids/{sample_bid.id}", json=update_data)
 
     assert response.status_code == 200
     data = response.json()
@@ -23,17 +19,13 @@ async def test_update_bid_status(authenticated_client: AsyncClient, sample_bid):
 
 
 @pytest.mark.asyncio
-async def test_update_bid_assigned_to(
-    authenticated_client: AsyncClient, sample_bid, test_user
-):
+async def test_update_bid_assigned_to(authenticated_client: AsyncClient, sample_bid, test_user):
     """
     Test assigning a bid to a user
     """
     update_data = {"assigned_to": test_user.id}
 
-    response = await authenticated_client.patch(
-        f"/api/v1/bids/{sample_bid.id}", json=update_data
-    )
+    response = await authenticated_client.patch(f"/api/v1/bids/{sample_bid.id}", json=update_data)
 
     assert response.status_code == 200
     data = response.json()
@@ -45,9 +37,7 @@ async def test_update_bid_not_found(authenticated_client: AsyncClient):
     """
     Test updating non-existent bid
     """
-    response = await authenticated_client.patch(
-        "/api/v1/bids/999999", json={"status": "completed"}
-    )
+    response = await authenticated_client.patch("/api/v1/bids/999999", json={"status": "completed"})
     assert response.status_code == 404
 
 
@@ -56,7 +46,5 @@ async def test_update_bid_unauthorized(async_client: AsyncClient, sample_bid):
     """
     Test updating without auth
     """
-    response = await async_client.patch(
-        f"/api/v1/bids/{sample_bid.id}", json={"status": "completed"}
-    )
+    response = await async_client.patch(f"/api/v1/bids/{sample_bid.id}", json={"status": "completed"})
     assert response.status_code == 401

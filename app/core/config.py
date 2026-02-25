@@ -1,5 +1,3 @@
-from typing import List, Optional, Union
-
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -20,54 +18,50 @@ class Settings(BaseSettings):
     SQL_ECHO: bool = False  # SQL query logging (disable in production)
 
     # Database - Railway provides DATABASE_URL directly
-    DATABASE_URL: Optional[str] = None
-    POSTGRES_SERVER: Optional[str] = None
-    POSTGRES_USER: Optional[str] = None
-    POSTGRES_PASSWORD: Optional[str] = None
-    POSTGRES_DB: Optional[str] = None
-    POSTGRES_PORT: Optional[str] = None
+    DATABASE_URL: str | None = None
+    POSTGRES_SERVER: str | None = None
+    POSTGRES_USER: str | None = None
+    POSTGRES_PASSWORD: str | None = None
+    POSTGRES_DB: str | None = None
+    POSTGRES_PORT: str | None = None
 
     # Redis - Railway provides REDIS_URL directly
-    REDIS_URL: Optional[str] = None
-    REDIS_HOST: Optional[str] = None
-    REDIS_PORT: Optional[str] = None
-    REDIS_PASSWORD: Union[str, None] = None
+    REDIS_URL: str | None = None
+    REDIS_HOST: str | None = None
+    REDIS_PORT: str | None = None
+    REDIS_PASSWORD: str | None = None
 
     # OpenAI (optional)
-    OPENAI_API_KEY: Union[str, None] = None
+    OPENAI_API_KEY: str | None = None
 
     # Google Gemini API (AI analysis - recommended)
-    GEMINI_API_KEY: Union[str, None] = None
+    GEMINI_API_KEY: str | None = None
 
     # Phase 1: G2B API (나라장터) - 데이터셋 개방표준 서비스
-    G2B_API_KEY: Union[str, None] = None
-    G2B_API_ENDPOINT: str = (
-        "https://apis.data.go.kr/1230000/ao/PubDataOpnStdService/getDataSetOpnStdBidPblancInfo"
-    )
-    G2B_RESULT_API_ENDPOINT: str = (
-        "https://apis.data.go.kr/1230000/OpengResultService/getOpengResultInfoListSet"
-    )
+    G2B_API_KEY: str | None = None
+    G2B_API_ENDPOINT: str = "https://apis.data.go.kr/1230000/ao/PubDataOpnStdService/getDataSetOpnStdBidPblancInfo"
+    G2B_RESULT_API_ENDPOINT: str = "https://apis.data.go.kr/1230000/OpengResultService/getOpengResultInfoListSet"
 
     # Phase 1: Slack Notification
-    SLACK_WEBHOOK_URL: Union[str, None] = None
+    SLACK_WEBHOOK_URL: str | None = None
     SLACK_CHANNEL: str = "#입찰-알림"
 
     # Phase 8: Email Notification (SendGrid)
-    SENDGRID_API_KEY: Union[str, None] = None
+    SENDGRID_API_KEY: str | None = None
     SENDGRID_FROM_EMAIL: str = "noreply@biz-retriever.com"
     SENDGRID_FROM_NAME: str = "Biz-Retriever"
 
     # Phase 3: Payment Gateway (Tosspayments)
-    TOSSPAYMENTS_SECRET_KEY: Union[str, None] = None
-    TOSSPAYMENTS_CLIENT_KEY: Union[str, None] = None
-    TOSSPAYMENTS_WEBHOOK_SECRET: Union[str, None] = None  # 웹훅 HMAC 검증용
+    TOSSPAYMENTS_SECRET_KEY: str | None = None
+    TOSSPAYMENTS_CLIENT_KEY: str | None = None
+    TOSSPAYMENTS_WEBHOOK_SECRET: str | None = None  # 웹훅 HMAC 검증용
 
     # Railway deployment
-    RAILWAY_PUBLIC_DOMAIN: Optional[str] = None
-    ALLOWED_HOSTS: Optional[str] = None
+    RAILWAY_PUBLIC_DOMAIN: str | None = None
+    ALLOWED_HOSTS: str | None = None
 
     # CORS Settings
-    CORS_ORIGINS: List[str] = [
+    CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3000",
@@ -77,7 +71,7 @@ class Settings(BaseSettings):
         "https://biz-retriever-doublesilvers-projects.vercel.app",  # Vercel Auto Domain
         "https://biz-retriever-git-master-doublesilvers-projects.vercel.app",  # Vercel Branch
     ]
-    PRODUCTION_DOMAIN: Union[str, None] = None
+    PRODUCTION_DOMAIN: str | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -98,9 +92,7 @@ class Settings(BaseSettings):
             db = values.get("POSTGRES_DB")
             port = values.get("POSTGRES_PORT")
             if all([server, user, password, db, port]):
-                values["DATABASE_URL"] = (
-                    f"postgresql+asyncpg://{user}:{password}@{server}:{port}/{db}"
-                )
+                values["DATABASE_URL"] = f"postgresql+asyncpg://{user}:{password}@{server}:{port}/{db}"
 
         # REDIS_URL assembly
         redis_url = values.get("REDIS_URL")

@@ -78,9 +78,7 @@ class TestUserJourney:
                 "license_number": "제2024-001호",
                 "acquired_at": "2024-01-15",
             }
-            response = await client.post(
-                "/api/v1/profile/licenses", json=license_data, headers=headers
-            )
+            response = await client.post("/api/v1/profile/licenses", json=license_data, headers=headers)
             assert response.status_code == status.HTTP_201_CREATED  # POST returns 201
             license_response = response.json()
             assert "id" in license_response
@@ -99,9 +97,7 @@ class TestUserJourney:
                 "amount": 1500000000,  # 15억 원 (field name: amount, not contract_amount)
                 "completion_date": "2023-12-31",
             }
-            response = await client.post(
-                "/api/v1/profile/performances", json=performance_data, headers=headers
-            )
+            response = await client.post("/api/v1/profile/performances", json=performance_data, headers=headers)
             assert response.status_code == status.HTTP_200_OK
             performance_response = response.json()
             assert "id" in performance_response
@@ -122,17 +118,13 @@ class TestUserJourney:
                 "deadline": "2026-02-28",
                 "url": "http://example.com/bid/test-e2e",
             }
-            response = await client.post(
-                "/api/v1/bids/", json=bid_data, headers=headers
-            )
+            response = await client.post("/api/v1/bids/", json=bid_data, headers=headers)
             assert response.status_code == status.HTTP_201_CREATED
             bid_response = response.json()
             bid_id = bid_response["id"]
 
             # Step 7: Check Hard Match for the bid
-            response = await client.get(
-                f"/api/v1/analysis/match/{bid_id}", headers=headers
-            )
+            response = await client.get(f"/api/v1/analysis/match/{bid_id}", headers=headers)
             assert response.status_code == status.HTTP_200_OK
             match_result = response.json()
 
@@ -144,9 +136,7 @@ class TestUserJourney:
             assert "constraints" in match_result
 
             # Cleanup: Delete test records
-            await client.delete(
-                f"/api/v1/profile/licenses/{license_id}", headers=headers
-            )
+            await client.delete(f"/api/v1/profile/licenses/{license_id}", headers=headers)
             await client.delete(f"/api/v1/bids/{bid_id}", headers=headers)
 
     @pytest.mark.asyncio
@@ -203,9 +193,7 @@ class TestErrorHandling:
         """Test that protected endpoints require authentication"""
         base_url = "http://localhost:8000"
 
-        async with httpx.AsyncClient(
-            base_url=base_url, follow_redirects=False
-        ) as client:
+        async with httpx.AsyncClient(base_url=base_url, follow_redirects=False) as client:
             # Try to create a bid without authentication (requires auth)
             bid_data = {
                 "title": "Test Bid",
@@ -273,9 +261,7 @@ class TestPerformance:
 
             # Health endpoint should respond in < 100ms
             response_time = (end_time - start_time) * 1000
-            assert (
-                response_time < 100
-            ), f"Health check took {response_time:.2f}ms, expected < 100ms"
+            assert response_time < 100, f"Health check took {response_time:.2f}ms, expected < 100ms"
 
     @pytest.mark.asyncio
     async def test_concurrent_requests(self):

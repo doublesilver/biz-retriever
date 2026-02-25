@@ -5,8 +5,7 @@ MatchingService 확장 테스트
 """
 
 import json
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from app.services.matching_service import MatchingService
 
@@ -26,9 +25,7 @@ class TestSemanticMatchWithGemini:
     async def test_valid_json_response(self):
         """정상 JSON 응답"""
         mock_response = MagicMock()
-        mock_response.text = json.dumps(
-            {"score": 0.85, "reasoning": "높은 관련성"}
-        )
+        mock_response.text = json.dumps({"score": 0.85, "reasoning": "높은 관련성"})
 
         mock_client = MagicMock()
         mock_client.models.generate_content.return_value = mock_response

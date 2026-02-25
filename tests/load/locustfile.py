@@ -15,10 +15,8 @@ API 성능 및 동시 접속 테스트
         BidBrowserUser
 """
 
-import json
 import random
 import string
-import time
 
 from locust import HttpUser, between, events, task
 from locust.runners import MasterRunner
@@ -113,9 +111,7 @@ class BizRetrieverUser(HttpUser):
     @task(2)
     def view_analytics(self):
         """통계 조회"""
-        self.client.get(
-            "/api/v1/analytics/summary", headers=self.auth_headers, name="대시보드 요약"
-        )
+        self.client.get("/api/v1/analytics/summary", headers=self.auth_headers, name="대시보드 요약")
 
     @task(1)
     def health_check(self):

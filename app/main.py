@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -27,9 +27,12 @@ from app.api.api import api_router
 from app.core.config import settings
 from app.core.exceptions import BizRetrieverError
 from app.core.logging import logger
-from app.core.metrics import (HTTP_REQUEST_DURATION_SECONDS,
-                              HTTP_REQUESTS_IN_PROGRESS, HTTP_REQUESTS_TOTAL,
-                              init_app_info)
+from app.core.metrics import (
+    HTTP_REQUEST_DURATION_SECONDS,
+    HTTP_REQUESTS_IN_PROGRESS,
+    HTTP_REQUESTS_TOTAL,
+    init_app_info,
+)
 from app.core.sentry import init_sentry
 from app.schemas.response import fail
 
@@ -81,9 +84,7 @@ class SecurityHeadersMiddleware:
                 ]
                 # HSTS only in production
                 if os.getenv("ENVIRONMENT", "development") == "production":
-                    security_headers.append(
-                        (b"strict-transport-security", b"max-age=31536000; includeSubDomains")
-                    )
+                    security_headers.append((b"strict-transport-security", b"max-age=31536000; includeSubDomains"))
                 existing = list(message.get("headers", []))
                 existing.extend(security_headers)
                 message["headers"] = existing
@@ -135,23 +136,17 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             status_code = response.status_code
 
             # 요청 완료 메트릭 기록
-            HTTP_REQUESTS_TOTAL.labels(
-                method=method, endpoint=path, status_code=str(status_code)
-            ).inc()
+            HTTP_REQUESTS_TOTAL.labels(method=method, endpoint=path, status_code=str(status_code)).inc()
 
             return response
-        except Exception as e:
+        except Exception:
             # 에러 발생 시 500으로 기록
-            HTTP_REQUESTS_TOTAL.labels(
-                method=method, endpoint=path, status_code="500"
-            ).inc()
+            HTTP_REQUESTS_TOTAL.labels(method=method, endpoint=path, status_code="500").inc()
             raise
         finally:
             # 처리 시간 기록
             duration = time.time() - start_time
-            HTTP_REQUEST_DURATION_SECONDS.labels(method=method, endpoint=path).observe(
-                duration
-            )
+            HTTP_REQUEST_DURATION_SECONDS.labels(method=method, endpoint=path).observe(duration)
 
             # 진행 중 요청 카운터 감소
             HTTP_REQUESTS_IN_PROGRESS.labels(method=method, endpoint=path).dec()
@@ -247,9 +242,7 @@ async def biz_error_handler(request: Request, exc: BizRetrieverError):
     도메인 예외 처리 — BizRetrieverError 계층의 모든 예외를 자동으로
     해당 HTTP 상태 코드 + 구조화된 에러 코드로 변환.
     """
-    logger.warning(
-        f"[{exc.error_code}] {exc.detail} - Path: {request.url.path}"
-    )
+    logger.warning(f"[{exc.error_code}] {exc.detail} - Path: {request.url.path}")
     return JSONResponse(
         status_code=exc.status_code,
         content=fail(
@@ -280,9 +273,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     """
     FastAPI HTTPException 처리 — 기존 raise HTTPException 코드와 호환.
     """
-    logger.warning(
-        f"HTTP Exception: {exc.status_code} - {exc.detail} - Path: {request.url.path}"
-    )
+    logger.warning(f"HTTP Exception: {exc.status_code} - {exc.detail} - Path: {request.url.path}")
     return JSONResponse(
         status_code=exc.status_code,
         content=fail(
@@ -490,10 +481,28 @@ async def metrics(request: Request):
     # Production에서 메트릭 접근 제한 (A05: Security Misconfiguration)
     if _is_production:
         client_host = request.client.host if request.client else "unknown"
-        allowed_ranges = ("127.0.0.1", "10.", "172.16.", "172.17.", "172.18.",
-                          "172.19.", "172.20.", "172.21.", "172.22.", "172.23.",
-                          "172.24.", "172.25.", "172.26.", "172.27.", "172.28.",
-                          "172.29.", "172.30.", "172.31.", "192.168.", "::1")
+        allowed_ranges = (
+            "127.0.0.1",
+            "10.",
+            "172.16.",
+            "172.17.",
+            "172.18.",
+            "172.19.",
+            "172.20.",
+            "172.21.",
+            "172.22.",
+            "172.23.",
+            "172.24.",
+            "172.25.",
+            "172.26.",
+            "172.27.",
+            "172.28.",
+            "172.29.",
+            "172.30.",
+            "172.31.",
+            "192.168.",
+            "::1",
+        )
         if not any(client_host.startswith(r) for r in allowed_ranges):
             raise HTTPException(status_code=404, detail="Not found")
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)

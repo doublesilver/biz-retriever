@@ -4,7 +4,6 @@ Sentry 설정 단위 테스트
 - _before_send: 필터링 로직
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 
 from app.core.sentry import _before_send, init_sentry
@@ -140,6 +139,7 @@ class TestInitSentry:
         """DSN 미설정 시 초기화하지 않음"""
         # Clear SENTRY_DSN
         import os
+
         original = os.environ.pop("SENTRY_DSN", None)
         try:
             init_sentry()

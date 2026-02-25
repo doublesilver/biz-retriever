@@ -32,21 +32,27 @@ def test_parse_datetime_valid(crawler):
     assert result.year == 2026
     assert result.month == 1
 
+
 def test_parse_datetime_valid_full(crawler):
     result = crawler._parse_datetime("202601151030")
     assert result == datetime(2026, 1, 15, 10, 30)
 
+
 def test_parse_datetime_none(crawler):
     assert crawler._parse_datetime(None) is None
+
 
 def test_parse_datetime_empty(crawler):
     assert crawler._parse_datetime("") is None
 
+
 def test_parse_datetime_invalid(crawler):
     assert crawler._parse_datetime("invalid") is None
 
+
 def test_parse_datetime_wrong_format(crawler):
     assert crawler._parse_datetime("2026-01-15") is None
+
 
 def test_parse_datetime_partial(crawler):
     assert crawler._parse_datetime("20260115") is None
@@ -58,7 +64,6 @@ def test_parse_datetime_partial(crawler):
 
 
 class TestParseApiResponse:
-
     def test_valid_response(self, crawler):
         data = {
             "response": {
@@ -166,10 +171,12 @@ def test_should_notify_with_valid_keywords(crawler, sample_announcement_data):
     result = crawler._should_notify(sample_announcement_data)
     assert result is True
 
+
 def test_should_notify_with_exclude_keywords(crawler):
     announcement = {"title": "폐기물 처리 용역", "content": "폐기물 수거 및 처리"}
     result = crawler._should_notify(announcement)
     assert result is False
+
 
 def test_should_notify_include_keyword_match(crawler):
     announcement = {"title": "구내식당 위탁운영 입찰", "content": "식당 관련 공고"}
@@ -181,6 +188,7 @@ def test_should_notify_include_keyword_match(crawler):
     assert result is True
     assert "구내식당" in announcement["keywords_matched"]
 
+
 def test_should_notify_exclude_blocks(crawler):
     announcement = {"title": "폐기물 처리 위탁운영", "content": ""}
     result = crawler._should_notify(
@@ -189,6 +197,7 @@ def test_should_notify_exclude_blocks(crawler):
         include_keywords=["위탁운영"],
     )
     assert result is False
+
 
 def test_should_notify_no_match(crawler):
     announcement = {"title": "도로 보수 공사", "content": "도로 관련"}
@@ -199,6 +208,7 @@ def test_should_notify_no_match(crawler):
     )
     assert result is False
 
+
 def test_should_notify_content_match(crawler):
     announcement = {"title": "일반 공고", "content": "화환 납품 관련 공고입니다"}
     result = crawler._should_notify(
@@ -207,6 +217,7 @@ def test_should_notify_content_match(crawler):
         include_keywords=["화환"],
     )
     assert result is True
+
 
 def test_should_notify_default_keywords(crawler):
     announcement = {"title": "구내식당 위탁운영", "content": ""}
@@ -226,12 +237,14 @@ def test_importance_score_high(crawler, sample_announcement_data):
     score = crawler.calculate_importance_score(sample_announcement_data)
     assert score >= 2
 
+
 def test_importance_score_low(crawler, sample_announcement_data):
     sample_announcement_data["title"] = "일반 물품 구매"
     sample_announcement_data["estimated_price"] = 1000000
     sample_announcement_data["keywords_matched"] = ["물품"]
     score = crawler.calculate_importance_score(sample_announcement_data)
     assert score == 1
+
 
 def test_importance_high_price(crawler):
     announcement = {
@@ -241,6 +254,7 @@ def test_importance_high_price(crawler):
     }
     assert crawler.calculate_importance_score(announcement) >= 2
 
+
 def test_importance_many_keywords(crawler):
     announcement = {
         "title": "일반 공고",
@@ -249,6 +263,7 @@ def test_importance_many_keywords(crawler):
     }
     assert crawler.calculate_importance_score(announcement) >= 2
 
+
 def test_importance_max_capped(crawler):
     announcement = {
         "title": "구내식당 위탁운영",
@@ -256,6 +271,7 @@ def test_importance_max_capped(crawler):
         "estimated_price": 500000000,
     }
     assert crawler.calculate_importance_score(announcement) == 3
+
 
 def test_importance_no_keywords_key(crawler):
     announcement = {"title": "일반 공고", "estimated_price": 0}
@@ -268,7 +284,6 @@ def test_importance_no_keywords_key(crawler):
 
 
 class TestFetchNewAnnouncements:
-
     @pytest.mark.asyncio
     async def test_successful_fetch(self, crawler):
         mock_response = MagicMock()
@@ -359,9 +374,7 @@ class TestFetchNewAnnouncements:
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
         with patch("app.services.crawler_service.httpx.AsyncClient", return_value=mock_client):
-            result = await crawler.fetch_new_announcements(
-                from_date=datetime(2026, 1, 1)
-            )
+            result = await crawler.fetch_new_announcements(from_date=datetime(2026, 1, 1))
         assert result == []
 
 
@@ -371,7 +384,6 @@ class TestFetchNewAnnouncements:
 
 
 class TestFetchOpeningResults:
-
     @pytest.mark.asyncio
     async def test_successful_fetch(self, crawler):
         mock_response = MagicMock()

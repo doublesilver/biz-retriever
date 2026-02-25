@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 from app.core.logging import logger
 from app.db.models import BidAnnouncement
 from app.db.repositories.bid_repository import BidRepository
@@ -9,9 +7,7 @@ from app.services.subscription_service import subscription_service
 
 
 class BidService:
-    async def create_bid(
-        self, repo: BidRepository, bid_in: BidCreate, processed: bool = False
-    ) -> BidAnnouncement:
+    async def create_bid(self, repo: BidRepository, bid_in: BidCreate, processed: bool = False) -> BidAnnouncement:
         # Pydantic model itself doesn't have 'processed', so we might handle it separately
         # or update the schema. For now, we create standard, then update if needed.
         # Actually BidCreate doesn't have processed.
@@ -34,9 +30,7 @@ class BidService:
             await repo.session.refresh(db_bid)
         return db_bid
 
-    async def get_bid(
-        self, repo: BidRepository, bid_id: int
-    ) -> Optional[BidAnnouncement]:
+    async def get_bid(self, repo: BidRepository, bid_id: int) -> BidAnnouncement | None:
         return await repo.get(bid_id)
 
     async def get_bids(
@@ -44,26 +38,22 @@ class BidService:
         repo: BidRepository,
         skip: int = 0,
         limit: int = 100,
-        keyword: Optional[str] = None,
-        agency: Optional[str] = None,
-    ) -> List[BidAnnouncement]:
-        return await repo.get_multi_with_filters(
-            skip=skip, limit=limit, keyword=keyword, agency=agency
-        )
+        keyword: str | None = None,
+        agency: str | None = None,
+    ) -> list[BidAnnouncement]:
+        return await repo.get_multi_with_filters(skip=skip, limit=limit, keyword=keyword, agency=agency)
 
     async def update_bid_processing_status(
         self, repo: BidRepository, bid_id: int, processed: bool
-    ) -> Optional[BidAnnouncement]:
+    ) -> BidAnnouncement | None:
         return await repo.update_processing_status(bid_id, processed)
 
-    async def update_bid(
-        self, repo: BidRepository, db_bid: BidAnnouncement, bid_in: BidUpdate
-    ) -> BidAnnouncement:
+    async def update_bid(self, repo: BidRepository, db_bid: BidAnnouncement, bid_in: BidUpdate) -> BidAnnouncement:
         return await repo.update(db_bid, bid_in)
 
     async def get_matching_bids(
         self, repo: BidRepository, profile, user=None, skip: int = 0, limit: int = 100
-    ) -> List[BidAnnouncement]:
+    ) -> list[BidAnnouncement]:
         """
         Execute Hard Match Logic with Zero False Positives
 
@@ -102,9 +92,7 @@ class BidService:
         total_matched = len(matched_bids)
         paginated = matched_bids[skip : skip + limit]
 
-        logger.info(
-            f"Hard Match Results: {len(paginated)}/{total_matched} bids matched (skip={skip}, limit={limit})"
-        )
+        logger.info(f"Hard Match Results: {len(paginated)}/{total_matched} bids matched (skip={skip}, limit={limit})")
 
         return paginated
 

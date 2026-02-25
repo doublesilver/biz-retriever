@@ -136,9 +136,7 @@ class BizRetrieverE2ETest:
         await page.wait_for_load_state("networkidle")
 
         # Swagger UI 확인
-        assert "Biz-Retriever" in await page.text_content(
-            "body"
-        ) or "FastAPI" in await page.text_content("body")
+        assert "Biz-Retriever" in await page.text_content("body") or "FastAPI" in await page.text_content("body")
 
         await self.take_screenshot(page, "08_swagger_docs")
         print("✅ Swagger 문서 접근 성공")

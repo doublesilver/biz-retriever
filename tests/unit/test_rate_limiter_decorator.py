@@ -5,8 +5,9 @@ rate_limit 데코레이터 단위 테스트
 - 응답에 헤더 추가
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi import HTTPException
 
 

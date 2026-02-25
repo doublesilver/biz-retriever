@@ -12,8 +12,7 @@ Enterprise Exception Hierarchy
 글로벌 핸들러(main.py)가 이 예외를 잡아 ApiResponse 포맷으로 변환.
 """
 
-from typing import Any, Optional
-
+from typing import Any
 
 # ============================================
 # Base Exception
@@ -38,7 +37,7 @@ class BizRetrieverError(Exception):
         self,
         detail: str = "서버 오류가 발생했습니다.",
         *,
-        extra: Optional[dict[str, Any]] = None,
+        extra: dict[str, Any] | None = None,
     ):
         self.detail = detail
         self.extra = extra or {}

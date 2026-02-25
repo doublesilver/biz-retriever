@@ -7,7 +7,7 @@
 
 import secrets
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from httpx import AsyncClient
@@ -21,9 +21,7 @@ class TestEmailVerification:
     """이메일 인증 (POST /auth/verify-email)"""
 
     @pytest.mark.asyncio
-    async def test_verify_email_valid_token(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_verify_email_valid_token(self, async_client: AsyncClient, test_db: AsyncSession):
         """유효한 토큰으로 이메일 인증 - 성공"""
         # Setup: 인증되지 않은 사용자 생성
         verification_token = secrets.token_urlsafe(32)
@@ -52,9 +50,7 @@ class TestEmailVerification:
         assert user.email_verification_token is None
 
     @pytest.mark.asyncio
-    async def test_verify_email_expired_token(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_verify_email_expired_token(self, async_client: AsyncClient, test_db: AsyncSession):
         """만료된 토큰으로 인증 시도 - 400 에러"""
         verification_token = secrets.token_urlsafe(32)
         user = User(
@@ -86,9 +82,7 @@ class TestEmailVerification:
         assert response.status_code == 400
 
     @pytest.mark.asyncio
-    async def test_verify_email_already_verified(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_verify_email_already_verified(self, async_client: AsyncClient, test_db: AsyncSession):
         """이미 인증된 사용자 - 성공 응답 (멱등)"""
         verification_token = secrets.token_urlsafe(32)
         user = User(
@@ -115,9 +109,7 @@ class TestResendVerification:
     """인증 이메일 재발송 (POST /auth/resend-verification)"""
 
     @pytest.mark.asyncio
-    async def test_resend_verification_unverified_user(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_resend_verification_unverified_user(self, async_client: AsyncClient, test_db: AsyncSession):
         """인증되지 않은 사용자 - 재발송 성공"""
         user = User(
             email="resend-test@example.com",
@@ -143,9 +135,7 @@ class TestResendVerification:
         assert user.email_verification_expires is not None
 
     @pytest.mark.asyncio
-    async def test_resend_verification_nonexistent_user(
-        self, async_client: AsyncClient
-    ):
+    async def test_resend_verification_nonexistent_user(self, async_client: AsyncClient):
         """존재하지 않는 사용자 - 동일한 성공 응답 (Enumeration 방지)"""
         response = await async_client.post(
             "/api/v1/auth/resend-verification",
@@ -155,9 +145,7 @@ class TestResendVerification:
         assert response.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_resend_verification_already_verified(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_resend_verification_already_verified(self, async_client: AsyncClient, test_db: AsyncSession):
         """이미 인증된 사용자 - 성공 응답 (토큰 미발급)"""
         user = User(
             email="verified-resend@example.com",
@@ -176,9 +164,7 @@ class TestResendVerification:
         assert response.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_resend_verification_invalid_email(
-        self, async_client: AsyncClient
-    ):
+    async def test_resend_verification_invalid_email(self, async_client: AsyncClient):
         """잘못된 이메일 형식 - 422 Validation Error"""
         response = await async_client.post(
             "/api/v1/auth/resend-verification",
@@ -192,9 +178,7 @@ class TestRegistrationWithVerification:
     """회원가입 시 이메일 인증 토큰 생성 확인"""
 
     @pytest.mark.asyncio
-    async def test_register_creates_verification_token(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_register_creates_verification_token(self, async_client: AsyncClient, test_db: AsyncSession):
         """회원가입 시 인증 토큰이 생성되는지 확인"""
         with patch("app.api.endpoints.auth.email_service") as mock_email:
             mock_email.is_configured.return_value = False
@@ -211,9 +195,7 @@ class TestRegistrationWithVerification:
         # DB에서 사용자 확인
         from sqlalchemy import select
 
-        result = await test_db.execute(
-            select(User).where(User.email == "newverify@example.com")
-        )
+        result = await test_db.execute(select(User).where(User.email == "newverify@example.com"))
         user = result.scalars().first()
 
         assert user is not None

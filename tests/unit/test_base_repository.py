@@ -5,12 +5,10 @@ BaseRepository CRUD 테스트
 
 from datetime import datetime
 
-import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import BidAnnouncement
 from app.db.repositories.bid_repository import BidRepository
-from app.schemas.bid import BidCreate, BidUpdate
 
 
 class TestBaseRepositoryGet:
@@ -45,14 +43,16 @@ class TestBaseRepositoryGetMulti:
 
     async def test_get_multi(self, test_db: AsyncSession):
         for i in range(5):
-            test_db.add(BidAnnouncement(
-                title=f"Multi {i}",
-                content=f"내용 {i}",
-                agency="기관",
-                url=f"https://base-multi.com/{i}",
-                source="G2B",
-                posted_at=datetime.utcnow(),
-            ))
+            test_db.add(
+                BidAnnouncement(
+                    title=f"Multi {i}",
+                    content=f"내용 {i}",
+                    agency="기관",
+                    url=f"https://base-multi.com/{i}",
+                    source="G2B",
+                    posted_at=datetime.utcnow(),
+                )
+            )
         await test_db.commit()
 
         repo = BidRepository(test_db)
@@ -61,14 +61,16 @@ class TestBaseRepositoryGetMulti:
 
     async def test_get_multi_skip(self, test_db: AsyncSession):
         for i in range(5):
-            test_db.add(BidAnnouncement(
-                title=f"Skip {i}",
-                content=f"내용 {i}",
-                agency="기관",
-                url=f"https://base-skip.com/{i}",
-                source="G2B",
-                posted_at=datetime.utcnow(),
-            ))
+            test_db.add(
+                BidAnnouncement(
+                    title=f"Skip {i}",
+                    content=f"내용 {i}",
+                    agency="기관",
+                    url=f"https://base-skip.com/{i}",
+                    source="G2B",
+                    posted_at=datetime.utcnow(),
+                )
+            )
         await test_db.commit()
 
         repo = BidRepository(test_db)

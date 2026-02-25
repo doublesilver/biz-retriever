@@ -17,9 +17,7 @@ def mock_token():
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(
-    reason="TestClient WebSocket support is synchronous, needs refactoring to use async client"
-)
+@pytest.mark.skip(reason="TestClient WebSocket support is synchronous, needs refactoring to use async client")
 async def test_websocket_connection_success():
     with patch(
         "app.api.endpoints.websocket.get_current_user_from_token",
@@ -27,9 +25,7 @@ async def test_websocket_connection_success():
     ) as mock_auth:
         mock_auth.return_value = {"email": "test@example.com"}  # Mock user object
 
-        with client.websocket_connect(
-            "/api/v1/realtime/notifications?token=valid_token"
-        ) as websocket:
+        with client.websocket_connect("/api/v1/realtime/notifications?token=valid_token") as websocket:
             assert len(manager.active_connections) >= 1
             websocket.send_text("Hello")
 
@@ -38,9 +34,7 @@ async def test_websocket_connection_success():
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(
-    reason="TestClient WebSocket support is synchronous, needs refactoring to use async client"
-)
+@pytest.mark.skip(reason="TestClient WebSocket support is synchronous, needs refactoring to use async client")
 async def test_websocket_connection_no_token():
     # Test invalid token - should disconnect with policy violation code
     with patch(
@@ -49,9 +43,7 @@ async def test_websocket_connection_no_token():
     ) as mock_auth:
         mock_auth.return_value = None
         with pytest.raises(WebSocketDisconnect) as e:
-            with client.websocket_connect(
-                "/api/v1/realtime/notifications?token=invalid_token"
-            ) as websocket:
+            with client.websocket_connect("/api/v1/realtime/notifications?token=invalid_token") as websocket:
                 websocket.receive_text()  # Trigger read to get close frame
         assert e.value.code in [1000, 1008]
 

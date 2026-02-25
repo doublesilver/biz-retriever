@@ -73,9 +73,7 @@ class TestRAGService:
         # Gemini Mock
         mock_llm = MagicMock()
         mock_response = MagicMock()
-        mock_response.text = (
-            "요약: 구내식당 위탁운영 공고\n키워드: 구내식당, 위탁운영, 입찰"
-        )
+        mock_response.text = "요약: 구내식당 위탁운영 공고\n키워드: 구내식당, 위탁운영, 입찰"
         mock_llm.models.generate_content = MagicMock(return_value=mock_response)
         service.client = mock_llm
 
@@ -93,9 +91,7 @@ class TestRAGService:
         # OpenAI Mock
         mock_llm = AsyncMock()
         mock_response = MagicMock()
-        mock_response.content = (
-            "요약: 구내식당 위탁운영 공고\n키워드: 구내식당, 위탁운영, 입찰"
-        )
+        mock_response.content = "요약: 구내식당 위탁운영 공고\n키워드: 구내식당, 위탁운영, 입찰"
         mock_llm.apredict_messages = AsyncMock(return_value=mock_response)
         service.client = mock_llm
 

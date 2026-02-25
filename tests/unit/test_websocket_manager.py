@@ -3,8 +3,7 @@ ConnectionManager 단위 테스트
 - connect, disconnect, broadcast
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 from app.core.websocket import ConnectionManager
 

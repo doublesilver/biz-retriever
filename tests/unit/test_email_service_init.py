@@ -52,6 +52,7 @@ class TestEmailServiceInitWithSendGrid:
                 with patch.dict("os.environ", {}, clear=False):
                     # Remove SENDGRID_API_KEY from env if present
                     import os
+
                     env_val = os.environ.pop("SENDGRID_API_KEY", None)
                     try:
                         with patch.object(email_mod, "settings", mock_settings):

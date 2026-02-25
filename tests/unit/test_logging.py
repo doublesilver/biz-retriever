@@ -6,9 +6,7 @@
 - configure_logging
 """
 
-import json
 import logging
-import pytest
 from unittest.mock import MagicMock, patch
 
 from app.core.logging import SlackHandler, add_app_context, get_logger
@@ -21,8 +19,13 @@ class TestSlackHandler:
         """webhook_url 없으면 무시"""
         handler = SlackHandler(webhook_url="")
         record = logging.LogRecord(
-            name="test", level=logging.ERROR, pathname="", lineno=0,
-            msg="Test error", args=(), exc_info=None,
+            name="test",
+            level=logging.ERROR,
+            pathname="",
+            lineno=0,
+            msg="Test error",
+            args=(),
+            exc_info=None,
         )
         # 예외 없이 실행되면 성공
         handler.emit(record)
@@ -30,12 +33,15 @@ class TestSlackHandler:
     def test_emit_with_webhook(self):
         """webhook_url 있으면 스레드 생성"""
         handler = SlackHandler(webhook_url="https://hooks.slack.com/test")
-        handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-        )
+        handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
         record = logging.LogRecord(
-            name="test", level=logging.ERROR, pathname="", lineno=0,
-            msg="Test error", args=(), exc_info=None,
+            name="test",
+            level=logging.ERROR,
+            pathname="",
+            lineno=0,
+            msg="Test error",
+            args=(),
+            exc_info=None,
         )
         record.asctime = "2026-01-01 00:00:00"
 

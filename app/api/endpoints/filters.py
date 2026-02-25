@@ -2,9 +2,7 @@
 필터 관리 API 엔드포인트 (Phase 2)
 """
 
-from typing import List
-
-from fastapi import APIRouter, Body, Depends, HTTPException, Path, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -78,9 +76,7 @@ async def remove_exclude_keyword(
     """
     success = await keyword_service.delete_keyword(db, keyword)
     if not success:
-        raise HTTPException(
-            status_code=404, detail=f"'{keyword}'는 존재하지 않는 키워드입니다."
-        )
+        raise HTTPException(status_code=404, detail=f"'{keyword}'는 존재하지 않는 키워드입니다.")
 
     logger.info(f"제외 키워드 삭제: '{keyword}' by {current_user.email}")
     return {"message": f"'{keyword}' 제외 키워드에서 삭제되었습니다."}

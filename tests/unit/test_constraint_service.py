@@ -8,8 +8,6 @@ ConstraintService 단위 테스트
 import sys
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from app.db.models import BidAnnouncement
 
 
@@ -22,6 +20,7 @@ def _get_constraint_service():
         sys.modules["google.generativeai"] = mock_genai
 
     from app.services.constraint_service import ConstraintService
+
     return ConstraintService
 
 
@@ -96,7 +95,9 @@ class TestConstraintServiceWithModel:
         service = ConstraintService.__new__(ConstraintService)
 
         mock_response = MagicMock()
-        mock_response.text = '```json\n{"region_code": "00", "license_requirements": ["건축공사업"], "min_performance": 50000000.0}\n```'
+        mock_response.text = (
+            '```json\n{"region_code": "00", "license_requirements": ["건축공사업"], "min_performance": 50000000.0}\n```'
+        )
         service.model = MagicMock()
 
         bid = MagicMock(spec=BidAnnouncement)
@@ -134,7 +135,9 @@ class TestConstraintServiceWithModel:
         service = ConstraintService.__new__(ConstraintService)
 
         mock_response = MagicMock()
-        mock_response.text = '```\n{"region_code": "26", "license_requirements": ["조경공사업"], "min_performance": 0.0}\n```'
+        mock_response.text = (
+            '```\n{"region_code": "26", "license_requirements": ["조경공사업"], "min_performance": 0.0}\n```'
+        )
         service.model = MagicMock()
 
         bid = MagicMock(spec=BidAnnouncement)

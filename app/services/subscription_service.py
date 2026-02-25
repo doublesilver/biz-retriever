@@ -14,19 +14,17 @@ Subscription Service — 구독 라이프사이클 전체 관리
 """
 
 from datetime import datetime, timedelta
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
     DuplicateSubscriptionError,
-    PaymentError,
     SubscriptionError,
     SubscriptionNotFoundError,
 )
 from app.core.logging import logger
-from app.db.models import Invoice, PaymentHistory, Subscription, User
+from app.db.models import Subscription, User
 from app.services.payment_service import payment_service
 
 
@@ -78,9 +76,7 @@ class SubscriptionService:
         limits = await self.get_plan_limits(plan)
         return limits["hard_match_limit"]
 
-    async def get_subscription(
-        self, user_id: int, db: AsyncSession
-    ) -> Optional[Subscription]:
+    async def get_subscription(self, user_id: int, db: AsyncSession) -> Subscription | None:
         """사용자의 구독 정보 조회."""
         stmt = select(Subscription).where(Subscription.user_id == user_id)
         result = await db.execute(stmt)
@@ -91,7 +87,7 @@ class SubscriptionService:
         user_id: int,
         plan_name: str,
         payment_key: str,
-        billing_key: Optional[str],
+        billing_key: str | None,
         db: AsyncSession,
     ) -> Subscription:
         """
@@ -129,9 +125,7 @@ class SubscriptionService:
             existing.failed_payment_count = 0
             existing.last_payment_attempt = now
 
-            logger.info(
-                f"Subscription updated: user={user_id}, plan={plan_name}"
-            )
+            logger.info(f"Subscription updated: user={user_id}, plan={plan_name}")
             return existing
 
         subscription = Subscription(
@@ -150,8 +144,7 @@ class SubscriptionService:
         db.add(subscription)
 
         logger.info(
-            f"Subscription created: user={user_id}, plan={plan_name}, "
-            f"next_billing={next_billing.isoformat()}"
+            f"Subscription created: user={user_id}, plan={plan_name}, " f"next_billing={next_billing.isoformat()}"
         )
         return subscription
 
@@ -184,15 +177,10 @@ class SubscriptionService:
         subscription.cancel_reason = reason
         subscription.next_billing_date = None
 
-        logger.info(
-            f"Subscription cancellation scheduled: user={user_id}, "
-            f"expires={subscription.end_date}"
-        )
+        logger.info(f"Subscription cancellation scheduled: user={user_id}, " f"expires={subscription.end_date}")
         return subscription
 
-    async def expire_subscription(
-        self, subscription: Subscription, db: AsyncSession
-    ) -> Subscription:
+    async def expire_subscription(self, subscription: Subscription, db: AsyncSession) -> Subscription:
         """구독 만료 처리 (배치에서 호출)."""
         subscription.is_active = False
         subscription.status = "expired"
@@ -207,7 +195,7 @@ class SubscriptionService:
         user_id: int,
         plan_name: str,
         payment_key: str,
-        billing_key: Optional[str],
+        billing_key: str | None,
         db: AsyncSession,
     ) -> Subscription:
         """
@@ -222,9 +210,7 @@ class SubscriptionService:
                 raise DuplicateSubscriptionError(plan_name)
             return await self.change_plan(user_id, plan_name, payment_key, db)
 
-        return await self.create_subscription(
-            user_id, plan_name, payment_key, billing_key, db
-        )
+        return await self.create_subscription(user_id, plan_name, payment_key, billing_key, db)
 
     async def change_plan(
         self,
@@ -254,21 +240,15 @@ class SubscriptionService:
             # 업그레이드: 즉시 적용
             subscription.plan_name = new_plan
             subscription.stripe_subscription_id = payment_key
-            logger.info(
-                f"Plan upgraded: user={user_id}, {old_plan} → {new_plan}"
-            )
+            logger.info(f"Plan upgraded: user={user_id}, {old_plan} → {new_plan}")
         else:
             # 다운그레이드: 다음 결제일부터 적용 (예약)
             subscription.plan_name = new_plan
-            logger.info(
-                f"Plan downgraded (scheduled): user={user_id}, {old_plan} → {new_plan}"
-            )
+            logger.info(f"Plan downgraded (scheduled): user={user_id}, {old_plan} → {new_plan}")
 
         return subscription
 
-    async def handle_payment_failure(
-        self, subscription: Subscription, db: AsyncSession
-    ) -> Subscription:
+    async def handle_payment_failure(self, subscription: Subscription, db: AsyncSession) -> Subscription:
         """
         결제 실패 처리.
 
@@ -283,22 +263,14 @@ class SubscriptionService:
             subscription.status = "expired"
             subscription.plan_name = "free"
             subscription.billing_key = None
-            logger.warning(
-                f"Subscription expired due to 3 payment failures: "
-                f"user={subscription.user_id}"
-            )
+            logger.warning(f"Subscription expired due to 3 payment failures: " f"user={subscription.user_id}")
         else:
             subscription.status = "past_due"
-            logger.warning(
-                f"Payment failed ({subscription.failed_payment_count}/3): "
-                f"user={subscription.user_id}"
-            )
+            logger.warning(f"Payment failed ({subscription.failed_payment_count}/3): " f"user={subscription.user_id}")
 
         return subscription
 
-    async def handle_payment_success(
-        self, subscription: Subscription, db: AsyncSession
-    ) -> Subscription:
+    async def handle_payment_success(self, subscription: Subscription, db: AsyncSession) -> Subscription:
         """결제 성공 시 구독 갱신."""
         now = datetime.utcnow()
         next_billing = now + timedelta(days=self.BILLING_CYCLE_DAYS)
@@ -311,15 +283,10 @@ class SubscriptionService:
         subscription.end_date = next_billing
         subscription.next_billing_date = next_billing
 
-        logger.info(
-            f"Subscription renewed: user={subscription.user_id}, "
-            f"next_billing={next_billing.isoformat()}"
-        )
+        logger.info(f"Subscription renewed: user={subscription.user_id}, " f"next_billing={next_billing.isoformat()}")
         return subscription
 
-    async def get_subscription_status(
-        self, user_id: int, db: AsyncSession
-    ) -> dict:
+    async def get_subscription_status(self, user_id: int, db: AsyncSession) -> dict:
         """사용자 구독 상태 전체 정보."""
         subscription = await self.get_subscription(user_id, db)
 
@@ -339,15 +306,9 @@ class SubscriptionService:
             "start_date": subscription.start_date.isoformat() if subscription.start_date else None,
             "end_date": subscription.end_date.isoformat() if subscription.end_date else None,
             "next_billing_date": (
-                subscription.next_billing_date.isoformat()
-                if subscription.next_billing_date
-                else None
+                subscription.next_billing_date.isoformat() if subscription.next_billing_date else None
             ),
-            "cancelled_at": (
-                subscription.cancelled_at.isoformat()
-                if subscription.cancelled_at
-                else None
-            ),
+            "cancelled_at": (subscription.cancelled_at.isoformat() if subscription.cancelled_at else None),
             "cancel_reason": subscription.cancel_reason,
             "failed_payment_count": subscription.failed_payment_count,
             "limits": self.PLAN_LIMITS.get(plan, self.PLAN_LIMITS["free"]),

@@ -6,8 +6,6 @@ RAGService 확장 테스트
 import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from app.services.rag_service import RAGService
 
 

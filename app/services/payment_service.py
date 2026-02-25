@@ -13,7 +13,7 @@ import hashlib
 import hmac
 import uuid
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 from tenacity import (
@@ -44,10 +44,10 @@ class PaymentService:
     """
 
     # 플랜별 가격표 (KRW)
-    PLAN_PRICES: Dict[str, int] = {
+    PLAN_PRICES: dict[str, int] = {
         "free": 0,
-        "basic": 10000,   # 10,000원/월
-        "pro": 30000,      # 30,000원/월
+        "basic": 10000,  # 10,000원/월
+        "pro": 30000,  # 30,000원/월
     }
 
     def __init__(self):
@@ -62,9 +62,7 @@ class PaymentService:
             logger.info("PaymentService: Tosspayments initialized")
         else:
             self.auth_header = None
-            logger.warning(
-                "PaymentService: Tosspayments not configured (TOSSPAYMENTS_SECRET_KEY missing)"
-            )
+            logger.warning("PaymentService: Tosspayments not configured (TOSSPAYMENTS_SECRET_KEY missing)")
 
     def is_configured(self) -> bool:
         """결제 시스템 설정 여부 확인"""
@@ -134,7 +132,7 @@ class PaymentService:
         order_name: str,
         customer_email: str,
         customer_name: str,
-    ) -> Dict:
+    ) -> dict:
         """
         결제 요청 데이터 생성 (프론트엔드 SDK용).
 
@@ -165,8 +163,8 @@ class PaymentService:
         payment_key: str,
         order_id: str,
         amount: int,
-        idempotency_key: Optional[str] = None,
-    ) -> Dict:
+        idempotency_key: str | None = None,
+    ) -> dict:
         """
         결제 승인 (Tosspayments API).
 
@@ -206,23 +204,17 @@ class PaymentService:
 
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    url, headers=headers, json=payload, timeout=15.0
-                )
+                response = await client.post(url, headers=headers, json=payload, timeout=15.0)
 
                 if response.status_code == 200:
                     result = response.json()
-                    logger.info(
-                        f"Payment confirmed: order_id={order_id}, amount={amount}원"
-                    )
+                    logger.info(f"Payment confirmed: order_id={order_id}, amount={amount}원")
                     return result
 
                 error_data = response.json()
                 error_code = error_data.get("code", "UNKNOWN")
                 error_msg = error_data.get("message", "알 수 없는 오류")
-                logger.error(
-                    f"Payment confirmation failed: code={error_code}, message={error_msg}"
-                )
+                logger.error(f"Payment confirmation failed: code={error_code}, message={error_msg}")
                 raise PaymentConfirmationError(
                     detail=f"결제 승인 실패: {error_msg}",
                     extra={"toss_error_code": error_code},
@@ -235,9 +227,7 @@ class PaymentService:
             raise
         except Exception as e:
             logger.error(f"Payment confirmation error: {str(e)}", exc_info=True)
-            raise PaymentConfirmationError(
-                detail=f"결제 확인 중 오류: {str(e)}"
-            )
+            raise PaymentConfirmationError(detail=f"결제 확인 중 오류: {str(e)}")
 
     @retry(
         stop=stop_after_attempt(3),
@@ -249,8 +239,8 @@ class PaymentService:
         self,
         payment_key: str,
         cancel_reason: str,
-        cancel_amount: Optional[int] = None,
-    ) -> Dict:
+        cancel_amount: int | None = None,
+    ) -> dict:
         """
         결제 취소/환불.
 
@@ -268,16 +258,14 @@ class PaymentService:
             "Authorization": self.auth_header,
             "Content-Type": "application/json",
         }
-        payload: Dict[str, Any] = {"cancelReason": cancel_reason}
+        payload: dict[str, Any] = {"cancelReason": cancel_reason}
 
         if cancel_amount is not None:
             payload["cancelAmount"] = cancel_amount
 
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    url, headers=headers, json=payload, timeout=15.0
-                )
+                response = await client.post(url, headers=headers, json=payload, timeout=15.0)
 
                 if response.status_code == 200:
                     result = response.json()
@@ -295,7 +283,7 @@ class PaymentService:
             logger.error(f"Payment cancellation error: {str(e)}", exc_info=True)
             raise PaymentError(detail=f"결제 취소 중 오류: {str(e)}")
 
-    async def get_payment_info(self, payment_key: str) -> Dict:
+    async def get_payment_info(self, payment_key: str) -> dict:
         """결제 상세 정보 조회"""
         self._ensure_configured()
 
@@ -310,9 +298,7 @@ class PaymentService:
                     return response.json()
 
                 error_data = response.json()
-                raise PaymentError(
-                    detail=f"결제 정보 조회 실패: {error_data.get('message', 'Unknown')}"
-                )
+                raise PaymentError(detail=f"결제 정보 조회 실패: {error_data.get('message', 'Unknown')}")
 
         except PaymentError:
             raise
@@ -360,7 +346,7 @@ class PaymentService:
         self,
         auth_key: str,
         customer_key: str,
-    ) -> Dict:
+    ) -> dict:
         """
         빌링키 발급 (자동 갱신 결제 등록).
 
@@ -387,9 +373,7 @@ class PaymentService:
         }
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                url, headers=headers, json=payload, timeout=15.0
-            )
+            response = await client.post(url, headers=headers, json=payload, timeout=15.0)
 
             if response.status_code == 200:
                 result = response.json()
@@ -397,9 +381,7 @@ class PaymentService:
                 return result
 
             error_data = response.json()
-            raise PaymentError(
-                detail=f"빌링키 발급 실패: {error_data.get('message', 'Unknown')}"
-            )
+            raise PaymentError(detail=f"빌링키 발급 실패: {error_data.get('message', 'Unknown')}")
 
     @retry(
         stop=stop_after_attempt(3),
@@ -415,8 +397,8 @@ class PaymentService:
         order_name: str,
         customer_email: str,
         customer_name: str,
-        idempotency_key: Optional[str] = None,
-    ) -> Dict:
+        idempotency_key: str | None = None,
+    ) -> dict:
         """
         빌링키로 자동 결제 (구독 갱신).
 
@@ -448,22 +430,15 @@ class PaymentService:
         }
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                url, headers=headers, json=payload, timeout=15.0
-            )
+            response = await client.post(url, headers=headers, json=payload, timeout=15.0)
 
             if response.status_code == 200:
                 result = response.json()
-                logger.info(
-                    f"Billing charged: billing_key={billing_key[:8]}..., "
-                    f"amount={amount}원"
-                )
+                logger.info(f"Billing charged: billing_key={billing_key[:8]}..., " f"amount={amount}원")
                 return result
 
             error_data = response.json()
-            raise PaymentConfirmationError(
-                detail=f"자동 결제 실패: {error_data.get('message', 'Unknown')}"
-            )
+            raise PaymentConfirmationError(detail=f"자동 결제 실패: {error_data.get('message', 'Unknown')}")
 
 
 # Singleton instance

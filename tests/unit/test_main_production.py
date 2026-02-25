@@ -33,14 +33,18 @@ class TestSecurityHeadersHSTS:
 
         # Mock inner app to send http.response.start
         async def fake_app(scope, receive, send):
-            await send({
-                "type": "http.response.start",
-                "headers": [],
-            })
-            await send({
-                "type": "http.response.body",
-                "body": b"ok",
-            })
+            await send(
+                {
+                    "type": "http.response.start",
+                    "headers": [],
+                }
+            )
+            await send(
+                {
+                    "type": "http.response.body",
+                    "body": b"ok",
+                }
+            )
 
         middleware_with_prod = SecurityHeadersMiddleware(fake_app)
 
@@ -65,10 +69,12 @@ class TestSecurityHeadersHSTS:
             return {}
 
         async def fake_app(scope, receive, send):
-            await send({
-                "type": "http.response.start",
-                "headers": [],
-            })
+            await send(
+                {
+                    "type": "http.response.start",
+                    "headers": [],
+                }
+            )
 
         middleware = SecurityHeadersMiddleware(fake_app)
 
@@ -113,9 +119,12 @@ class TestStartupShutdown:
         with patch("app.main.init_sentry"):
             with patch("app.main.init_app_info"):
                 with patch("app.db.session.engine", mock_engine):
-                    with patch.dict("sys.modules", {
-                        "app.worker.taskiq_app": MagicMock(startup=mock_taskiq_startup, shutdown=AsyncMock()),
-                    }):
+                    with patch.dict(
+                        "sys.modules",
+                        {
+                            "app.worker.taskiq_app": MagicMock(startup=mock_taskiq_startup, shutdown=AsyncMock()),
+                        },
+                    ):
                         await startup()
 
         mock_taskiq_startup.assert_awaited_once()
@@ -126,9 +135,12 @@ class TestStartupShutdown:
 
         mock_taskiq_shutdown = AsyncMock()
 
-        with patch.dict("sys.modules", {
-            "app.worker.taskiq_app": MagicMock(shutdown=mock_taskiq_shutdown),
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "app.worker.taskiq_app": MagicMock(shutdown=mock_taskiq_shutdown),
+            },
+        ):
             await shutdown()
 
         mock_taskiq_shutdown.assert_awaited_once()
@@ -148,6 +160,7 @@ class TestMetricsProductionRestriction:
     async def test_metrics_blocked_in_production(self):
         """production에서 외부 IP 차단"""
         from httpx import ASGITransport, AsyncClient
+
         from app.main import app
 
         with patch("app.main._is_production", True):

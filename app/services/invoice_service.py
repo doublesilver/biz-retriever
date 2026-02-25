@@ -7,7 +7,6 @@ Invoice Service — 인보이스(영수증) 생성 및 관리
 
 import uuid
 from datetime import datetime, timedelta
-from typing import List, Optional
 
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,10 +40,10 @@ class InvoiceService:
         subscription: Subscription,
         amount: float,
         plan_name: str,
-        payment_key: Optional[str] = None,
+        payment_key: str | None = None,
         proration_amount: float = 0.0,
-        description: Optional[str] = None,
-        db: Optional[AsyncSession] = None,
+        description: str | None = None,
+        db: AsyncSession | None = None,
     ) -> Invoice:
         """
         인보이스 생성.
@@ -85,15 +84,10 @@ class InvoiceService:
         if db:
             db.add(invoice)
 
-        logger.info(
-            f"Invoice created: {invoice.invoice_number}, "
-            f"user={subscription.user_id}, amount={amount}원"
-        )
+        logger.info(f"Invoice created: {invoice.invoice_number}, " f"user={subscription.user_id}, amount={amount}원")
         return invoice
 
-    async def mark_paid(
-        self, invoice: Invoice, payment_key: str
-    ) -> Invoice:
+    async def mark_paid(self, invoice: Invoice, payment_key: str) -> Invoice:
         """인보이스를 결제 완료 상태로 변경."""
         invoice.status = "paid"
         invoice.paid_at = datetime.utcnow()
@@ -121,7 +115,7 @@ class InvoiceService:
         db: AsyncSession,
         skip: int = 0,
         limit: int = 20,
-    ) -> List[Invoice]:
+    ) -> list[Invoice]:
         """사용자의 인보이스 목록 조회."""
         stmt = (
             select(Invoice)
@@ -139,18 +133,14 @@ class InvoiceService:
         db: AsyncSession,
     ) -> Invoice:
         """인보이스 번호로 조회."""
-        stmt = select(Invoice).where(
-            Invoice.invoice_number == invoice_number
-        )
+        stmt = select(Invoice).where(Invoice.invoice_number == invoice_number)
         result = await db.execute(stmt)
         invoice = result.scalar_one_or_none()
         if not invoice:
             raise InvoiceNotFoundError(invoice_number)
         return invoice
 
-    async def get_user_invoice_count(
-        self, user_id: int, db: AsyncSession
-    ) -> int:
+    async def get_user_invoice_count(self, user_id: int, db: AsyncSession) -> int:
         """사용자 인보이스 총 개수."""
         stmt = select(func.count(Invoice.id)).where(Invoice.user_id == user_id)
         result = await db.execute(stmt)

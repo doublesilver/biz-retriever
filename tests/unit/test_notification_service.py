@@ -4,7 +4,6 @@ NotificationService 단위 테스트
 - 매칭 알림 (Slack + Email)
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.services.notification_service import NotificationService
@@ -32,9 +31,7 @@ class TestSendSlackMessage:
         mock_client.__aexit__.return_value = None
         mock_client_cls.return_value = mock_client
 
-        result = await NotificationService.send_slack_message(
-            "https://hooks.slack.com/test", "Test message"
-        )
+        result = await NotificationService.send_slack_message("https://hooks.slack.com/test", "Test message")
         assert result is True
 
     @patch("app.services.notification_service.httpx.AsyncClient")
@@ -49,9 +46,7 @@ class TestSendSlackMessage:
         mock_client.__aexit__.return_value = None
         mock_client_cls.return_value = mock_client
 
-        result = await NotificationService.send_slack_message(
-            "https://hooks.slack.com/test", "Test message"
-        )
+        result = await NotificationService.send_slack_message("https://hooks.slack.com/test", "Test message")
         assert result is False
 
     @patch("app.services.notification_service.httpx.AsyncClient")
@@ -62,9 +57,7 @@ class TestSendSlackMessage:
         mock_client.__aexit__.return_value = None
         mock_client_cls.return_value = mock_client
 
-        result = await NotificationService.send_slack_message(
-            "https://hooks.slack.com/test", "Test message"
-        )
+        result = await NotificationService.send_slack_message("https://hooks.slack.com/test", "Test message")
         assert result is False
 
 

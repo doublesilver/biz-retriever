@@ -5,8 +5,9 @@ ProfileService 단위 테스트
 - 지역 코드 매칭
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.services.profile_service import ProfileService
 
@@ -118,9 +119,7 @@ class TestCreateOrUpdateProfile:
         self.service.get_profile = AsyncMock(return_value=mock_profile)
 
         session = AsyncMock()
-        result = await self.service.create_or_update_profile(
-            session, 1, {"company_name": "새 기업"}
-        )
+        result = await self.service.create_or_update_profile(session, 1, {"company_name": "새 기업"})
         assert result.company_name == "새 기업"
         session.commit.assert_called_once()
 
@@ -128,9 +127,7 @@ class TestCreateOrUpdateProfile:
         self.service.get_profile = AsyncMock(return_value=None)
 
         session = AsyncMock()
-        result = await self.service.create_or_update_profile(
-            session, 1, {"company_name": "새 기업"}
-        )
+        result = await self.service.create_or_update_profile(session, 1, {"company_name": "새 기업"})
         session.add.assert_called_once()
         session.commit.assert_called_once()
 
@@ -219,9 +216,7 @@ class TestAddPerformance:
 
     async def test_add_performance(self):
         session = AsyncMock()
-        result = await self.service.add_performance(
-            session, 1, {"project_name": "테스트 공사", "amount": 1000000000}
-        )
+        result = await self.service.add_performance(session, 1, {"project_name": "테스트 공사", "amount": 1000000000})
         session.add.assert_called_once()
         session.commit.assert_called_once()
 

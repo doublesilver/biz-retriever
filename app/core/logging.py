@@ -39,7 +39,6 @@ import sys
 import threading
 from pathlib import Path
 from typing import Any
-from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 import structlog
@@ -94,9 +93,7 @@ class SlackHandler(logging.Handler):
                 ],
             }
 
-            threading.Thread(
-                target=self._send_payload, args=(payload,), daemon=True
-            ).start()
+            threading.Thread(target=self._send_payload, args=(payload,), daemon=True).start()
 
         except Exception:
             self.handleError(record)
@@ -206,9 +203,7 @@ def configure_logging() -> None:
 
     # 서드파티 라이브러리 로깅 레벨 조정
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
-    logging.getLogger("sqlalchemy.engine").setLevel(
-        logging.INFO if settings.SQL_ECHO else logging.WARNING
-    )
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO if settings.SQL_ECHO else logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
 

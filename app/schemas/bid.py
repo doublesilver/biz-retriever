@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -18,7 +17,7 @@ class BidBase(BaseModel):
 
     title: str = Field(..., min_length=1, max_length=500, description="공고 제목")
     content: str = Field(..., min_length=1, description="공고 내용")
-    agency: Optional[str] = Field(default=None, max_length=200, description="기관명")
+    agency: str | None = Field(default=None, max_length=200, description="기관명")
     posted_at: datetime = Field(..., description="게시일시")
     url: str = Field(..., description="원본 URL")
 
@@ -32,17 +31,15 @@ class BidCreate(BidBase):
 class BidUpdate(BaseModel):
     """공고 수정 스키마"""
 
-    title: Optional[str] = Field(default=None, min_length=1, max_length=500)
-    content: Optional[str] = Field(default=None, min_length=1)
-    agency: Optional[str] = Field(default=None, max_length=200)
-    posted_at: Optional[datetime] = None
-    url: Optional[str] = None
-    processed: Optional[bool] = None
-    status: Optional[str] = Field(
-        default=None, pattern="^(new|reviewing|bidding|submitted|won|lost|completed)$"
-    )
-    assigned_to: Optional[int] = Field(default=None, ge=1)
-    notes: Optional[str] = None
+    title: str | None = Field(default=None, min_length=1, max_length=500)
+    content: str | None = Field(default=None, min_length=1)
+    agency: str | None = Field(default=None, max_length=200)
+    posted_at: datetime | None = None
+    url: str | None = None
+    processed: bool | None = None
+    status: str | None = Field(default=None, pattern="^(new|reviewing|bidding|submitted|won|lost|completed)$")
+    assigned_to: int | None = Field(default=None, ge=1)
+    notes: str | None = None
 
 
 class BidResponse(BidBase):
@@ -55,21 +52,21 @@ class BidResponse(BidBase):
 
     # Phase 1 필드
     source: str = "G2B"
-    deadline: Optional[datetime] = None
-    estimated_price: Optional[float] = None
+    deadline: datetime | None = None
+    estimated_price: float | None = None
     importance_score: int = 1
-    keywords_matched: Optional[List[str]] = None
+    keywords_matched: list[str] | None = None
     is_notified: bool = False
-    ai_summary: Optional[str] = None
-    ai_keywords: Optional[List[str]] = None
+    ai_summary: str | None = None
+    ai_keywords: list[str] | None = None
 
     # Phase 2 필드
     status: str = "new"
-    assigned_to: Optional[int] = None
-    notes: Optional[str] = None
+    assigned_to: int | None = None
+    notes: str | None = None
 
     # 담당자 정보 (relationship)
-    assignee: Optional[UserBasicInfo] = None
+    assignee: UserBasicInfo | None = None
 
     model_config = {"from_attributes": True}
 
@@ -79,22 +76,20 @@ class BidAnnouncementCreate(BaseModel):
 
     title: str
     content: str
-    agency: Optional[str] = None
+    agency: str | None = None
     posted_at: datetime
     url: str
     source: str = "G2B"
-    deadline: Optional[datetime] = None
-    estimated_price: Optional[float] = None
+    deadline: datetime | None = None
+    estimated_price: float | None = None
     importance_score: int = 1
-    keywords_matched: Optional[List[str]] = None
+    keywords_matched: list[str] | None = None
 
 
 class BidAssignRequest(BaseModel):
     """공고 담당자 할당 요청"""
 
-    user_id: Optional[int] = Field(
-        None, ge=1, description="담당자 ID (None이면 할당 해제)"
-    )
+    user_id: int | None = Field(None, ge=1, description="담당자 ID (None이면 할당 해제)")
 
 
 class BidStatusUpdate(BaseModel):
@@ -105,13 +100,13 @@ class BidStatusUpdate(BaseModel):
         pattern="^(new|reviewing|bidding|submitted|won|lost|completed)$",
         description="공고 상태",
     )
-    notes: Optional[str] = Field(default=None, max_length=1000, description="메모")
+    notes: str | None = Field(default=None, max_length=1000, description="메모")
 
 
 class BidListResponse(BaseModel):
     """공고 목록 응답 스키마 (페이지네이션 지원)"""
 
-    items: List[BidResponse]
+    items: list[BidResponse]
     total: int
     skip: int
     limit: int

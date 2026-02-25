@@ -6,9 +6,8 @@ BidRepository 확장 테스트
 - update_processing_status
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
-import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import BidAnnouncement
@@ -46,14 +45,16 @@ class TestGetMultiWithFilters:
 
     async def test_no_filters(self, test_db: AsyncSession):
         for i in range(3):
-            test_db.add(BidAnnouncement(
-                title=f"공고 {i}",
-                content=f"내용 {i}",
-                agency=f"기관 {i}",
-                url=f"https://example.com/{i}",
-                source="G2B",
-                posted_at=datetime.utcnow(),
-            ))
+            test_db.add(
+                BidAnnouncement(
+                    title=f"공고 {i}",
+                    content=f"내용 {i}",
+                    agency=f"기관 {i}",
+                    url=f"https://example.com/{i}",
+                    source="G2B",
+                    posted_at=datetime.utcnow(),
+                )
+            )
         await test_db.commit()
 
         repo = BidRepository(test_db)
@@ -61,22 +62,26 @@ class TestGetMultiWithFilters:
         assert len(result) == 3
 
     async def test_keyword_filter(self, test_db: AsyncSession):
-        test_db.add(BidAnnouncement(
-            title="구내식당 위탁운영",
-            content="식당 운영",
-            agency="서울시",
-            url="https://example.com/a",
-            source="G2B",
-            posted_at=datetime.utcnow(),
-        ))
-        test_db.add(BidAnnouncement(
-            title="건축 공사",
-            content="건설",
-            agency="경기도",
-            url="https://example.com/b",
-            source="G2B",
-            posted_at=datetime.utcnow(),
-        ))
+        test_db.add(
+            BidAnnouncement(
+                title="구내식당 위탁운영",
+                content="식당 운영",
+                agency="서울시",
+                url="https://example.com/a",
+                source="G2B",
+                posted_at=datetime.utcnow(),
+            )
+        )
+        test_db.add(
+            BidAnnouncement(
+                title="건축 공사",
+                content="건설",
+                agency="경기도",
+                url="https://example.com/b",
+                source="G2B",
+                posted_at=datetime.utcnow(),
+            )
+        )
         await test_db.commit()
 
         repo = BidRepository(test_db)
@@ -85,22 +90,26 @@ class TestGetMultiWithFilters:
         assert result[0].title == "구내식당 위탁운영"
 
     async def test_agency_filter(self, test_db: AsyncSession):
-        test_db.add(BidAnnouncement(
-            title="공고1",
-            content="내용",
-            agency="서울대병원",
-            url="https://example.com/c",
-            source="G2B",
-            posted_at=datetime.utcnow(),
-        ))
-        test_db.add(BidAnnouncement(
-            title="공고2",
-            content="내용",
-            agency="경기도청",
-            url="https://example.com/d",
-            source="G2B",
-            posted_at=datetime.utcnow(),
-        ))
+        test_db.add(
+            BidAnnouncement(
+                title="공고1",
+                content="내용",
+                agency="서울대병원",
+                url="https://example.com/c",
+                source="G2B",
+                posted_at=datetime.utcnow(),
+            )
+        )
+        test_db.add(
+            BidAnnouncement(
+                title="공고2",
+                content="내용",
+                agency="경기도청",
+                url="https://example.com/d",
+                source="G2B",
+                posted_at=datetime.utcnow(),
+            )
+        )
         await test_db.commit()
 
         repo = BidRepository(test_db)
@@ -109,14 +118,16 @@ class TestGetMultiWithFilters:
 
     async def test_pagination(self, test_db: AsyncSession):
         for i in range(10):
-            test_db.add(BidAnnouncement(
-                title=f"공고 {i}",
-                content=f"내용 {i}",
-                agency="기관",
-                url=f"https://example.com/page/{i}",
-                source="G2B",
-                posted_at=datetime.utcnow(),
-            ))
+            test_db.add(
+                BidAnnouncement(
+                    title=f"공고 {i}",
+                    content=f"내용 {i}",
+                    agency="기관",
+                    url=f"https://example.com/page/{i}",
+                    source="G2B",
+                    posted_at=datetime.utcnow(),
+                )
+            )
         await test_db.commit()
 
         repo = BidRepository(test_db)
@@ -128,15 +139,17 @@ class TestGetHardMatches:
     """get_hard_matches 테스트"""
 
     async def test_no_filters(self, test_db: AsyncSession):
-        test_db.add(BidAnnouncement(
-            title="공고",
-            content="내용",
-            agency="기관",
-            url="https://example.com/hard/1",
-            source="G2B",
-            posted_at=datetime.utcnow(),
-            min_performance=0,
-        ))
+        test_db.add(
+            BidAnnouncement(
+                title="공고",
+                content="내용",
+                agency="기관",
+                url="https://example.com/hard/1",
+                source="G2B",
+                posted_at=datetime.utcnow(),
+                min_performance=0,
+            )
+        )
         await test_db.commit()
 
         repo = BidRepository(test_db)
@@ -145,24 +158,28 @@ class TestGetHardMatches:
         assert len(result) >= 1
 
     async def test_performance_filter(self, test_db: AsyncSession):
-        test_db.add(BidAnnouncement(
-            title="높은 실적 요구",
-            content="내용",
-            agency="기관",
-            url="https://example.com/hard/2",
-            source="G2B",
-            posted_at=datetime.utcnow(),
-            min_performance=1000000,
-        ))
-        test_db.add(BidAnnouncement(
-            title="낮은 실적 요구",
-            content="내용",
-            agency="기관",
-            url="https://example.com/hard/3",
-            source="G2B",
-            posted_at=datetime.utcnow(),
-            min_performance=100,
-        ))
+        test_db.add(
+            BidAnnouncement(
+                title="높은 실적 요구",
+                content="내용",
+                agency="기관",
+                url="https://example.com/hard/2",
+                source="G2B",
+                posted_at=datetime.utcnow(),
+                min_performance=1000000,
+            )
+        )
+        test_db.add(
+            BidAnnouncement(
+                title="낮은 실적 요구",
+                content="내용",
+                agency="기관",
+                url="https://example.com/hard/3",
+                source="G2B",
+                posted_at=datetime.utcnow(),
+                min_performance=100,
+            )
+        )
         await test_db.commit()
 
         repo = BidRepository(test_db)

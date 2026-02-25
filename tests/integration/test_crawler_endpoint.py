@@ -4,7 +4,6 @@
 - GET /status/{task_id} (정상, 유효하지 않은 task_id)
 """
 
-import pytest
 from httpx import AsyncClient
 
 
@@ -19,6 +18,7 @@ class TestTriggerCrawl:
     async def test_superuser_trigger(self, test_db, test_superuser):
         """관리자 크롤링 트리거"""
         from httpx import ASGITransport, AsyncClient
+
         from app.core.security import create_access_token
         from app.main import app
 

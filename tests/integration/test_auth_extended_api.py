@@ -9,11 +9,10 @@ Auth API 확장 통합 테스트
 
 from datetime import datetime, timedelta
 
-import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import create_access_token, get_password_hash
+from app.core.security import get_password_hash
 from app.db.models import User
 
 
@@ -30,27 +29,21 @@ class TestRegister:
         assert data["email"] == "newuser@example.com"
         assert data["is_active"] is True
 
-    async def test_register_duplicate_email(
-        self, async_client: AsyncClient, test_user: User
-    ):
+    async def test_register_duplicate_email(self, async_client: AsyncClient, test_user: User):
         response = await async_client.post(
             "/api/v1/auth/register",
             json={"email": test_user.email, "password": "SecurePass123!"},
         )
         assert response.status_code == 400
 
-    async def test_register_weak_password(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_register_weak_password(self, async_client: AsyncClient, test_db: AsyncSession):
         response = await async_client.post(
             "/api/v1/auth/register",
             json={"email": "weak@example.com", "password": "123"},
         )
         assert response.status_code == 422  # Pydantic min_length=8
 
-    async def test_register_no_uppercase(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_register_no_uppercase(self, async_client: AsyncClient, test_db: AsyncSession):
         response = await async_client.post(
             "/api/v1/auth/register",
             json={"email": "weak2@example.com", "password": "nouppercasepass1!"},
@@ -72,9 +65,7 @@ class TestLogin:
         assert "refresh_token" in data
         assert data["token_type"] == "bearer"
 
-    async def test_login_wrong_password(
-        self, async_client: AsyncClient, test_user: User
-    ):
+    async def test_login_wrong_password(self, async_client: AsyncClient, test_user: User):
         response = await async_client.post(
             "/api/v1/auth/login/access-token",
             data={"username": test_user.email, "password": "WrongPass123!"},
@@ -88,9 +79,7 @@ class TestLogin:
         )
         assert response.status_code == 400
 
-    async def test_login_inactive_user(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_login_inactive_user(self, async_client: AsyncClient, test_db: AsyncSession):
         user = User(
             email="inactive@example.com",
             hashed_password=get_password_hash("TestPass123!"),
@@ -109,9 +98,7 @@ class TestLogin:
 class TestAccountLocking:
     """계정 잠금"""
 
-    async def test_lock_after_5_failures(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_lock_after_5_failures(self, async_client: AsyncClient, test_db: AsyncSession):
         user = User(
             email="lockme@example.com",
             hashed_password=get_password_hash("TestPass123!"),
@@ -132,8 +119,10 @@ class TestAccountLocking:
             data={"username": "lockme@example.com", "password": "Wrong123!"},
         )
         assert response.status_code == 400
-        assert "locked" in response.json().get("error", {}).get("message", "").lower() or \
-               "locked" in response.json().get("detail", "").lower()
+        assert (
+            "locked" in response.json().get("error", {}).get("message", "").lower()
+            or "locked" in response.json().get("detail", "").lower()
+        )
 
 
 class TestCheckEmail:
@@ -231,9 +220,7 @@ class TestPasswordReset:
         )
         assert response.status_code == 200
 
-    async def test_confirm_reset_invalid_token(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_confirm_reset_invalid_token(self, async_client: AsyncClient, test_db: AsyncSession):
         response = await async_client.post(
             "/api/v1/auth/password-reset-confirm",
             json={"token": "invalid_token", "new_password": "NewSecure123!"},
@@ -244,9 +231,7 @@ class TestPasswordReset:
 class TestPasswordResetConfirmValid:
     """비밀번호 재설정 확인 (유효 토큰)"""
 
-    async def test_confirm_reset_success(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_confirm_reset_success(self, async_client: AsyncClient, test_db: AsyncSession):
         """유효 토큰으로 비밀번호 재설정 성공"""
         user = User(
             email="resetme@example.com",
@@ -263,12 +248,11 @@ class TestPasswordResetConfirmValid:
             json={"token": "valid-reset-token-abc", "new_password": "NewSecure456!"},
         )
         assert response.status_code == 200
-        assert "reset successfully" in response.json()["message"].lower() or \
-               "reset" in response.json()["message"].lower()
+        assert (
+            "reset successfully" in response.json()["message"].lower() or "reset" in response.json()["message"].lower()
+        )
 
-    async def test_confirm_reset_expired_token(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_confirm_reset_expired_token(self, async_client: AsyncClient, test_db: AsyncSession):
         """만료된 토큰으로 비밀번호 재설정 실패"""
         user = User(
             email="expired_reset@example.com",
@@ -286,9 +270,7 @@ class TestPasswordResetConfirmValid:
         )
         assert response.status_code == 400
 
-    async def test_confirm_reset_weak_new_password(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_confirm_reset_weak_new_password(self, async_client: AsyncClient, test_db: AsyncSession):
         """유효 토큰이지만 약한 새 비밀번호"""
         user = User(
             email="weaknew@example.com",
@@ -310,9 +292,7 @@ class TestPasswordResetConfirmValid:
 class TestAccountLockExpiry:
     """계정 잠금 만료"""
 
-    async def test_login_after_lock_expired(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_login_after_lock_expired(self, async_client: AsyncClient, test_db: AsyncSession):
         """잠금 만료 후 로그인 성공"""
         user = User(
             email="lock_expired@example.com",
@@ -408,9 +388,7 @@ class TestEmailVerification:
         )
         assert response.status_code == 200
 
-    async def test_resend_verification_real_user(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_resend_verification_real_user(self, async_client: AsyncClient, test_db: AsyncSession):
         """미인증 사용자에게 인증 메일 재발송"""
         user = User(
             email="resend_me@example.com",

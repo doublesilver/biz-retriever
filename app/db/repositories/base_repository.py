@@ -1,7 +1,7 @@
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
-from sqlalchemy import delete, select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.base import Base
@@ -12,16 +12,16 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 
 class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
-    def __init__(self, model: Type[ModelType], session: AsyncSession):
+    def __init__(self, model: type[ModelType], session: AsyncSession):
         self.model = model
         self.session = session
 
-    async def get(self, id: Any) -> Optional[ModelType]:
+    async def get(self, id: Any) -> ModelType | None:
         query = select(self.model).where(self.model.id == id)
         result = await self.session.execute(query)
         return result.scalars().first()
 
-    async def get_multi(self, skip: int = 0, limit: int = 100) -> List[ModelType]:
+    async def get_multi(self, skip: int = 0, limit: int = 100) -> list[ModelType]:
         query = select(self.model).offset(skip).limit(limit)
         result = await self.session.execute(query)
         return result.scalars().all()
@@ -34,9 +34,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         await self.session.refresh(db_obj)
         return db_obj
 
-    async def update(
-        self, db_obj: ModelType, obj_in: Union[UpdateSchemaType, Dict[str, Any]]
-    ) -> ModelType:
+    async def update(self, db_obj: ModelType, obj_in: UpdateSchemaType | dict[str, Any]) -> ModelType:
         obj_data = db_obj.__dict__
         if isinstance(obj_in, dict):
             update_data = obj_in

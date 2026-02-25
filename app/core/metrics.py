@@ -4,8 +4,8 @@ Prometheus 메트릭 설정
 """
 
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable
 
 from prometheus_client import Counter, Gauge, Histogram, Info
 
@@ -17,9 +17,7 @@ APP_INFO = Info("biz_retriever", "Biz-Retriever 애플리케이션 정보")
 # ============================================
 # HTTP 요청 메트릭
 # ============================================
-HTTP_REQUESTS_TOTAL = Counter(
-    "http_requests_total", "총 HTTP 요청 수", ["method", "endpoint", "status_code"]
-)
+HTTP_REQUESTS_TOTAL = Counter("http_requests_total", "총 HTTP 요청 수", ["method", "endpoint", "status_code"])
 
 HTTP_REQUEST_DURATION_SECONDS = Histogram(
     "http_request_duration_seconds",
@@ -28,16 +26,12 @@ HTTP_REQUEST_DURATION_SECONDS = Histogram(
     buckets=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
 )
 
-HTTP_REQUESTS_IN_PROGRESS = Gauge(
-    "http_requests_in_progress", "현재 처리 중인 HTTP 요청 수", ["method", "endpoint"]
-)
+HTTP_REQUESTS_IN_PROGRESS = Gauge("http_requests_in_progress", "현재 처리 중인 HTTP 요청 수", ["method", "endpoint"])
 
 # ============================================
 # 데이터베이스 메트릭
 # ============================================
-DB_QUERIES_TOTAL = Counter(
-    "db_queries_total", "총 데이터베이스 쿼리 수", ["operation", "table"]
-)
+DB_QUERIES_TOTAL = Counter("db_queries_total", "총 데이터베이스 쿼리 수", ["operation", "table"])
 
 DB_QUERY_DURATION_SECONDS = Histogram(
     "db_query_duration_seconds",
@@ -70,9 +64,7 @@ CRAWLER_DURATION_SECONDS = Histogram(
     buckets=[1.0, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0],
 )
 
-CRAWLER_LAST_RUN_TIMESTAMP = Gauge(
-    "crawler_last_run_timestamp", "마지막 크롤링 실행 시간 (Unix timestamp)", ["source"]
-)
+CRAWLER_LAST_RUN_TIMESTAMP = Gauge("crawler_last_run_timestamp", "마지막 크롤링 실행 시간 (Unix timestamp)", ["source"])
 
 # ============================================
 # AI 분석 메트릭
@@ -115,9 +107,7 @@ NOTIFICATION_DURATION_SECONDS = Histogram(
 # ============================================
 # 캐시 메트릭
 # ============================================
-CACHE_HITS_TOTAL = Counter(
-    "cache_hits_total", "캐시 히트 수", ["cache_type"]
-)  # redis, local
+CACHE_HITS_TOTAL = Counter("cache_hits_total", "캐시 히트 수", ["cache_type"])  # redis, local
 
 CACHE_MISSES_TOTAL = Counter("cache_misses_total", "캐시 미스 수", ["cache_type"])
 
@@ -139,22 +129,16 @@ CELERY_TASK_DURATION_SECONDS = Histogram(
     buckets=[0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 300.0],
 )
 
-CELERY_QUEUE_LENGTH = Gauge(
-    "celery_queue_length", "Celery 큐 대기 작업 수", ["queue_name"]
-)
+CELERY_QUEUE_LENGTH = Gauge("celery_queue_length", "Celery 큐 대기 작업 수", ["queue_name"])
 
 # ============================================
 # 비즈니스 메트릭
 # ============================================
-BIDS_TOTAL = Gauge(
-    "bids_total", "전체 공고 수", ["status"]
-)  # new, reviewing, bidding, completed
+BIDS_TOTAL = Gauge("bids_total", "전체 공고 수", ["status"])  # new, reviewing, bidding, completed
 
 BIDS_BY_SOURCE = Gauge("bids_by_source", "소스별 공고 수", ["source"])  # G2B, Onbid
 
-BIDS_BY_IMPORTANCE = Gauge(
-    "bids_by_importance", "중요도별 공고 수", ["importance_score"]
-)
+BIDS_BY_IMPORTANCE = Gauge("bids_by_importance", "중요도별 공고 수", ["importance_score"])
 
 USERS_TOTAL = Gauge("users_total", "전체 사용자 수", ["is_active"])
 
@@ -181,20 +165,14 @@ def track_request_metrics(method: str, endpoint: str):
 
             try:
                 result = await func(*args, **kwargs)
-                HTTP_REQUESTS_TOTAL.labels(
-                    method=method, endpoint=endpoint, status_code="200"
-                ).inc()
+                HTTP_REQUESTS_TOTAL.labels(method=method, endpoint=endpoint, status_code="200").inc()
                 return result
-            except Exception as e:
-                HTTP_REQUESTS_TOTAL.labels(
-                    method=method, endpoint=endpoint, status_code="500"
-                ).inc()
+            except Exception:
+                HTTP_REQUESTS_TOTAL.labels(method=method, endpoint=endpoint, status_code="500").inc()
                 raise
             finally:
                 duration = time.time() - start_time
-                HTTP_REQUEST_DURATION_SECONDS.labels(
-                    method=method, endpoint=endpoint
-                ).observe(duration)
+                HTTP_REQUEST_DURATION_SECONDS.labels(method=method, endpoint=endpoint).observe(duration)
                 HTTP_REQUESTS_IN_PROGRESS.labels(method=method, endpoint=endpoint).dec()
 
         return wrapper
@@ -222,9 +200,7 @@ def track_db_query(operation: str, table: str):
                 return result
             finally:
                 duration = time.time() - start_time
-                DB_QUERY_DURATION_SECONDS.labels(
-                    operation=operation, table=table
-                ).observe(duration)
+                DB_QUERY_DURATION_SECONDS.labels(operation=operation, table=table).observe(duration)
 
         return wrapper
 
@@ -250,7 +226,7 @@ def track_crawler_run(source: str):
                 CRAWLER_RUNS_TOTAL.labels(source=source, status="success").inc()
                 CRAWLER_LAST_RUN_TIMESTAMP.labels(source=source).set(time.time())
                 return result
-            except Exception as e:
+            except Exception:
                 CRAWLER_RUNS_TOTAL.labels(source=source, status="failure").inc()
                 raise
             finally:
@@ -280,7 +256,7 @@ def track_ai_analysis(provider: str):
                 result = await func(*args, **kwargs)
                 AI_ANALYSIS_TOTAL.labels(provider=provider, status="success").inc()
                 return result
-            except Exception as e:
+            except Exception:
                 AI_ANALYSIS_TOTAL.labels(provider=provider, status="failure").inc()
                 raise
             finally:
@@ -302,14 +278,10 @@ def record_cache_miss(cache_type: str = "redis"):
     CACHE_MISSES_TOTAL.labels(cache_type=cache_type).inc()
 
 
-def record_notification_sent(
-    channel: str, notification_type: str, success: bool = True
-):
+def record_notification_sent(channel: str, notification_type: str, success: bool = True):
     """알림 발송 기록"""
     status = "success" if success else "failure"
-    NOTIFICATIONS_SENT_TOTAL.labels(
-        channel=channel, type=notification_type, status=status
-    ).inc()
+    NOTIFICATIONS_SENT_TOTAL.labels(channel=channel, type=notification_type, status=status).inc()
 
 
 def record_celery_task(task_name: str, status: str, duration: float):
@@ -320,9 +292,7 @@ def record_celery_task(task_name: str, status: str, duration: float):
 
 def record_announcement_collected(source: str, importance_score: int):
     """공고 수집 기록"""
-    CRAWLER_ANNOUNCEMENTS_COLLECTED.labels(
-        source=source, importance_score=str(importance_score)
-    ).inc()
+    CRAWLER_ANNOUNCEMENTS_COLLECTED.labels(source=source, importance_score=str(importance_score)).inc()
 
 
 # 앱 정보 초기화

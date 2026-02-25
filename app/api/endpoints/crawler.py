@@ -5,7 +5,7 @@
 
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
+from fastapi import APIRouter, HTTPException, Path, Request, status
 
 from app.api import deps
 from app.core.logging import logger

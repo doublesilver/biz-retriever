@@ -35,9 +35,7 @@ class TestFetchRentalEmpty:
 
     async def test_exception_returns_empty(self, crawler):
         """크롤링 중 예외 -> 빈 리스트"""
-        with patch.object(
-            crawler, "_fetch_page", AsyncMock(side_effect=Exception("boom"))
-        ):
+        with patch.object(crawler, "_fetch_page", AsyncMock(side_effect=Exception("boom"))):
             result = await crawler.fetch_rental_announcements()
         assert result == []
 
@@ -59,9 +57,7 @@ class TestFetchRentalEmpty:
             "source": "Onbid",
             "keywords_matched": [],
         }
-        with patch.object(
-            crawler, "_fetch_page", AsyncMock(side_effect=[[ann], []])
-        ):
+        with patch.object(crawler, "_fetch_page", AsyncMock(side_effect=[[ann], []])):
             result = await crawler.fetch_rental_announcements(max_pages=2)
         assert len(result) >= 1
         assert "importance_score" in result[0]
@@ -81,9 +77,7 @@ class TestFetchPageErrors:
 
     async def test_request_error(self, crawler):
         """httpx.RequestError -> 빈 리스트"""
-        crawler.client.post = AsyncMock(
-            side_effect=httpx.RequestError("Connection refused")
-        )
+        crawler.client.post = AsyncMock(side_effect=httpx.RequestError("Connection refused"))
         result = await crawler._fetch_page(1, datetime.now())
         assert result == []
 

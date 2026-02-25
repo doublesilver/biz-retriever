@@ -7,7 +7,6 @@ Redis 캐시 함수 단위 테스트 — 실제 함수 호출 (mock Redis)
 """
 
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 
@@ -20,8 +19,6 @@ class TestGetCachedFunction:
 
         with patch("app.core.cache._redis_client", mock_redis):
             with patch("app.core.cache.get_redis", return_value=mock_redis):
-                from app.core.cache import get_cached as _gc
-
                 # 직접 함수 재구현으로 테스트
                 redis = mock_redis
                 data = await redis.get("test:key")
@@ -33,14 +30,11 @@ class TestGetCachedFunction:
         mock_redis.get.return_value = None
 
         with patch("app.core.cache.get_redis", return_value=mock_redis):
-            from app.core.cache import get_cached
-
             # Reimport to bypass conftest mock
-            import importlib
             import app.core.cache as cache_mod
 
             # Call the real function by temporarily unpatching
-            original_fn = cache_mod.get_cached.__wrapped__ if hasattr(cache_mod.get_cached, '__wrapped__') else None
+            original_fn = cache_mod.get_cached.__wrapped__ if hasattr(cache_mod.get_cached, "__wrapped__") else None
 
             redis = mock_redis
             data = await redis.get("missing:key")
@@ -92,12 +86,9 @@ class TestSetCachedFunction:
         mock_m2.model_dump.return_value = {"id": 2}
 
         items = [mock_m1, mock_m2]
-        serialized = [
-            item.model_dump() if hasattr(item, "model_dump") else item
-            for item in items
-        ]
+        serialized = [item.model_dump() if hasattr(item, "model_dump") else item for item in items]
         result = json.dumps(serialized, ensure_ascii=False)
-        assert '[{"id": 1}, {"id": 2}]' == result
+        assert result == '[{"id": 1}, {"id": 2}]'
 
     async def test_set_error_returns_false(self):
         """Redis 오류 시 False 반환"""

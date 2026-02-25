@@ -3,7 +3,7 @@ Database utility functions
 Common database operations to reduce code duplication
 """
 
-from typing import Optional, Tuple, Type, TypeVar
+from typing import TypeVar
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -16,7 +16,7 @@ T = TypeVar("T", bound=Base)
 
 async def get_object_or_404(
     db: AsyncSession,
-    model: Type[T],
+    model: type[T],
     object_id: int,
     error_message: str = "Object not found",
 ) -> T:
@@ -44,9 +44,7 @@ async def get_object_or_404(
     return obj
 
 
-async def get_or_create(
-    db: AsyncSession, model: Type[T], defaults: dict = None, **kwargs
-) -> Tuple[T, bool]:
+async def get_or_create(db: AsyncSession, model: type[T], defaults: dict = None, **kwargs) -> tuple[T, bool]:
     """
     Get existing object or create new one
 
@@ -87,9 +85,7 @@ async def get_or_create(
     return obj, True
 
 
-async def bulk_create(
-    db: AsyncSession, model: Type[T], data_list: list[dict]
-) -> list[T]:
+async def bulk_create(db: AsyncSession, model: type[T], data_list: list[dict]) -> list[T]:
     """
     Bulk create objects
 

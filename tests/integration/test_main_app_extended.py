@@ -6,8 +6,6 @@ Main App 확장 통합 테스트
 - Metrics endpoint production 제한
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from httpx import AsyncClient
 
 

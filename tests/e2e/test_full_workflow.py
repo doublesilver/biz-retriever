@@ -3,9 +3,7 @@ E2E (End-to-End) 테스트
 전체 사용자 워크플로우 테스트
 """
 
-import json
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime
 
 import pytest
 from httpx import AsyncClient
@@ -42,9 +40,7 @@ class TestUserWorkflow:
             "username": register_data["email"],
             "password": register_data["password"],
         }
-        response = await async_client.post(
-            "/api/v1/auth/login/access-token", data=login_data
-        )
+        response = await async_client.post("/api/v1/auth/login/access-token", data=login_data)
         assert response.status_code == 200
         token_data = response.json()
         assert "access_token" in token_data
@@ -69,17 +65,13 @@ class TestUserWorkflow:
             "url": f"https://example.com/e2e-test-{datetime.now().timestamp()}",
             "posted_at": datetime.now().isoformat(),
         }
-        response = await async_client.post(
-            "/api/v1/bids/", json=bid_data, headers=auth_headers
-        )
+        response = await async_client.post("/api/v1/bids/", json=bid_data, headers=auth_headers)
         assert response.status_code == 201
         created_bid = response.json()
         bid_id = created_bid["id"]
 
         # 5. 공고 상세 조회
-        response = await async_client.get(
-            "/api/v1/bids/?skip=0&limit=10", headers=auth_headers
-        )
+        response = await async_client.get("/api/v1/bids/?skip=0&limit=10", headers=auth_headers)
         assert response.status_code == 200
         bids_response = response.json()
         assert isinstance(bids_response, dict)
@@ -88,9 +80,7 @@ class TestUserWorkflow:
 
     async def test_search_by_agency(self, authenticated_client: AsyncClient):
         """기관별 검색 테스트"""
-        response = await authenticated_client.get(
-            "/api/v1/bids/", params={"agency": "한국"}
-        )
+        response = await authenticated_client.get("/api/v1/bids/", params={"agency": "한국"})
         assert response.status_code == 200
         bids_response = response.json()
         assert isinstance(bids_response, dict)
@@ -98,9 +88,7 @@ class TestUserWorkflow:
 
     async def test_search_with_pagination(self, authenticated_client: AsyncClient):
         """페이지네이션 테스트"""
-        response = await authenticated_client.get(
-            "/api/v1/bids/", params={"skip": 0, "limit": 10}
-        )
+        response = await authenticated_client.get("/api/v1/bids/", params={"skip": 0, "limit": 10})
         assert response.status_code == 200
         bids_response = response.json()
         assert isinstance(bids_response, dict)
@@ -126,9 +114,7 @@ class TestErrorHandling:
 
     async def test_422_validation_error(self, async_client: AsyncClient):
         """422 검증 에러 테스트"""
-        response = await async_client.post(
-            "/api/v1/auth/register", json={"email": "invalid-email", "password": "weak"}
-        )
+        response = await async_client.post("/api/v1/auth/register", json={"email": "invalid-email", "password": "weak"})
         assert response.status_code == 422
 
     async def test_400_duplicate_email(self, async_client: AsyncClient):
@@ -136,12 +122,8 @@ class TestErrorHandling:
         email = f"duplicate_{datetime.now().timestamp()}@example.com"
 
         # 첫 번째 등록
-        await async_client.post(
-            "/api/v1/auth/register", json={"email": email, "password": "SecurePass123!"}
-        )
+        await async_client.post("/api/v1/auth/register", json={"email": email, "password": "SecurePass123!"})
 
         # 두 번째 등록 (중복)
-        response = await async_client.post(
-            "/api/v1/auth/register", json={"email": email, "password": "SecurePass123!"}
-        )
+        response = await async_client.post("/api/v1/auth/register", json={"email": email, "password": "SecurePass123!"})
         assert response.status_code == 400

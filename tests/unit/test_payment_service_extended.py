@@ -7,8 +7,9 @@ PaymentService 확장 단위 테스트
 - 주문 ID/멱등성 키 생성
 """
 
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.core.exceptions import PaymentNotConfiguredError
 from app.services.payment_service import PaymentService
@@ -201,9 +202,7 @@ class TestCreatePayment:
             mock_settings.FRONTEND_URL = "https://example.com"
             service = PaymentService()
 
-        result = await service.create_payment(
-            10000, "order-1", "Basic 플랜", "test@e.com", "홍길동"
-        )
+        result = await service.create_payment(10000, "order-1", "Basic 플랜", "test@e.com", "홍길동")
         assert result["client_key"] == "client_key"
         assert result["amount"] == 10000
         assert result["orderId"] == "order-1"

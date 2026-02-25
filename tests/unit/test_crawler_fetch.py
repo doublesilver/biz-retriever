@@ -6,9 +6,10 @@ G2BCrawlerService fetch_new_announcements 단위 테스트
 - 빈 응답
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
+import pytest
 
 from app.services.crawler_service import G2BCrawlerService
 
@@ -150,9 +151,7 @@ class TestFetchNewAnnouncements:
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
         with patch("app.services.crawler_service.httpx.AsyncClient", return_value=mock_client):
-            result = await service.fetch_new_announcements(
-                from_date=datetime(2026, 1, 20)
-            )
+            result = await service.fetch_new_announcements(from_date=datetime(2026, 1, 20))
 
         assert result == []
         # Verify from_date was included in params

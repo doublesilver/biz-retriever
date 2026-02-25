@@ -7,7 +7,7 @@ FastAPI Annotated 패턴을 사용한 표준화된 DI 시스템:
 - 테스트 시 Mock 주입 용이
 """
 
-from typing import Annotated, AsyncGenerator
+from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession

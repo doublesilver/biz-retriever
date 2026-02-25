@@ -53,9 +53,7 @@ async def crawl_g2b_bids():
 
     async with AsyncSessionLocal() as session:
         # 1. 동적 키워드 조회
-        stmt_exclude = select(ExcludeKeyword.word).where(
-            ExcludeKeyword.is_active == True
-        )
+        stmt_exclude = select(ExcludeKeyword.word).where(ExcludeKeyword.is_active == True)
         result = await session.execute(stmt_exclude)
         dynamic_excludes = result.scalars().all()
 
@@ -70,9 +68,7 @@ async def crawl_g2b_bids():
         # 2. 크롤러 서비스 초기화
         crawler = G2BCrawlerService()
 
-        exclude_keywords = list(
-            set(crawler.DEFAULT_EXCLUDE_KEYWORDS + list(dynamic_excludes))
-        )
+        exclude_keywords = list(set(crawler.DEFAULT_EXCLUDE_KEYWORDS + list(dynamic_excludes)))
         include_keywords = list(dynamic_includes) or (
             crawler.INCLUDE_KEYWORDS_CONCESSION + crawler.INCLUDE_KEYWORDS_FLOWER
         )
@@ -98,9 +94,7 @@ async def crawl_g2b_bids():
 
         # 5. 중복 체크를 위한 기존 URL 일괄 조회 (N+1 쿼리 방지)
         announcement_urls = [a["url"] for a in announcements]
-        stmt = select(BidAnnouncement.url).where(
-            BidAnnouncement.url.in_(announcement_urls)
-        )
+        stmt = select(BidAnnouncement.url).where(BidAnnouncement.url.in_(announcement_urls))
         result = await session.execute(stmt)
         existing_urls = set(result.scalars().all())
 
@@ -129,11 +123,7 @@ async def crawl_g2b_bids():
                 if not user.keywords:
                     continue
 
-                user_keywords = [
-                    k.keyword
-                    for k in user.keywords
-                    if k.is_active and k.category == "include"
-                ]
+                user_keywords = [k.keyword for k in user.keywords if k.is_active and k.category == "include"]
 
                 if not user_keywords:
                     continue
@@ -146,18 +136,10 @@ async def crawl_g2b_bids():
                 matched = [k for k in user_keywords if k in full_text]
 
                 if matched:
-                    await NotificationService.notify_bid_match(
-                        user, new_announcement, matched
-                    )
-                    logger.info(
-                        f"알림 발송: User {user.id} -> Bid {new_announcement.id} "
-                        f"(키워드: {matched})"
-                    )
+                    await NotificationService.notify_bid_match(user, new_announcement, matched)
+                    logger.info(f"알림 발송: User {user.id} -> Bid {new_announcement.id} " f"(키워드: {matched})")
 
-            logger.info(
-                f"새 공고 저장: {new_announcement.title} "
-                f"(중요도: {importance_score})"
-            )
+            logger.info(f"새 공고 저장: {new_announcement.title} " f"(중요도: {importance_score})")
 
             # WebSocket 브로드캐스트
             try:
@@ -305,9 +287,7 @@ async def process_subscription_renewals():
                 if amount == 0:
                     continue
 
-                order_id = payment_service.generate_order_id(
-                    sub.user_id, sub.plan_name
-                )
+                order_id = payment_service.generate_order_id(sub.user_id, sub.plan_name)
                 idempotency_key = payment_service.generate_idempotency_key()
 
                 # 빌링키 자동 결제
@@ -317,9 +297,7 @@ async def process_subscription_renewals():
                     order_id=order_id,
                     order_name=f"Biz-Retriever {sub.plan_name.upper()} 플랜 갱신",
                     customer_email=sub.user.email if sub.user else "",
-                    customer_name=(
-                        sub.user.email.split("@")[0] if sub.user else ""
-                    ),
+                    customer_name=(sub.user.email.split("@")[0] if sub.user else ""),
                     idempotency_key=idempotency_key,
                 )
 
@@ -356,10 +334,7 @@ async def process_subscription_renewals():
                 await session.commit()
                 renewed_count += 1
 
-                logger.info(
-                    f"구독 갱신 성공: user={sub.user_id}, "
-                    f"plan={sub.plan_name}, amount={amount}원"
-                )
+                logger.info(f"구독 갱신 성공: user={sub.user_id}, " f"plan={sub.plan_name}, amount={amount}원")
 
                 # 갱신 완료 이메일
                 if sub.user and email_service.is_configured():
@@ -371,9 +346,7 @@ async def process_subscription_renewals():
                     )
 
             except Exception as e:
-                logger.error(
-                    f"구독 갱신 실패: user={sub.user_id}, error={type(e).__name__}"
-                )
+                logger.error(f"구독 갱신 실패: user={sub.user_id}, error={type(e).__name__}")
                 await session.rollback()
 
                 # 결제 실패 처리
@@ -390,9 +363,7 @@ async def process_subscription_renewals():
                         amount,
                     )
 
-    logger.info(
-        f"구독 갱신 배치 완료: 성공={renewed_count}, 실패={failed_count}"
-    )
+    logger.info(f"구독 갱신 배치 완료: 성공={renewed_count}, 실패={failed_count}")
 
 
 # ============================================
@@ -492,9 +463,7 @@ async def send_subscription_email(
 
         elif email_type == "payment_failed":
             subject = "Biz-Retriever 결제 실패 알림"
-            html_content = _render_payment_failed_email(
-                user_name, plan_name, amount
-            )
+            html_content = _render_payment_failed_email(user_name, plan_name, amount)
 
         elif email_type == "subscription_expiring":
             subject = "Biz-Retriever 구독 만료 임박"
@@ -515,13 +484,9 @@ async def send_subscription_email(
         )
 
         if success:
-            logger.info(
-                f"Subscription email sent: user={user_id}, type={email_type}"
-            )
+            logger.info(f"Subscription email sent: user={user_id}, type={email_type}")
         else:
-            logger.warning(
-                f"Failed to send subscription email: user={user_id}, type={email_type}"
-            )
+            logger.warning(f"Failed to send subscription email: user={user_id}, type={email_type}")
 
 
 # ============================================
@@ -575,9 +540,7 @@ def _render_renewal_email(user_name: str, plan_name: str, amount: int) -> str:
     return _base_email_wrapper("구독 갱신 완료", body)
 
 
-def _render_payment_failed_email(
-    user_name: str, plan_name: str, amount: int
-) -> str:
+def _render_payment_failed_email(user_name: str, plan_name: str, amount: int) -> str:
     body = f"""
 <p style="font-size:16px;color:#333;">안녕하세요 <strong>{user_name}</strong>님,</p>
 <p style="font-size:14px;color:#dc3545;font-weight:600;">

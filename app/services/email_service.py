@@ -4,7 +4,6 @@ Phase 8: Email notification system for bid alerts
 """
 
 import os
-from typing import List, Optional
 
 try:
     from sendgrid import SendGridAPIClient
@@ -28,18 +27,12 @@ class EmailService:
     def __init__(self):
         if not SENDGRID_AVAILABLE:
             self.client = None
-            logger.warning(
-                "EmailService: SendGrid package not installed. Email notifications disabled."
-            )
+            logger.warning("EmailService: SendGrid package not installed. Email notifications disabled.")
             return
 
         self.api_key = os.getenv(
             "SENDGRID_API_KEY",
-            (
-                settings.SENDGRID_API_KEY
-                if hasattr(settings, "SENDGRID_API_KEY")
-                else None
-            ),
+            (settings.SENDGRID_API_KEY if hasattr(settings, "SENDGRID_API_KEY") else None),
         )
         self.from_email = os.getenv("SENDGRID_FROM_EMAIL", "noreply@biz-retriever.com")
         self.from_name = os.getenv("SENDGRID_FROM_NAME", "Biz-Retriever")
@@ -49,9 +42,7 @@ class EmailService:
             logger.info("EmailService: SendGrid API initialized")
         else:
             self.client = None
-            logger.warning(
-                "EmailService: SendGrid API key not configured. Email notifications disabled."
-            )
+            logger.warning("EmailService: SendGrid API key not configured. Email notifications disabled.")
 
     def is_configured(self) -> bool:
         """Check if SendGrid is properly configured"""
@@ -62,7 +53,7 @@ class EmailService:
         to_email: str,
         subject: str,
         html_content: str,
-        plain_content: Optional[str] = None,
+        plain_content: str | None = None,
     ) -> bool:
         """
         Send a single email
@@ -101,9 +92,7 @@ class EmailService:
                 logger.info(f"Email sent successfully to {to_email}: {subject}")
                 return True
             else:
-                logger.error(
-                    f"Failed to send email. Status: {response.status_code}, Body: {response.body}"
-                )
+                logger.error(f"Failed to send email. Status: {response.status_code}, Body: {response.body}")
                 return False
 
         except Exception as e:
@@ -112,10 +101,10 @@ class EmailService:
 
     async def send_bulk_email(
         self,
-        recipients: List[str],
+        recipients: list[str],
         subject: str,
         html_content: str,
-        plain_content: Optional[str] = None,
+        plain_content: str | None = None,
     ) -> int:
         """
         Send email to multiple recipients
@@ -150,8 +139,8 @@ class EmailService:
         bid_deadline: str,
         bid_price: str,
         bid_url: str,
-        bid_summary: Optional[str] = None,
-        keywords: Optional[List[str]] = None,
+        bid_summary: str | None = None,
+        keywords: list[str] | None = None,
     ) -> tuple[str, str]:
         """
         Render bid alert email template
@@ -304,9 +293,7 @@ class EmailService:
 
         return html_content, plain_text
 
-    async def send_bid_alert(
-        self, to_email: str, user_name: str, bid_data: dict
-    ) -> bool:
+    async def send_bid_alert(self, to_email: str, user_name: str, bid_data: dict) -> bool:
         """
         Send bid alert email to user
 

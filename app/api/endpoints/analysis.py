@@ -31,23 +31,17 @@ async def predict_winning_price(
     AI 투찰가 예측 (Phase 6.2)
     과거 낙찰 데이터(BidResult)를 기반으로 최적 투찰가를 추천합니다.
     """
-    logger.info(
-        f"AI 투찰가 예측 요청: announcement_id={announcement_id}, user={current_user.email}"
-    )
+    logger.info(f"AI 투찰가 예측 요청: announcement_id={announcement_id}, user={current_user.email}")
 
     # 1. 공고 조회
-    result = await session.execute(
-        select(BidAnnouncement).where(BidAnnouncement.id == announcement_id)
-    )
+    result = await session.execute(select(BidAnnouncement).where(BidAnnouncement.id == announcement_id))
     announcement = result.scalar_one_or_none()
 
     if not announcement:
         raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
 
     if not announcement.estimated_price:
-        raise HTTPException(
-            status_code=400, detail="추정가 정보가 없어 예측이 불가능합니다."
-        )
+        raise HTTPException(status_code=400, detail="추정가 정보가 없어 예측이 불가능합니다.")
 
     # 2. AI 예측 실행
     try:
@@ -93,9 +87,7 @@ async def check_match(
     공고 매칭 가능 여부 확인 (Hard Match)
     """
     # 1. 공고 조회
-    result = await session.execute(
-        select(BidAnnouncement).where(BidAnnouncement.id == announcement_id)
-    )
+    result = await session.execute(select(BidAnnouncement).where(BidAnnouncement.id == announcement_id))
     bid = result.scalar_one_or_none()
     if not bid:
         raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
@@ -111,9 +103,7 @@ async def check_match(
 
     # Soft Match (Only if Hard Match is successful OR for information)
     # We allow seeing soft match score even if hard match fails, for debugging/insight
-    soft_match_result = matching_service.calculate_soft_match(
-        current_user.full_profile, bid
-    )
+    soft_match_result = matching_service.calculate_soft_match(current_user.full_profile, bid)
 
     # 4. 제약 조건 정보 포함
     constraints = {
@@ -155,11 +145,7 @@ async def smart_search(
 
     try:
         # 1. 최근 공고 30개 가져오기 (성능을 위해 제한)
-        stmt = (
-            select(BidAnnouncement)
-            .order_by(BidAnnouncement.created_at.desc())
-            .limit(30)
-        )
+        stmt = select(BidAnnouncement).order_by(BidAnnouncement.created_at.desc()).limit(30)
         result = await session.execute(stmt)
         bids = result.scalars().all()
 
@@ -176,13 +162,10 @@ async def smart_search(
         scored_results = []
 
         # 병렬 처리를 위해 task 리스트 생성
-        tasks = [
-            matching_service.calculate_semantic_match(request.query, bid)
-            for bid in bids
-        ]
+        tasks = [matching_service.calculate_semantic_match(request.query, bid) for bid in bids]
         results = await asyncio.gather(*tasks)
 
-        for bid, result in zip(bids, results):
+        for bid, result in zip(bids, results, strict=False):
             # result is {"score": float, "error": str}
             scored_results.append(
                 {

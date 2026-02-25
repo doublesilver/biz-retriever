@@ -11,7 +11,6 @@ NOTE: taskiq는 설치되어 있지 않으므로 sys.modules mock 필요
 """
 
 import sys
-from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -31,7 +30,9 @@ def _mock_taskiq_and_import():
     with patch.dict(sys.modules, mock_modules):
         with patch("app.worker.taskiq_app.broker", mock_broker):
             import importlib
+
             import app.worker.taskiq_tasks as module
+
             importlib.reload(module)
             return module
 
@@ -46,7 +47,6 @@ _tasks = _mock_taskiq_and_import()
 
 
 class TestCrawlG2BBids:
-
     @pytest.mark.asyncio
     async def test_no_announcements(self):
         """크롤링 결과가 없으면 빠르게 반환"""
@@ -99,9 +99,7 @@ class TestCrawlG2BBids:
         mock_crawler.DEFAULT_EXCLUDE_KEYWORDS = []
         mock_crawler.INCLUDE_KEYWORDS_CONCESSION = ["구내식당"]
         mock_crawler.INCLUDE_KEYWORDS_FLOWER = []
-        mock_crawler.fetch_new_announcements = AsyncMock(return_value=[
-            {"url": "https://dup.com", "title": "중복"}
-        ])
+        mock_crawler.fetch_new_announcements = AsyncMock(return_value=[{"url": "https://dup.com", "title": "중복"}])
 
         with patch.object(_tasks, "AsyncSessionLocal", return_value=mock_session_maker):
             with patch.object(_tasks, "G2BCrawlerService", return_value=mock_crawler):
@@ -110,14 +108,12 @@ class TestCrawlG2BBids:
         mock_session.add.assert_not_called()
 
 
-
 # ============================================
 # send_morning_digest
 # ============================================
 
 
 class TestSendMorningDigest:
-
     @pytest.mark.asyncio
     async def test_no_announcements(self):
         mock_session = AsyncMock()
@@ -156,7 +152,6 @@ class TestSendMorningDigest:
 
 
 class TestProcessBidAnalysis:
-
     @pytest.mark.asyncio
     async def test_bid_not_found(self):
         mock_session = AsyncMock()
@@ -190,13 +185,15 @@ class TestProcessBidAnalysis:
         mock_session_maker.__aexit__ = AsyncMock(return_value=None)
 
         mock_rag = MagicMock()
-        mock_rag.analyze_bid = AsyncMock(return_value={
-            "summary": "AI 요약",
-            "keywords": ["kw1"],
-            "region_code": "11",
-            "license_requirements": "건축",
-            "min_performance": 100000000,
-        })
+        mock_rag.analyze_bid = AsyncMock(
+            return_value={
+                "summary": "AI 요약",
+                "keywords": ["kw1"],
+                "region_code": "11",
+                "license_requirements": "건축",
+                "min_performance": 100000000,
+            }
+        )
 
         with patch.object(_tasks, "AsyncSessionLocal", return_value=mock_session_maker):
             with patch.object(_tasks, "RAGService", return_value=mock_rag):
@@ -213,7 +210,6 @@ class TestProcessBidAnalysis:
 
 
 class TestProcessSubscriptionRenewals:
-
     @pytest.mark.asyncio
     async def test_no_subscriptions(self):
         mock_session = AsyncMock()
@@ -300,7 +296,6 @@ class TestProcessSubscriptionRenewals:
 
 
 class TestProcessSubscriptionExpirations:
-
     @pytest.mark.asyncio
     async def test_no_expirations(self):
         mock_session = AsyncMock()
@@ -373,7 +368,6 @@ class TestProcessSubscriptionExpirations:
 
 
 class TestSendSubscriptionEmail:
-
     @pytest.mark.asyncio
     async def test_not_configured(self):
         with patch.object(_tasks, "email_service") as mock_es:

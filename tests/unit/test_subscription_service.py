@@ -6,9 +6,10 @@ SubscriptionService 단위 테스트
 - 구독 상태 조회
 """
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.core.exceptions import (
     DuplicateSubscriptionError,

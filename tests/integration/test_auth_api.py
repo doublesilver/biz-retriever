@@ -7,10 +7,8 @@ NOTE: 에러 응답은 ApiResponse envelope 형식:
   {"success": false, "error": {"code": "...", "message": "..."}, "timestamp": "..."}
 """
 
-import pytest
 import secrets
 from datetime import datetime, timedelta
-from unittest.mock import patch
 
 from app.core.security import (
     create_access_token,

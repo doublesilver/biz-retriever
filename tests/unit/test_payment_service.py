@@ -152,8 +152,11 @@ class TestCreatePayment:
         service.auth_header = None
         with pytest.raises(PaymentNotConfiguredError):
             await service.create_payment(
-                amount=10000, order_id="t", order_name="t",
-                customer_email="t@t.com", customer_name="t",
+                amount=10000,
+                order_id="t",
+                order_name="t",
+                customer_email="t@t.com",
+                customer_name="t",
             )
 
 

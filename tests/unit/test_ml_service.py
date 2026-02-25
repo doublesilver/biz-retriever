@@ -95,9 +95,7 @@ async def test_train_and_predict_flow(ml_service, mock_db_session):
     assert metrics["r2"] > 0.8  # Synthetic data should have good fit
 
     # 2. Predict
-    result = ml_service.predict_price(
-        estimated_price=20000, base_price=20000, category="Test"
-    )
+    result = ml_service.predict_price(estimated_price=20000, base_price=20000, category="Test")
 
     assert result is not None
     assert "recommended_price" in result

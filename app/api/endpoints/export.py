@@ -5,7 +5,6 @@ narajangteo의 핵심 장점 도입
 
 from datetime import datetime
 from io import BytesIO
-from typing import Optional
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -29,15 +28,9 @@ router = APIRouter()
 @limiter.limit("10/minute")
 async def export_bids_to_excel(
     request: Request,
-    importance_score: Optional[int] = Query(
-        default=None, ge=1, le=3, description="중요도 필터 (1-3)"
-    ),
-    source: Optional[BidSource] = Query(
-        default=None, description="출처 필터 (G2B, Onbid)"
-    ),
-    agency: Optional[str] = Query(
-        default=None, min_length=1, max_length=200, description="기관명 필터"
-    ),
+    importance_score: int | None = Query(default=None, ge=1, le=3, description="중요도 필터 (1-3)"),
+    source: BidSource | None = Query(default=None, description="출처 필터 (G2B, Onbid)"),
+    agency: str | None = Query(default=None, min_length=1, max_length=200, description="기관명 필터"),
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -66,9 +59,7 @@ async def export_bids_to_excel(
         conditions.append(BidAnnouncement.agency.like(f"%{safe_agency}%"))
 
     # DB 조회
-    query = select(BidAnnouncement).order_by(
-        BidAnnouncement.importance_score.desc(), BidAnnouncement.created_at.desc()
-    )
+    query = select(BidAnnouncement).order_by(BidAnnouncement.importance_score.desc(), BidAnnouncement.created_at.desc())
 
     if conditions:
         query = query.where(and_(*conditions))
@@ -85,9 +76,7 @@ async def export_bids_to_excel(
     ws.title = "입찰공고 목록"
 
     # 헤더 스타일
-    header_fill = PatternFill(
-        start_color="4F46E5", end_color="4F46E5", fill_type="solid"
-    )
+    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
     header_font = Font(color="FFFFFF", bold=True, size=12)
     header_alignment = Alignment(horizontal="center", vertical="center")
 
@@ -151,9 +140,7 @@ async def export_bids_to_excel(
     return StreamingResponse(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
-            "Content-Disposition": f"attachment; filename={filename}; filename*=UTF-8''{quote(filename_display)}"
-        },
+        headers={"Content-Disposition": f"attachment; filename={filename}; filename*=UTF-8''{quote(filename_display)}"},
     )
 
 
@@ -180,15 +167,11 @@ async def export_priority_agencies_excel(
     priority_list = [a.strip() for a in agencies.split(",")]
 
     if len(priority_list) > 20:
-        raise HTTPException(
-            status_code=400, detail="최대 20개 기관까지 지정 가능합니다."
-        )
+        raise HTTPException(status_code=400, detail="최대 20개 기관까지 지정 가능합니다.")
 
     for agency in priority_list:
         if len(agency) < 1 or len(agency) > 100:
-            raise HTTPException(
-                status_code=400, detail=f"기관명은 1-100자 사이여야 합니다: {agency}"
-            )
+            raise HTTPException(status_code=400, detail=f"기관명은 1-100자 사이여야 합니다: {agency}")
 
     logger.info(f"우선 기관 Export: {priority_list}")
 
@@ -245,7 +228,5 @@ async def export_priority_agencies_excel(
     return StreamingResponse(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
-            "Content-Disposition": f"attachment; filename={filename}; filename*=UTF-8''{quote(filename_display)}"
-        },
+        headers={"Content-Disposition": f"attachment; filename={filename}; filename*=UTF-8''{quote(filename_display)}"},
     )

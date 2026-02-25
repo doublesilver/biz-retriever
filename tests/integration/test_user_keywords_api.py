@@ -5,7 +5,6 @@ User Keywords API 통합 테스트
 - DELETE /api/v1/keywords/{keyword_id} (키워드 삭제)
 """
 
-import pytest
 from httpx import AsyncClient
 
 

@@ -10,7 +10,6 @@ Payment API Endpoints — Tosspayments Enterprise Integration
 """
 
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
@@ -45,9 +44,7 @@ router = APIRouter()
 
 
 class PaymentCreateRequest(BaseModel):
-    plan_name: str = Field(
-        ..., pattern="^(basic|pro)$", description="구독 플랜 (basic 또는 pro)"
-    )
+    plan_name: str = Field(..., pattern="^(basic|pro)$", description="구독 플랜 (basic 또는 pro)")
 
 
 class PaymentConfirmRequest(BaseModel):
@@ -62,15 +59,11 @@ class PaymentCancelRequest(BaseModel):
 
 
 class SubscriptionCancelRequest(BaseModel):
-    reason: str = Field(
-        ..., min_length=1, max_length=500, description="해지 사유"
-    )
+    reason: str = Field(..., min_length=1, max_length=500, description="해지 사유")
 
 
 class PlanChangeRequest(BaseModel):
-    new_plan: str = Field(
-        ..., pattern="^(free|basic|pro)$", description="변경할 플랜"
-    )
+    new_plan: str = Field(..., pattern="^(free|basic|pro)$", description="변경할 플랜")
 
 
 # ============================================
@@ -95,9 +88,7 @@ async def create_payment(
         raise PaymentNotConfiguredError()
 
     # 이미 같은 플랜 구독 중인지 확인
-    subscription = await subscription_service.get_subscription(
-        current_user.id, db
-    )
+    subscription = await subscription_service.get_subscription(current_user.id, db)
     if (
         subscription
         and subscription.plan_name == request.plan_name
@@ -111,9 +102,7 @@ async def create_payment(
     if amount == 0:
         raise BadRequestError("무료 플랜은 결제가 필요하지 않습니다.")
 
-    order_id = payment_service.generate_order_id(
-        current_user.id, request.plan_name
-    )
+    order_id = payment_service.generate_order_id(current_user.id, request.plan_name)
 
     payment_data = await payment_service.create_payment(
         amount=amount,
@@ -123,10 +112,7 @@ async def create_payment(
         customer_name=current_user.email.split("@")[0],
     )
 
-    logger.info(
-        f"Payment created: user={current_user.id}, "
-        f"plan={request.plan_name}, order_id={order_id}"
-    )
+    logger.info(f"Payment created: user={current_user.id}, " f"plan={request.plan_name}, order_id={order_id}")
 
     return ok(payment_data)
 
@@ -163,8 +149,7 @@ async def confirm_payment(
     expected_amount = payment_service.get_plan_amount(plan_name)
     if request.amount != expected_amount:
         logger.warning(
-            f"Amount mismatch: user={current_user.id}, "
-            f"expected={expected_amount}, received={request.amount}"
+            f"Amount mismatch: user={current_user.id}, " f"expected={expected_amount}, received={request.amount}"
         )
         raise BadRequestError("결제 금액이 일치하지 않습니다.")
 
@@ -229,12 +214,14 @@ async def confirm_payment(
         f"amount={request.amount}원, invoice={invoice.invoice_number}"
     )
 
-    return ok({
-        "plan_name": plan_name,
-        "next_billing_date": subscription.next_billing_date.isoformat(),
-        "invoice_number": invoice.invoice_number,
-        "message": f"{plan_name.upper()} 플랜 구독이 활성화되었습니다!",
-    })
+    return ok(
+        {
+            "plan_name": plan_name,
+            "next_billing_date": subscription.next_billing_date.isoformat(),
+            "invoice_number": invoice.invoice_number,
+            "message": f"{plan_name.upper()} 플랜 구독이 활성화되었습니다!",
+        }
+    )
 
 
 # ============================================
@@ -278,9 +265,7 @@ async def cancel_payment(
     payment_record.status = "refunded"
 
     # 구독 다운그레이드
-    subscription = await subscription_service.get_subscription(
-        current_user.id, db
-    )
+    subscription = await subscription_service.get_subscription(current_user.id, db)
     if subscription:
         subscription.plan_name = "free"
         subscription.is_active = True
@@ -290,10 +275,7 @@ async def cancel_payment(
 
     await db.commit()
 
-    logger.info(
-        f"Payment cancelled: user={current_user.id}, "
-        f"payment_key={request.paymentKey}"
-    )
+    logger.info(f"Payment cancelled: user={current_user.id}, " f"payment_key={request.paymentKey}")
 
     return ok({"message": "결제가 취소되고 환불 처리되었습니다."})
 
@@ -311,9 +293,7 @@ async def get_subscription_status(
     db: AsyncSession = Depends(get_db),
 ):
     """현재 구독 상태 조회."""
-    status = await subscription_service.get_subscription_status(
-        current_user.id, db
-    )
+    status = await subscription_service.get_subscription_status(current_user.id, db)
     return ok(status)
 
 
@@ -338,11 +318,13 @@ async def cancel_subscription(
     )
     await db.commit()
 
-    return ok({
-        "message": "구독 해지가 예약되었습니다. 기간 만료까지 서비스를 이용하실 수 있습니다.",
-        "end_date": subscription.end_date.isoformat() if subscription.end_date else None,
-        "status": subscription.status,
-    })
+    return ok(
+        {
+            "message": "구독 해지가 예약되었습니다. 기간 만료까지 서비스를 이용하실 수 있습니다.",
+            "end_date": subscription.end_date.isoformat() if subscription.end_date else None,
+            "status": subscription.status,
+        }
+    )
 
 
 @router.post("/subscription/change-plan")
@@ -359,9 +341,7 @@ async def change_plan(
     업그레이드: 프로레이션 차액 결제 필요 (클라이언트에서 별도 결제 진행).
     다운그레이드: 다음 결제일부터 적용.
     """
-    subscription = await subscription_service.get_subscription(
-        current_user.id, db
-    )
+    subscription = await subscription_service.get_subscription(current_user.id, db)
     if not subscription or not subscription.is_active:
         raise SubscriptionNotFoundError()
 
@@ -369,10 +349,12 @@ async def change_plan(
     new_plan = request.new_plan
 
     if new_plan == "free":
-        return ok({
-            "action": "cancel_required",
-            "message": "무료 플랜으로 전환하려면 구독을 해지해 주세요.",
-        })
+        return ok(
+            {
+                "action": "cancel_required",
+                "message": "무료 플랜으로 전환하려면 구독을 해지해 주세요.",
+            }
+        )
 
     old_price = payment_service.get_plan_amount(old_plan)
     new_price = payment_service.get_plan_amount(new_plan)
@@ -383,19 +365,19 @@ async def change_plan(
         delta = subscription.end_date - datetime.utcnow()
         days_remaining = max(0, delta.days)
 
-    proration = payment_service.calculate_proration(
-        old_plan, new_plan, days_remaining
-    )
+    proration = payment_service.calculate_proration(old_plan, new_plan, days_remaining)
 
     if new_price > old_price:
         # 업그레이드: 추가 결제 필요
-        return ok({
-            "action": "payment_required",
-            "old_plan": old_plan,
-            "new_plan": new_plan,
-            "proration_amount": proration,
-            "message": f"{proration:,}원 추가 결제가 필요합니다.",
-        })
+        return ok(
+            {
+                "action": "payment_required",
+                "old_plan": old_plan,
+                "new_plan": new_plan,
+                "proration_amount": proration,
+                "message": f"{proration:,}원 추가 결제가 필요합니다.",
+            }
+        )
     else:
         # 다운그레이드: 다음 결제일부터 적용
         subscription = await subscription_service.change_plan(
@@ -406,17 +388,17 @@ async def change_plan(
         )
         await db.commit()
 
-        return ok({
-            "action": "scheduled",
-            "old_plan": old_plan,
-            "new_plan": new_plan,
-            "effective_date": (
-                subscription.next_billing_date.isoformat()
-                if subscription.next_billing_date
-                else None
-            ),
-            "message": f"다음 결제일부터 {new_plan.upper()} 플랜으로 변경됩니다.",
-        })
+        return ok(
+            {
+                "action": "scheduled",
+                "old_plan": old_plan,
+                "new_plan": new_plan,
+                "effective_date": (
+                    subscription.next_billing_date.isoformat() if subscription.next_billing_date else None
+                ),
+                "message": f"다음 결제일부터 {new_plan.upper()} 플랜으로 변경됩니다.",
+            }
+        )
 
 
 # ============================================
@@ -444,9 +426,7 @@ async def get_payment_history(
     result = await db.execute(stmt)
     payments = result.scalars().all()
 
-    count_stmt = select(func.count(PaymentHistory.id)).where(
-        PaymentHistory.user_id == current_user.id
-    )
+    count_stmt = select(func.count(PaymentHistory.id)).where(PaymentHistory.user_id == current_user.id)
     total = (await db.execute(count_stmt)).scalar() or 0
 
     items = [
@@ -477,12 +457,8 @@ async def get_invoices(
     limit: int = 20,
 ):
     """인보이스 목록 조회."""
-    invoices = await invoice_service.get_user_invoices(
-        current_user.id, db, skip=skip, limit=limit
-    )
-    total = await invoice_service.get_user_invoice_count(
-        current_user.id, db
-    )
+    invoices = await invoice_service.get_user_invoices(current_user.id, db, skip=skip, limit=limit)
+    total = await invoice_service.get_user_invoice_count(current_user.id, db)
 
     items = [
         {
@@ -494,16 +470,8 @@ async def get_invoices(
             "currency": inv.currency,
             "status": inv.status,
             "plan_name": inv.plan_name,
-            "billing_period_start": (
-                inv.billing_period_start.isoformat()
-                if inv.billing_period_start
-                else None
-            ),
-            "billing_period_end": (
-                inv.billing_period_end.isoformat()
-                if inv.billing_period_end
-                else None
-            ),
+            "billing_period_start": (inv.billing_period_start.isoformat() if inv.billing_period_start else None),
+            "billing_period_end": (inv.billing_period_end.isoformat() if inv.billing_period_end else None),
             "paid_at": inv.paid_at.isoformat() if inv.paid_at else None,
             "description": inv.description,
             "created_at": inv.created_at.isoformat(),
@@ -523,38 +491,32 @@ async def get_invoice_detail(
     db: AsyncSession = Depends(get_db),
 ):
     """인보이스 상세 조회."""
-    invoice = await invoice_service.get_invoice_by_number(
-        invoice_number, db
-    )
+    invoice = await invoice_service.get_invoice_by_number(invoice_number, db)
 
     # 본인의 인보이스만 조회 가능
     if invoice.user_id != current_user.id:
         raise NotFoundError("인보이스", invoice_number)
 
-    return ok({
-        "invoice_number": invoice.invoice_number,
-        "amount": invoice.amount,
-        "subtotal": invoice.subtotal,
-        "tax_amount": invoice.tax_amount,
-        "proration_amount": invoice.proration_amount,
-        "currency": invoice.currency,
-        "status": invoice.status,
-        "plan_name": invoice.plan_name,
-        "billing_period_start": (
-            invoice.billing_period_start.isoformat()
-            if invoice.billing_period_start
-            else None
-        ),
-        "billing_period_end": (
-            invoice.billing_period_end.isoformat()
-            if invoice.billing_period_end
-            else None
-        ),
-        "paid_at": invoice.paid_at.isoformat() if invoice.paid_at else None,
-        "payment_key": invoice.payment_key,
-        "description": invoice.description,
-        "created_at": invoice.created_at.isoformat(),
-    })
+    return ok(
+        {
+            "invoice_number": invoice.invoice_number,
+            "amount": invoice.amount,
+            "subtotal": invoice.subtotal,
+            "tax_amount": invoice.tax_amount,
+            "proration_amount": invoice.proration_amount,
+            "currency": invoice.currency,
+            "status": invoice.status,
+            "plan_name": invoice.plan_name,
+            "billing_period_start": (
+                invoice.billing_period_start.isoformat() if invoice.billing_period_start else None
+            ),
+            "billing_period_end": (invoice.billing_period_end.isoformat() if invoice.billing_period_end else None),
+            "paid_at": invoice.paid_at.isoformat() if invoice.paid_at else None,
+            "payment_key": invoice.payment_key,
+            "description": invoice.description,
+            "created_at": invoice.created_at.isoformat(),
+        }
+    )
 
 
 # ============================================
@@ -595,7 +557,9 @@ async def payment_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
     logger.info(
         "Webhook received: event=%s, payment_key=%s, status=%s",
-        event_type, payment_key, status,
+        event_type,
+        payment_key,
+        status,
     )
 
     if not payment_key:
@@ -603,9 +567,7 @@ async def payment_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         return ok({"processed": False, "reason": "missing_payment_key"})
 
     # 결제 이력 조회
-    stmt = select(PaymentHistory).where(
-        PaymentHistory.transaction_id == payment_key
-    )
+    stmt = select(PaymentHistory).where(PaymentHistory.transaction_id == payment_key)
     result = await db.execute(stmt)
     payment_record = result.scalar_one_or_none()
 
@@ -622,24 +584,18 @@ async def payment_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
         # 구독 결제 실패 처리
         if payment_record.user_id:
-            sub_stmt = select(Subscription).where(
-                Subscription.user_id == payment_record.user_id
-            )
+            sub_stmt = select(Subscription).where(Subscription.user_id == payment_record.user_id)
             sub_result = await db.execute(sub_stmt)
             subscription = sub_result.scalar_one_or_none()
             if subscription:
-                await subscription_service.handle_payment_failure(
-                    subscription, db
-                )
+                await subscription_service.handle_payment_failure(subscription, db)
 
     elif event_type == "PAYMENT_CANCELLED":
         payment_record.status = "refunded"
 
         # 구독 다운그레이드
         if payment_record.user_id:
-            sub_stmt = select(Subscription).where(
-                Subscription.user_id == payment_record.user_id
-            )
+            sub_stmt = select(Subscription).where(Subscription.user_id == payment_record.user_id)
             sub_result = await db.execute(sub_stmt)
             subscription = sub_result.scalar_one_or_none()
             if subscription:
@@ -650,7 +606,8 @@ async def payment_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
     logger.info(
         "Webhook processed: payment_key=%s, event=%s",
-        payment_key, event_type,
+        payment_key,
+        event_type,
     )
 
     return ok({"processed": True, "event_type": event_type})

@@ -5,8 +5,9 @@ KeywordService 단위 테스트
 - 중복 키워드 방지
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from app.services.keyword_service import KeywordService
 

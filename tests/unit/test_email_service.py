@@ -5,7 +5,7 @@ EmailService 단위 테스트
 - SendGrid 미설정 시 동작
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -140,9 +140,7 @@ class TestEmailService:
         service.from_email = "test@test.com"
         service.from_name = "Test"
 
-        result = await service.send_email(
-            "test@example.com", "Test", "<p>Test</p>"
-        )
+        result = await service.send_email("test@example.com", "Test", "<p>Test</p>")
         assert result is True
 
     @pytest.mark.asyncio
@@ -157,9 +155,7 @@ class TestEmailService:
         service.from_email = "test@test.com"
         service.from_name = "Test"
 
-        result = await service.send_email(
-            "test@example.com", "Test", "<p>HTML</p>", "Plain text"
-        )
+        result = await service.send_email("test@example.com", "Test", "<p>HTML</p>", "Plain text")
         assert result is True
 
     @pytest.mark.asyncio
@@ -175,9 +171,7 @@ class TestEmailService:
         service.from_email = "test@test.com"
         service.from_name = "Test"
 
-        result = await service.send_email(
-            "test@example.com", "Test", "<p>Test</p>"
-        )
+        result = await service.send_email("test@example.com", "Test", "<p>Test</p>")
         assert result is False
 
     @pytest.mark.asyncio
@@ -190,9 +184,7 @@ class TestEmailService:
         service.from_email = "test@test.com"
         service.from_name = "Test"
 
-        result = await service.send_email(
-            "test@example.com", "Test", "<p>Test</p>"
-        )
+        result = await service.send_email("test@example.com", "Test", "<p>Test</p>")
         assert result is False
 
     @pytest.mark.asyncio
@@ -207,9 +199,7 @@ class TestEmailService:
         service.from_email = "test@test.com"
         service.from_name = "Test"
 
-        count = await service.send_bulk_email(
-            ["a@test.com", "b@test.com", "c@test.com"], "Sub", "<p>Body</p>"
-        )
+        count = await service.send_bulk_email(["a@test.com", "b@test.com", "c@test.com"], "Sub", "<p>Body</p>")
         assert count == 3
 
     @pytest.mark.asyncio
@@ -224,9 +214,7 @@ class TestEmailService:
         service.from_email = "test@test.com"
         service.from_name = "Test"
 
-        result = await service.send_subscription_notification(
-            "test@example.com", "구독 갱신 완료", "<p>갱신</p>"
-        )
+        result = await service.send_subscription_notification("test@example.com", "구독 갱신 완료", "<p>갱신</p>")
         assert result is True
 
     @pytest.mark.asyncio
@@ -294,7 +282,5 @@ class TestEmailService:
         service.from_email = "test@test.com"
         service.from_name = "Test"
 
-        count = await service.send_bulk_email(
-            ["a@test.com", "b@test.com", "c@test.com"], "Sub", "<p>Body</p>"
-        )
+        count = await service.send_bulk_email(["a@test.com", "b@test.com", "c@test.com"], "Sub", "<p>Body</p>")
         assert count == 2

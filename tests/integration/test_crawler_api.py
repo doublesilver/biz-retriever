@@ -3,8 +3,6 @@ Crawler API 통합 테스트
 - Taskiq 기반 크롤링 트리거 및 상태 확인
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
 from httpx import AsyncClient
 
@@ -39,8 +37,9 @@ class TestCrawlerAPI:
     @pytest.mark.asyncio
     async def test_trigger_crawl_success(self, test_superuser, test_db):
         """슈퍼유저 크롤링 트리거 - Taskiq import 실패 시 503"""
-        import sys
-        from httpx import ASGITransport, AsyncClient as AC
+        from httpx import ASGITransport
+        from httpx import AsyncClient as AC
+
         from app.core.security import create_access_token
         from app.main import app
 

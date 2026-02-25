@@ -5,10 +5,10 @@ FileService 확장 단위 테스트
 - get_text_from_file: 라우팅 분기
 """
 
-import io
 import sys
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.services.file_service import FileService
 
@@ -60,7 +60,7 @@ class TestParsePdfWithMock:
     async def test_read_error(self, service):
         """파일 읽기 실패"""
         mock_file = AsyncMock()
-        mock_file.read = AsyncMock(side_effect=IOError("Read failed"))
+        mock_file.read = AsyncMock(side_effect=OSError("Read failed"))
 
         result = await service.parse_pdf(mock_file)
         assert "error" in result.lower()
@@ -203,7 +203,6 @@ class TestParseHwpBodyText:
 
         # Alternative: mock file read to trigger the ImportError path
         # by patching the import inside the function
-        import importlib
         original = sys.modules.get("olefile")
         sys.modules["olefile"] = None
         try:

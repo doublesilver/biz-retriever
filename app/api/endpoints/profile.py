@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,14 +48,8 @@ async def get_my_profile(
         "slack_webhook_url": profile.slack_webhook_url,
         "is_email_enabled": profile.is_email_enabled,
         "is_slack_enabled": profile.is_slack_enabled,
-        "licenses": [
-            {"name": l.license_name, "number": l.license_number}
-            for l in profile.licenses
-        ],
-        "performances": [
-            {"project": p.project_name, "amount": p.amount}
-            for p in profile.performances
-        ],
+        "licenses": [{"name": l.license_name, "number": l.license_number} for l in profile.licenses],
+        "performances": [{"project": p.project_name, "amount": p.amount} for p in profile.performances],
         "plan_name": plan,
     }
 
@@ -71,9 +65,7 @@ async def upload_business_certificate(
     """
     사업자등록증 이미지 업로드 및 AI 파싱 실행
     """
-    if not (
-        file.content_type.startswith("image/") or file.content_type == "application/pdf"
-    ):
+    if not (file.content_type.startswith("image/") or file.content_type == "application/pdf"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="이미지 또는 PDF 파일만 업로드 가능합니다.",
@@ -82,14 +74,10 @@ async def upload_business_certificate(
     try:
         content = await file.read()
         # AI 파싱 실행
-        extracted_data = await profile_service.parse_business_certificate(
-            content, mime_type=file.content_type
-        )
+        extracted_data = await profile_service.parse_business_certificate(content, mime_type=file.content_type)
 
         # 추출된 데이터로 프로필 업데이트 (기본 정보 자동 채우기)
-        profile = await profile_service.create_or_update_profile(
-            db, current_user.id, extracted_data
-        )
+        profile = await profile_service.create_or_update_profile(db, current_user.id, extracted_data)
 
         return {
             "message": "사업자등록증 파싱 및 프로필 업데이트 완료",
@@ -105,10 +93,14 @@ async def upload_business_certificate(
         )
 
 
-from app.schemas.profile import (UserLicenseCreate, UserLicenseResponse,
-                                 UserPerformanceCreate,
-                                 UserPerformanceResponse, UserProfileResponse,
-                                 UserProfileUpdate)
+from app.schemas.profile import (
+    UserLicenseCreate,
+    UserLicenseResponse,
+    UserPerformanceCreate,
+    UserPerformanceResponse,
+    UserProfileResponse,
+    UserProfileUpdate,
+)
 
 
 @router.put("/", response_model=UserProfileResponse)
@@ -125,18 +117,14 @@ async def update_profile(
     # dict로 변환하여 서비스에 전달
     update_data = profile_in.model_dump(exclude_unset=True)
 
-    profile = await profile_service.create_or_update_profile(
-        db, current_user.id, update_data
-    )
+    profile = await profile_service.create_or_update_profile(db, current_user.id, update_data)
     return profile
 
 
 # License Management Endpoints
 
 
-@router.post(
-    "/licenses", response_model=UserLicenseResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/licenses", response_model=UserLicenseResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("20/minute")
 async def add_license(
     request: Request,
@@ -152,7 +140,7 @@ async def add_license(
     return license
 
 
-@router.get("/licenses", response_model=List[UserLicenseResponse])
+@router.get("/licenses", response_model=list[UserLicenseResponse])
 @limiter.limit("30/minute")
 async def get_licenses(
     request: Request,
@@ -207,13 +195,11 @@ async def add_performance(
     Add a new performance record to user profile
     """
     profile = await profile_service.get_or_create_profile(db, current_user.id)
-    performance = await profile_service.add_performance(
-        db, profile.id, performance_in.model_dump()
-    )
+    performance = await profile_service.add_performance(db, profile.id, performance_in.model_dump())
     return performance
 
 
-@router.get("/performances", response_model=List[UserPerformanceResponse])
+@router.get("/performances", response_model=list[UserPerformanceResponse])
 @limiter.limit("30/minute")
 async def get_performances(
     request: Request,

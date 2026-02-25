@@ -6,9 +6,6 @@
 - ApiResponse / ErrorDetail / PaginationMeta 모델
 """
 
-import pytest
-from datetime import datetime
-
 from app.schemas.response import (
     ApiResponse,
     ErrorDetail,

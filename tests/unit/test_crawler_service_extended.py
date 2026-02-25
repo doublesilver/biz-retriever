@@ -7,8 +7,6 @@ G2BCrawlerService 확장 단위 테스트
 """
 
 import pytest
-from datetime import datetime
-from unittest.mock import MagicMock
 
 from app.services.crawler_service import G2BCrawlerService
 

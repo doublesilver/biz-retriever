@@ -5,8 +5,9 @@ ProfileService 확장 단위 테스트
 """
 
 import json
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.services.profile_service import ProfileService
 
@@ -58,7 +59,7 @@ class TestParseBusinessCertificate:
         service.client = mock_client
 
         expected = {"company_name": "마크다운 기업", "brn": "9876543210"}
-        raw_text = f'```json\n{json.dumps(expected)}\n```'
+        raw_text = f"```json\n{json.dumps(expected)}\n```"
 
         mock_response = MagicMock()
         mock_response.text = raw_text
@@ -75,7 +76,7 @@ class TestParseBusinessCertificate:
         service.client = mock_client
 
         expected = {"company_name": "코드블록 기업"}
-        raw_text = f'```\n{json.dumps(expected)}\n```'
+        raw_text = f"```\n{json.dumps(expected)}\n```"
 
         mock_response = MagicMock()
         mock_response.text = raw_text

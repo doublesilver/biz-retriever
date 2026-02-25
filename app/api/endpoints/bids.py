@@ -1,12 +1,10 @@
 import os
 from datetime import datetime
-from typing import List, Optional
 
-from fastapi import (APIRouter, Depends, File, HTTPException, Path, Query,
-                     Request, UploadFile, status)
+from fastapi import APIRouter, Depends, File, HTTPException, Path, Query, Request, UploadFile, status
+
 # from fastapi_cache.decorator import cache  # Removed due to dependency conflict
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.core.cache import get_cached, set_cached
@@ -15,7 +13,6 @@ from app.core.logging import logger
 from app.db.models import BidAnnouncement, User
 from app.db.repositories.bid_repository import BidRepository
 from app.schemas.bid import BidCreate, BidListResponse, BidResponse, BidUpdate
-from app.schemas.query import BidsQueryParams, FileUploadParams
 from app.services.bid_service import bid_service
 from app.services.file_service import file_service
 from app.services.rate_limiter import limiter
@@ -119,12 +116,8 @@ async def read_bids(
     request: Request,
     skip: int = Query(default=0, ge=0, description="건너뛸 개수"),
     limit: int = Query(default=100, ge=1, le=500, description="조회 개수 (최대 500)"),
-    keyword: Optional[str] = Query(
-        default=None, min_length=1, max_length=100, description="검색 키워드"
-    ),
-    agency: Optional[str] = Query(
-        default=None, min_length=1, max_length=200, description="기관명"
-    ),
+    keyword: str | None = Query(default=None, min_length=1, max_length=100, description="검색 키워드"),
+    agency: str | None = Query(default=None, min_length=1, max_length=200, description="기관명"),
     repo: BidRepository = Depends(deps.get_bid_repository),
 ):
     """
@@ -145,9 +138,7 @@ async def read_bids(
     # but strictly speaking, stripping implementation details is good.
     # However, the previous implementation was overly aggressive (replacing common chars).
 
-    bids = await bid_service.get_bids(
-        repo, skip=skip, limit=limit, keyword=keyword, agency=agency
-    )
+    bids = await bid_service.get_bids(repo, skip=skip, limit=limit, keyword=keyword, agency=agency)
 
     # Get total count (Assuming the caller wants the total count matching filter)
     # The previous code did raw SQL execute for count on ALL bids, ignoring filters!
@@ -228,9 +219,7 @@ async def upload_bid(
     file: UploadFile = File(..., description="PDF 또는 HWP 파일"),
     title: str = Query(..., min_length=1, max_length=200, description="공고 제목"),
     agency: str = Query(default="Unknown", max_length=200, description="기관명"),
-    url: str = Query(
-        default="http://uploaded.file", max_length=500, description="원본 URL"
-    ),
+    url: str = Query(default="http://uploaded.file", max_length=500, description="원본 URL"),
     repo: BidRepository = Depends(deps.get_bid_repository),
     current_user: User = Depends(deps.get_current_user),
 ):
@@ -264,9 +253,7 @@ async def upload_bid(
     # 파일 포인터 리셋
     await file.seek(0)
 
-    logger.info(
-        f"파일 업로드: {filename}, size={len(content)}, user={current_user.email}"
-    )
+    logger.info(f"파일 업로드: {filename}, size={len(content)}, user={current_user.email}")
 
     # 1. Extract Text
     text_content = await file_service.get_text_from_file(file)

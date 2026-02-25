@@ -20,9 +20,19 @@ URL 기반 API 버저닝: /api/v1/...
 
 from fastapi import APIRouter
 
-from app.api.endpoints import (analysis, analytics, auth, bids, crawler,
-                               export, filters, keywords, payment, profile,
-                               websocket)
+from app.api.endpoints import (
+    analysis,
+    analytics,
+    auth,
+    bids,
+    crawler,
+    export,
+    filters,
+    keywords,
+    payment,
+    profile,
+    websocket,
+)
 
 api_router = APIRouter()
 

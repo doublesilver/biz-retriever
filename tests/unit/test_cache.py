@@ -5,7 +5,6 @@ Redis 캐시 유틸리티 단위 테스트
 - Pydantic 직렬화
 """
 
-import pytest
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -78,10 +77,7 @@ class TestSetCached:
         mock_model.model_dump.return_value = {"id": 1}
 
         items = [mock_model, mock_model]
-        serialized = [
-            item.model_dump() if hasattr(item, "model_dump") else item
-            for item in items
-        ]
+        serialized = [item.model_dump() if hasattr(item, "model_dump") else item for item in items]
         assert serialized == [{"id": 1}, {"id": 1}]
 
     async def test_redis_setex_called(self):

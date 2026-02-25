@@ -1,7 +1,5 @@
-from typing import Any, List
-
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import delete, select
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
@@ -44,7 +42,7 @@ async def create_keyword(
     return new_keyword
 
 
-@router.get("/", response_model=List[UserKeywordResponse])
+@router.get("/", response_model=list[UserKeywordResponse])
 @limiter.limit("30/minute")
 async def read_keywords(
     request: Request,
@@ -70,9 +68,7 @@ async def delete_keyword(
     """
     키워드 삭제
     """
-    stmt = select(UserKeyword).where(
-        UserKeyword.id == keyword_id, UserKeyword.user_id == current_user.id
-    )
+    stmt = select(UserKeyword).where(UserKeyword.id == keyword_id, UserKeyword.user_id == current_user.id)
     result = await db.execute(stmt)
     keyword = result.scalars().first()
 

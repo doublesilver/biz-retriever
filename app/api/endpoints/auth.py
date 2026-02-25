@@ -1,10 +1,8 @@
 import secrets
 from datetime import datetime, timedelta
-from typing import Any, List, Optional
+from typing import Any
 
-from fastapi import (APIRouter, Body, Depends, HTTPException, Request,
-                     Response, status)
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
@@ -65,20 +63,14 @@ class TokenRefreshResponse(BaseModel):
 class UserCreate(BaseModel):
     """사용자 생성 요청"""
 
-    email: EmailStr = Field(
-        ..., description="사용자 이메일"
-    )
+    email: EmailStr = Field(..., description="사용자 이메일")
     password: str = Field(
         ...,
         min_length=8,
         description="비밀번호 (최소 8자, 대/소문자/숫자/특수문자 포함)",
     )
 
-    model_config = {
-        "json_schema_extra": {
-            "examples": [{"email": "newuser@example.com", "password": "SecurePass123!"}]
-        }
-    }
+    model_config = {"json_schema_extra": {"examples": [{"email": "newuser@example.com", "password": "SecurePass123!"}]}}
 
 
 class UserResponse(BaseModel):
@@ -90,9 +82,7 @@ class UserResponse(BaseModel):
 
     model_config = {
         "from_attributes": True,
-        "json_schema_extra": {
-            "examples": [{"id": 1, "email": "user@example.com", "is_active": True}]
-        },
+        "json_schema_extra": {"examples": [{"id": 1, "email": "user@example.com", "is_active": True}]},
     }
 
 
@@ -161,11 +151,7 @@ class EmailVerificationRequest(BaseModel):
         },
         429: {
             "description": "요청 제한 초과",
-            "content": {
-                "application/json": {
-                    "example": {"detail": "Rate limit exceeded: 5 per 1 minute"}
-                }
-            },
+            "content": {"application/json": {"example": {"detail": "Rate limit exceeded: 5 per 1 minute"}}},
         },
     },
 )
@@ -283,15 +269,11 @@ async def login_access_token(
                     "examples": {
                         "weak_password": {
                             "summary": "약한 비밀번호",
-                            "value": {
-                                "detail": "비밀번호는 최소 8자 이상이어야 합니다."
-                            },
+                            "value": {"detail": "비밀번호는 최소 8자 이상이어야 합니다."},
                         },
                         "duplicate_email": {
                             "summary": "중복된 이메일",
-                            "value": {
-                                "detail": "The user with this email already exists in the system."
-                            },
+                            "value": {"detail": "The user with this email already exists in the system."},
                         },
                     }
                 }
@@ -299,18 +281,12 @@ async def login_access_token(
         },
         429: {
             "description": "요청 제한 초과",
-            "content": {
-                "application/json": {
-                    "example": {"detail": "Rate limit exceeded: 3 per 1 minute"}
-                }
-            },
+            "content": {"application/json": {"example": {"detail": "Rate limit exceeded: 3 per 1 minute"}}},
         },
     },
 )
 @limiter.limit("3/minute")
-async def register(
-    request: Request, user_in: UserCreate, db: AsyncSession = Depends(deps.get_db)
-) -> Any:
+async def register(request: Request, user_in: UserCreate, db: AsyncSession = Depends(deps.get_db)) -> Any:
     """
     ## 회원가입
 
@@ -390,11 +366,7 @@ async def register(
     responses={
         200: {
             "description": "중복 확인 결과",
-            "content": {
-                "application/json": {
-                    "example": {"exists": False, "message": "사용 가능한 이메일입니다"}
-                }
-            },
+            "content": {"application/json": {"example": {"exists": False, "message": "사용 가능한 이메일입니다"}}},
         }
     },
 )
@@ -419,7 +391,7 @@ async def check_email_exists(
 
 @router.get(
     "/users",
-    response_model=List[UserResponse],
+    response_model=list[UserResponse],
     summary="사용자 목록 조회",
     description="시스템의 모든 활성 사용자를 조회합니다. (담당자 지정용)",
 )
@@ -461,9 +433,7 @@ async def read_users(
         },
         401: {
             "description": "유효하지 않은 Refresh Token",
-            "content": {
-                "application/json": {"example": {"detail": "Invalid refresh token"}}
-            },
+            "content": {"application/json": {"example": {"detail": "Invalid refresh token"}}},
         },
     },
 )
@@ -514,17 +484,11 @@ async def refresh_token(
     responses={
         200: {
             "description": "로그아웃 성공",
-            "content": {
-                "application/json": {"example": {"message": "Successfully logged out"}}
-            },
+            "content": {"application/json": {"example": {"message": "Successfully logged out"}}},
         },
         401: {
             "description": "인증 실패",
-            "content": {
-                "application/json": {
-                    "example": {"detail": "Could not validate credentials"}
-                }
-            },
+            "content": {"application/json": {"example": {"detail": "Could not validate credentials"}}},
         },
     },
 )
@@ -570,9 +534,7 @@ async def logout(
             "description": "요청 처리 완료 (이메일 존재 여부와 무관하게 동일한 응답)",
             "content": {
                 "application/json": {
-                    "example": {
-                        "message": "If the email exists, a password reset link has been sent."
-                    }
+                    "example": {"message": "If the email exists, a password reset link has been sent."}
                 }
             },
         },
@@ -632,11 +594,7 @@ async def password_reset_request(
     responses={
         200: {
             "description": "비밀번호 재설정 성공",
-            "content": {
-                "application/json": {
-                    "example": {"message": "Password has been reset successfully."}
-                }
-            },
+            "content": {"application/json": {"example": {"message": "Password has been reset successfully."}}},
         },
         400: {
             "description": "유효하지 않은 토큰 또는 약한 비밀번호",
@@ -661,9 +619,7 @@ async def password_reset_confirm(
     4. 비밀번호 업데이트
     """
     # 1. Find user by reset token
-    result = await db.execute(
-        select(User).where(User.password_reset_token == body.token)
-    )
+    result = await db.execute(select(User).where(User.password_reset_token == body.token))
     user = result.scalars().first()
 
     if not user:
@@ -713,11 +669,7 @@ async def password_reset_confirm(
     responses={
         200: {
             "description": "이메일 인증 성공",
-            "content": {
-                "application/json": {
-                    "example": {"message": "Email verified successfully."}
-                }
-            },
+            "content": {"application/json": {"example": {"message": "Email verified successfully."}}},
         },
         400: {
             "description": "유효하지 않은 토큰",
@@ -740,9 +692,7 @@ async def verify_email(
     2. 토큰 만료 확인 (24시간)
     3. 이메일 인증 완료 처리
     """
-    result = await db.execute(
-        select(User).where(User.email_verification_token == token)
-    )
+    result = await db.execute(select(User).where(User.email_verification_token == token))
     user = result.scalars().first()
 
     if not user:
@@ -755,10 +705,7 @@ async def verify_email(
         return {"message": "Email is already verified."}
 
     # Check expiration
-    if (
-        not user.email_verification_expires
-        or datetime.utcnow() > user.email_verification_expires
-    ):
+    if not user.email_verification_expires or datetime.utcnow() > user.email_verification_expires:
         raise HTTPException(
             status_code=400,
             detail="Verification token has expired. Please request a new one.",
@@ -830,6 +777,4 @@ async def resend_verification_email(
                 """,
             )
 
-    return {
-        "message": "If the email exists and is not verified, a verification email has been sent."
-    }
+    return {"message": "If the email exists and is not verified, a verification email has been sent."}

@@ -5,12 +5,10 @@
 
 import re
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
 
 import httpx
 from bs4 import BeautifulSoup
 
-from app.core.config import settings
 from app.core.logging import logger
 
 
@@ -28,9 +26,7 @@ class OnbidCrawlerService:
     BASE_URL = "https://www.onbid.co.kr"
 
     # 임대 공고 검색 URL (캠코 공매 시스템)
-    RENTAL_SEARCH_URL = (
-        "https://www.onbid.co.kr/op/cta/cltaSearch/collateralTenderSearch.do"
-    )
+    RENTAL_SEARCH_URL = "https://www.onbid.co.kr/op/cta/cltaSearch/collateralTenderSearch.do"
 
     # 매각 공고 검색 URL
     SALE_SEARCH_URL = "https://www.onbid.co.kr/op/ppa/ppaSrch/ppaSearch.do"
@@ -75,9 +71,7 @@ class OnbidCrawlerService:
             },
         )
 
-    async def fetch_rental_announcements(
-        self, from_date: Optional[datetime] = None, max_pages: int = 5
-    ) -> List[Dict]:
+    async def fetch_rental_announcements(self, from_date: datetime | None = None, max_pages: int = 5) -> list[dict]:
         """
         온비드에서 임대 공고를 수집합니다.
 
@@ -108,15 +102,11 @@ class OnbidCrawlerService:
                 # filtered = announcements
                 all_announcements.extend(filtered)
 
-                logger.info(
-                    f"페이지 {page}: {len(announcements)}건 수집, {len(filtered)}건 필터링 통과"
-                )
+                logger.info(f"페이지 {page}: {len(announcements)}건 수집, {len(filtered)}건 필터링 통과")
 
             # 중요도 점수 계산
             for announcement in all_announcements:
-                announcement["importance_score"] = self._calculate_importance(
-                    announcement
-                )
+                announcement["importance_score"] = self._calculate_importance(announcement)
 
             logger.info(f"온비드 크롤링 완료: 총 {len(all_announcements)}건 수집")
             return all_announcements
@@ -125,7 +115,7 @@ class OnbidCrawlerService:
             logger.error(f"온비드 크롤링 실패: {e}", exc_info=True)
             return []
 
-    async def _fetch_page(self, page: int, from_date: datetime) -> List[Dict]:
+    async def _fetch_page(self, page: int, from_date: datetime) -> list[dict]:
         """
         특정 페이지의 공고 목록을 가져옵니다.
 
@@ -149,9 +139,7 @@ class OnbidCrawlerService:
                 "tenderType": "01",  # 01: 임대
             }
 
-            response = await self.client.post(
-                self.RENTAL_SEARCH_URL, data=params, follow_redirects=True
-            )
+            response = await self.client.post(self.RENTAL_SEARCH_URL, data=params, follow_redirects=True)
 
             if response.status_code != 200:
                 logger.warning(f"온비드 응답 오류: {response.status_code}")
@@ -178,7 +166,7 @@ class OnbidCrawlerService:
             logger.error(f"온비드 요청 실패: {e}")
             return []
 
-    def _parse_row(self, row) -> Optional[Dict]:
+    def _parse_row(self, row) -> dict | None:
         """
         테이블 행을 파싱하여 공고 정보를 추출합니다.
 
@@ -229,7 +217,7 @@ class OnbidCrawlerService:
             "keywords_matched": [],
         }
 
-    def _parse_deadline(self, period_text: str) -> Optional[datetime]:
+    def _parse_deadline(self, period_text: str) -> datetime | None:
         """
         입찰 기간 텍스트에서 마감일을 추출합니다.
 
@@ -265,7 +253,7 @@ class OnbidCrawlerService:
         except ValueError:
             return 0.0
 
-    def _should_include(self, announcement: Dict) -> bool:
+    def _should_include(self, announcement: dict) -> bool:
         """
         공고가 수집 대상인지 판단합니다.
 
@@ -295,7 +283,7 @@ class OnbidCrawlerService:
         # 최소 1개 이상의 키워드 매칭 필요
         return len(matched_keywords) > 0
 
-    def _calculate_importance(self, announcement: Dict) -> int:
+    def _calculate_importance(self, announcement: dict) -> int:
         """
         중요도 점수를 계산합니다 (1~3).
 
@@ -330,7 +318,7 @@ class OnbidCrawlerService:
 
         return min(score, 3)  # 최대 3점
 
-    async def fetch_announcement_detail(self, url: str) -> Optional[Dict]:
+    async def fetch_announcement_detail(self, url: str) -> dict | None:
         """
         공고 상세 정보를 가져옵니다.
 
@@ -356,9 +344,7 @@ class OnbidCrawlerService:
             attachments = []
             file_links = soup.select("a.file_link")
             for link in file_links:
-                attachments.append(
-                    {"name": link.get_text(strip=True), "url": link.get("href", "")}
-                )
+                attachments.append({"name": link.get_text(strip=True), "url": link.get("href", "")})
 
             return {
                 "content": content,

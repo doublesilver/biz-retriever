@@ -3,7 +3,6 @@ Security WebSocket 토큰 검증 단위 테스트
 - get_current_user_from_token
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.core.security import (
@@ -45,10 +44,12 @@ class TestGetCurrentUserFromToken:
 
     async def test_empty_sub_returns_none(self):
         """sub 필드 없는 토큰 → None"""
+        from datetime import datetime, timedelta
+
         from jose import jwt
+
         from app.core.config import settings
         from app.core.security import ALGORITHM
-        from datetime import datetime, timedelta
 
         token = jwt.encode(
             {"exp": datetime.utcnow() + timedelta(hours=1)},

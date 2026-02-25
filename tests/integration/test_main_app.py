@@ -7,7 +7,6 @@ Main App 통합 테스트
 - Security headers 미들웨어
 """
 
-import pytest
 from httpx import AsyncClient
 
 
@@ -41,8 +40,9 @@ class TestMetrics:
         response = await async_client.get("/metrics")
         assert response.status_code == 200
         # Prometheus exposition format
-        assert "text/plain" in response.headers.get("content-type", "") or \
-               "openmetrics" in response.headers.get("content-type", "")
+        assert "text/plain" in response.headers.get("content-type", "") or "openmetrics" in response.headers.get(
+            "content-type", ""
+        )
 
 
 class TestSecurityHeaders:
@@ -128,9 +128,7 @@ class TestBizRetrieverErrorHandler:
 
     async def test_not_found_error(self, authenticated_client: AsyncClient):
         """NotFoundError -> 404 (공고 없음)"""
-        response = await authenticated_client.get(
-            "/api/v1/analysis/predict-price/99999"
-        )
+        response = await authenticated_client.get("/api/v1/analysis/predict-price/99999")
         assert response.status_code == 404
 
 

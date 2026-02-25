@@ -6,9 +6,9 @@ security.get_current_user 분기 커버리지 테스트
 - 사용자 미발견
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi import HTTPException
 
 from app.core.config import settings

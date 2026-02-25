@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import google.generativeai as genai
 
@@ -23,7 +23,7 @@ class ConstraintService:
             self.model = None
             logger.warning("GEMINI_API_KEY Missing in ConstraintService")
 
-    async def extract_constraints(self, bid: BidAnnouncement) -> Dict[str, Any]:
+    async def extract_constraints(self, bid: BidAnnouncement) -> dict[str, Any]:
         """
         공고에서 제약 조건 추출
         """
@@ -63,9 +63,7 @@ class ConstraintService:
         """
 
         try:
-            response = await asyncio.to_thread(
-                self.model.generate_content, f"{prompt}\n{full_text}"
-            )
+            response = await asyncio.to_thread(self.model.generate_content, f"{prompt}\n{full_text}")
 
             # 3. 파싱
             text_resp = response.text

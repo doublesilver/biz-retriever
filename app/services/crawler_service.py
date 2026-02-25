@@ -4,15 +4,12 @@ G2B 크롤러 서비스
 """
 
 from datetime import datetime
-from typing import Dict, List, Optional
 
 import httpx
-from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                      wait_exponential)
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
 from app.core.logging import logger
-from app.schemas.bid import BidAnnouncementCreate
 
 
 class AsyncBytesFile:
@@ -72,10 +69,10 @@ class G2BCrawlerService:
     )
     async def fetch_new_announcements(
         self,
-        from_date: Optional[datetime] = None,
-        exclude_keywords: Optional[List[str]] = None,
-        include_keywords: Optional[List[str]] = None,
-    ) -> List[Dict]:
+        from_date: datetime | None = None,
+        exclude_keywords: list[str] | None = None,
+        include_keywords: list[str] | None = None,
+    ) -> list[dict]:
         """
         G2B API에서 새로운 입찰 공고를 가져옵니다.
         """
@@ -84,9 +81,7 @@ class G2BCrawlerService:
 
         # Default fallback if not provided (Phase 3 Migration Support)
         if include_keywords is None:
-            include_keywords = (
-                self.INCLUDE_KEYWORDS_CONCESSION + self.INCLUDE_KEYWORDS_FLOWER
-            )
+            include_keywords = self.INCLUDE_KEYWORDS_CONCESSION + self.INCLUDE_KEYWORDS_FLOWER
 
         # API 요청 파라미터 구성
         params = {
@@ -122,15 +117,10 @@ class G2BCrawlerService:
             logger.info(f"파싱된 전체 공고 개수: {len(announcements)}")
 
             # 필터링 적용
-            filtered = [
-                a
-                for a in announcements
-                if self._should_notify(a, exclude_keywords, include_keywords)
-            ]
+            filtered = [a for a in announcements if self._should_notify(a, exclude_keywords, include_keywords)]
 
             # Phase 1 Upgrade: Scrape Attachments for Filtered Items
             # Only scrape if it passes the initial keyword filter to save resources
-            from app.services.file_service import file_service
 
             for item in filtered:
                 try:
@@ -142,9 +132,7 @@ class G2BCrawlerService:
                         extracted_text = await self._scrape_attachments(item["url"])
                         if extracted_text:
                             item["attachment_content"] = extracted_text
-                            logger.info(
-                                f"첨부파일 텍스트 추출 완료 ({len(extracted_text)} chars)"
-                            )
+                            logger.info(f"첨부파일 텍스트 추출 완료 ({len(extracted_text)} chars)")
 
                             # Re-evalute keywords with attachment content?
                             # For Phase 1, we just store it.
@@ -153,9 +141,7 @@ class G2BCrawlerService:
                     logger.error(f"첨부파일 처리 중 오류: {e}")
 
             for idx, item in enumerate(filtered):
-                logger.info(
-                    f"[DEBUG G2B] {idx+1}. {item['title']} ({item['agency']}) - {item['estimated_price']:,}원"
-                )
+                logger.info(f"[DEBUG G2B] {idx+1}. {item['title']} ({item['agency']}) - {item['estimated_price']:,}원")
 
             logger.info(f"필터링 후 알림 대상 개수: {len(filtered)}")
 
@@ -171,9 +157,7 @@ class G2BCrawlerService:
         retry=retry_if_exception_type(httpx.RequestError),
         reraise=True,
     )
-    async def fetch_opening_results(
-        self, from_date: Optional[datetime] = None
-    ) -> List[Dict]:
+    async def fetch_opening_results(self, from_date: datetime | None = None) -> list[dict]:
         """
         G2B 개찰 결과 API에서 정보를 수집합니다.
         """
@@ -230,7 +214,7 @@ class G2BCrawlerService:
             logger.error(f"G2B 개찰결과 API 호출 실패: {e}")
             return []
 
-    async def _scrape_attachments(self, url: str) -> Optional[str]:
+    async def _scrape_attachments(self, url: str) -> str | None:
         """
         URL에서 첨부파일(HWP, PDF)을 찾아 다운로드 및 텍스트 추출
         """
@@ -311,7 +295,7 @@ class G2BCrawlerService:
             logger.warning(f"Failed to scrape attachment from {url}: {e}")
             return None
 
-    def _parse_api_response(self, data: Dict) -> List[Dict]:
+    def _parse_api_response(self, data: dict) -> list[dict]:
         announcements = []
         items = data.get("response", {}).get("body", {}).get("items", [])
 
@@ -323,8 +307,7 @@ class G2BCrawlerService:
 
             announcement = {
                 "title": item.get("bidNtceNm", ""),
-                "content": item.get("bidNtceDtl", "")
-                or "내용 없음",  # Pydantic min_length=1 만족을 위해 기본값 설정
+                "content": item.get("bidNtceDtl", "") or "내용 없음",  # Pydantic min_length=1 만족을 위해 기본값 설정
                 "agency": item.get("ntceInsttNm", ""),
                 "posted_at": posted_at,
                 "deadline": self._parse_datetime(item.get("bidClseDt")),
@@ -336,7 +319,7 @@ class G2BCrawlerService:
 
         return announcements
 
-    def _parse_datetime(self, date_str: Optional[str]) -> Optional[datetime]:
+    def _parse_datetime(self, date_str: str | None) -> datetime | None:
         """날짜 문자열을 datetime으로 변환 (G2B 형식: YYYYMMDDHHmm)"""
         if not date_str:
             return None
@@ -347,9 +330,9 @@ class G2BCrawlerService:
 
     def _should_notify(
         self,
-        announcement: Dict,
-        exclude_keywords: List[str] = None,
-        include_keywords: List[str] = None,
+        announcement: dict,
+        exclude_keywords: list[str] = None,
+        include_keywords: list[str] = None,
     ) -> bool:
         """
         공고가 알림 대상인지 판단 (스마트 필터링)
@@ -358,9 +341,7 @@ class G2BCrawlerService:
             exclude_keywords = self.DEFAULT_EXCLUDE_KEYWORDS
 
         if include_keywords is None:
-            include_keywords = (
-                self.INCLUDE_KEYWORDS_CONCESSION + self.INCLUDE_KEYWORDS_FLOWER
-            )
+            include_keywords = self.INCLUDE_KEYWORDS_CONCESSION + self.INCLUDE_KEYWORDS_FLOWER
 
         title = announcement["title"].lower()
         content = announcement.get("content", "").lower()
@@ -384,7 +365,7 @@ class G2BCrawlerService:
         # 최소 1개 이상의 키워드 매칭 필요
         return len(matched_keywords) > 0
 
-    def calculate_importance_score(self, announcement: Dict) -> int:
+    def calculate_importance_score(self, announcement: dict) -> int:
         """
         중요도 점수 산출 (1~3)
 

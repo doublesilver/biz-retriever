@@ -7,9 +7,9 @@ OnbidCrawlerService 확장 단위 테스트
 - _parse_row
 """
 
-import pytest
 from unittest.mock import MagicMock
-from datetime import datetime
+
+import pytest
 
 from app.services.onbid_crawler import OnbidCrawlerService
 

@@ -22,7 +22,9 @@ def _get_tasks():
     with patch.dict(sys.modules, mock_modules):
         with patch("app.worker.taskiq_app.broker", mock_broker):
             import importlib
+
             import app.worker.taskiq_tasks as module
+
             importlib.reload(module)
             return module
 
@@ -71,19 +73,21 @@ class TestCrawlG2BNewAnnouncementFlow:
         mock_crawler.INCLUDE_KEYWORDS_CONCESSION = ["구내식당"]
         mock_crawler.INCLUDE_KEYWORDS_FLOWER = []
         mock_crawler.calculate_importance_score.return_value = 1
-        mock_crawler.fetch_new_announcements = AsyncMock(return_value=[
-            {
-                "url": "https://new.com/1",
-                "title": "구내식당 임대",
-                "content": "식당 운영",
-                "agency": "테스트기관",
-                "posted_at": "2026-01-20",
-                "source": "G2B",
-                "deadline": None,
-                "estimated_price": 0,
-                "keywords_matched": ["구내식당"],
-            }
-        ])
+        mock_crawler.fetch_new_announcements = AsyncMock(
+            return_value=[
+                {
+                    "url": "https://new.com/1",
+                    "title": "구내식당 임대",
+                    "content": "식당 운영",
+                    "agency": "테스트기관",
+                    "posted_at": "2026-01-20",
+                    "source": "G2B",
+                    "deadline": None,
+                    "estimated_price": 0,
+                    "keywords_matched": ["구내식당"],
+                }
+            ]
+        )
 
         mock_manager = AsyncMock()
 
@@ -136,19 +140,21 @@ class TestCrawlG2BNewAnnouncementFlow:
         mock_crawler.INCLUDE_KEYWORDS_FLOWER = []
         mock_crawler.calculate_importance_score.return_value = 3  # 높은 중요도
 
-        mock_crawler.fetch_new_announcements = AsyncMock(return_value=[
-            {
-                "url": "https://important.com/1",
-                "title": "중요 공고",
-                "content": "",
-                "agency": "기관",
-                "posted_at": "2026-01-20",
-                "source": "G2B",
-                "deadline": None,
-                "estimated_price": 0,
-                "keywords_matched": [],
-            }
-        ])
+        mock_crawler.fetch_new_announcements = AsyncMock(
+            return_value=[
+                {
+                    "url": "https://important.com/1",
+                    "title": "중요 공고",
+                    "content": "",
+                    "agency": "기관",
+                    "posted_at": "2026-01-20",
+                    "source": "G2B",
+                    "deadline": None,
+                    "estimated_price": 0,
+                    "keywords_matched": [],
+                }
+            ]
+        )
 
         mock_process = MagicMock()
         mock_process.kiq = AsyncMock()
@@ -208,19 +214,21 @@ class TestCrawlG2BNewAnnouncementFlow:
         mock_crawler.INCLUDE_KEYWORDS_FLOWER = []
         mock_crawler.calculate_importance_score.return_value = 1
 
-        mock_crawler.fetch_new_announcements = AsyncMock(return_value=[
-            {
-                "url": "https://new.com/2",
-                "title": "구내식당 위탁운영",
-                "content": "식당 운영",
-                "agency": "기관",
-                "posted_at": "2026-01-20",
-                "source": "G2B",
-                "deadline": None,
-                "estimated_price": 0,
-                "keywords_matched": ["구내식당"],
-            }
-        ])
+        mock_crawler.fetch_new_announcements = AsyncMock(
+            return_value=[
+                {
+                    "url": "https://new.com/2",
+                    "title": "구내식당 위탁운영",
+                    "content": "식당 운영",
+                    "agency": "기관",
+                    "posted_at": "2026-01-20",
+                    "source": "G2B",
+                    "deadline": None,
+                    "estimated_price": 0,
+                    "keywords_matched": ["구내식당"],
+                }
+            ]
+        )
 
         mock_notify = AsyncMock()
 

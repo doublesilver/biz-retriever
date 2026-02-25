@@ -83,9 +83,7 @@ class TestErrorCases:
         """Creating bid requires authentication"""
         base_url = "http://localhost:8000"
 
-        async with httpx.AsyncClient(
-            base_url=base_url, follow_redirects=False
-        ) as client:
+        async with httpx.AsyncClient(base_url=base_url, follow_redirects=False) as client:
             bid_data = {
                 "title": "Test",
                 "content": "Test",

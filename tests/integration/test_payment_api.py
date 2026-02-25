@@ -10,15 +10,13 @@ Payment API 통합 테스트
 - /api/v1/payment/webhook (서명 검증)
 """
 
-import json
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import PaymentHistory, Subscription
+from app.db.models import PaymentHistory
 
 
 class TestPaymentPlans:
@@ -217,9 +215,7 @@ class TestChangePlan:
 class TestSubscriptionStatus:
     """구독 상태 상세"""
 
-    async def test_with_subscription(
-        self, authenticated_client: AsyncClient, test_subscription
-    ):
+    async def test_with_subscription(self, authenticated_client: AsyncClient, test_subscription):
         """구독이 있는 경우 상태 조회"""
         response = await authenticated_client.get("/api/v1/payment/subscription")
         assert response.status_code == 200
@@ -232,9 +228,7 @@ class TestPaymentHistoryWithData:
 
     async def test_with_pagination(self, authenticated_client: AsyncClient):
         """페이지네이션 파라미터"""
-        response = await authenticated_client.get(
-            "/api/v1/payment/history?skip=0&limit=5"
-        )
+        response = await authenticated_client.get("/api/v1/payment/history?skip=0&limit=5")
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
@@ -249,9 +243,7 @@ class TestInvoiceDetail:
 
     async def test_not_found(self, authenticated_client: AsyncClient):
         """존재하지 않는 인보이스"""
-        response = await authenticated_client.get(
-            "/api/v1/payment/invoices/INV-NONEXIST-999"
-        )
+        response = await authenticated_client.get("/api/v1/payment/invoices/INV-NONEXIST-999")
         assert response.status_code == 404
 
 
@@ -276,19 +268,19 @@ class TestSubscriptionCancelWithSub:
 class TestCreatePaymentMocked:
     """결제 생성 (payment_service 모킹)"""
 
-    async def test_create_payment_success(
-        self, authenticated_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_create_payment_success(self, authenticated_client: AsyncClient, test_db: AsyncSession):
         """결제 생성 성공"""
         with patch("app.api.endpoints.payment.payment_service") as mock_ps:
             mock_ps.is_configured.return_value = True
             mock_ps.get_plan_amount.return_value = 10000
             mock_ps.generate_order_id.return_value = "BIZ-1-BASIC-20260224-abc"
-            mock_ps.create_payment = AsyncMock(return_value={
-                "client_key": "ck_test",
-                "amount": 10000,
-                "orderId": "BIZ-1-BASIC-20260224-abc",
-            })
+            mock_ps.create_payment = AsyncMock(
+                return_value={
+                    "client_key": "ck_test",
+                    "amount": 10000,
+                    "orderId": "BIZ-1-BASIC-20260224-abc",
+                }
+            )
 
             with patch("app.api.endpoints.payment.subscription_service") as mock_ss:
                 mock_ss.get_subscription = AsyncMock(return_value=None)
@@ -301,9 +293,7 @@ class TestCreatePaymentMocked:
                 data = response.json()
                 assert data["success"] is True
 
-    async def test_create_payment_free_plan(
-        self, authenticated_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_create_payment_free_plan(self, authenticated_client: AsyncClient, test_db: AsyncSession):
         """무료 플랜 결제 시도 - 400"""
         with patch("app.api.endpoints.payment.payment_service") as mock_ps:
             mock_ps.is_configured.return_value = True
@@ -343,9 +333,7 @@ class TestCreatePaymentMocked:
 class TestConfirmPaymentMocked:
     """결제 승인 (payment_service 모킹)"""
 
-    async def test_confirm_success(
-        self, authenticated_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_confirm_success(self, authenticated_client: AsyncClient, test_db: AsyncSession):
         """결제 승인 성공"""
         mock_sub = MagicMock()
         mock_sub.next_billing_date = datetime.utcnow() + timedelta(days=30)
@@ -378,9 +366,7 @@ class TestConfirmPaymentMocked:
                     data = response.json()
                     assert data["success"] is True
 
-    async def test_confirm_invalid_order_id(
-        self, authenticated_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_confirm_invalid_order_id(self, authenticated_client: AsyncClient, test_db: AsyncSession):
         """유효하지 않은 주문 ID 형식"""
         with patch("app.api.endpoints.payment.payment_service") as mock_ps:
             mock_ps.is_configured.return_value = True
@@ -395,9 +381,7 @@ class TestConfirmPaymentMocked:
             )
             assert response.status_code == 400
 
-    async def test_confirm_amount_mismatch(
-        self, authenticated_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_confirm_amount_mismatch(self, authenticated_client: AsyncClient, test_db: AsyncSession):
         """금액 불일치"""
         with patch("app.api.endpoints.payment.payment_service") as mock_ps:
             mock_ps.is_configured.return_value = True
@@ -417,9 +401,7 @@ class TestConfirmPaymentMocked:
 class TestCancelPaymentMocked:
     """결제 취소 (payment_service 모킹)"""
 
-    async def test_cancel_success(
-        self, authenticated_client: AsyncClient, test_db: AsyncSession, test_user
-    ):
+    async def test_cancel_success(self, authenticated_client: AsyncClient, test_db: AsyncSession, test_user):
         """결제 취소 성공"""
         # 결제 이력 생성
         payment = PaymentHistory(
@@ -451,9 +433,7 @@ class TestCancelPaymentMocked:
                 )
                 assert response.status_code == 200
 
-    async def test_cancel_not_found(
-        self, authenticated_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_cancel_not_found(self, authenticated_client: AsyncClient, test_db: AsyncSession):
         """결제 내역 없음"""
         with patch("app.api.endpoints.payment.payment_service") as mock_ps:
             mock_ps.is_configured.return_value = True
@@ -467,9 +447,7 @@ class TestCancelPaymentMocked:
             )
             assert response.status_code == 404
 
-    async def test_cancel_already_refunded(
-        self, authenticated_client: AsyncClient, test_db: AsyncSession, test_user
-    ):
+    async def test_cancel_already_refunded(self, authenticated_client: AsyncClient, test_db: AsyncSession, test_user):
         """이미 환불된 결제"""
         payment = PaymentHistory(
             user_id=test_user.id,
@@ -501,9 +479,7 @@ class TestCancelPaymentMocked:
 class TestChangePlanMocked:
     """플랜 변경 (구독 있는 상태, 모킹)"""
 
-    async def test_change_to_free(
-        self, authenticated_client: AsyncClient, test_subscription, test_db: AsyncSession
-    ):
+    async def test_change_to_free(self, authenticated_client: AsyncClient, test_subscription, test_db: AsyncSession):
         """무료 플랜으로 변경 시도"""
         with patch("app.api.endpoints.payment.payment_service") as mock_ps:
             mock_ps.get_plan_amount.side_effect = lambda p: {"free": 0, "basic": 10000, "pro": 30000}.get(p, 0)
@@ -523,9 +499,7 @@ class TestChangePlanMocked:
                 data = response.json()
                 assert data["data"]["action"] == "cancel_required"
 
-    async def test_upgrade_to_pro(
-        self, authenticated_client: AsyncClient, test_subscription, test_db: AsyncSession
-    ):
+    async def test_upgrade_to_pro(self, authenticated_client: AsyncClient, test_subscription, test_db: AsyncSession):
         """Pro로 업그레이드"""
         with patch("app.api.endpoints.payment.payment_service") as mock_ps:
             mock_ps.get_plan_amount.side_effect = lambda p: {"free": 0, "basic": 10000, "pro": 30000}.get(p, 0)
@@ -550,12 +524,10 @@ class TestChangePlanMocked:
 class TestWebhookMocked:
     """웹훅 (결제 이력 있는 경우)"""
 
-    async def test_webhook_payment_done(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_webhook_payment_done(self, async_client: AsyncClient, test_db: AsyncSession):
         """PAYMENT_DONE 웹훅 처리"""
-        from app.db.models import User
         from app.core.security import get_password_hash
+        from app.db.models import User
 
         user = User(
             email="webhook_user@example.com",
@@ -590,12 +562,10 @@ class TestWebhookMocked:
         data = response.json()
         assert data["data"]["processed"] is True
 
-    async def test_webhook_payment_cancelled(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_webhook_payment_cancelled(self, async_client: AsyncClient, test_db: AsyncSession):
         """PAYMENT_CANCELLED 웹훅 처리"""
-        from app.db.models import User
         from app.core.security import get_password_hash
+        from app.db.models import User
 
         user = User(
             email="webhook_cancel@example.com",
@@ -630,12 +600,10 @@ class TestWebhookMocked:
         data = response.json()
         assert data["data"]["processed"] is True
 
-    async def test_webhook_payment_failed(
-        self, async_client: AsyncClient, test_db: AsyncSession
-    ):
+    async def test_webhook_payment_failed(self, async_client: AsyncClient, test_db: AsyncSession):
         """PAYMENT_FAILED 웹훅 처리"""
-        from app.db.models import User
         from app.core.security import get_password_hash
+        from app.db.models import User
 
         user = User(
             email="webhook_fail@example.com",

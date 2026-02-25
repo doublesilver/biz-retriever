@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -15,9 +14,9 @@ class UserKeywordCreate(UserKeywordBase):
 
 
 class UserKeywordUpdate(BaseModel):
-    keyword: Optional[str] = None
-    category: Optional[str] = None
-    is_active: Optional[bool] = None
+    keyword: str | None = None
+    category: str | None = None
+    is_active: bool | None = None
 
 
 class UserKeywordResponse(UserKeywordBase):
@@ -30,4 +29,4 @@ class UserKeywordResponse(UserKeywordBase):
 
 
 class UserKeywordList(BaseModel):
-    items: List[UserKeywordResponse]
+    items: list[UserKeywordResponse]

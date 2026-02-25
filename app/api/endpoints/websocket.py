@@ -1,5 +1,4 @@
-from fastapi import (APIRouter, Depends, Query, WebSocket, WebSocketDisconnect,
-                     status)
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
 
 from app.core.logging import logger
 from app.core.security import get_current_user_from_token

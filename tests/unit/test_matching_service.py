@@ -5,11 +5,9 @@ HardMatchEngine: 3단계 매칭 검증 (지역/면허/실적)
 MatchingService: Hard + Soft + Semantic 통합 매칭
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from app.services.matching_service import HardMatchEngine, MatchingService
-
 
 # ============================================
 # Mock Factory Helpers

@@ -8,8 +8,6 @@
 import os
 from unittest.mock import patch
 
-import pytest
-
 
 class TestSettingsAssembly:
     """Settings URL 조합 로직 테스트"""

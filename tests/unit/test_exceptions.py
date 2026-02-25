@@ -5,8 +5,6 @@ Enterprise Exception 계층 단위 테스트
 - HTTP 상태코드/에러코드 매핑
 """
 
-import pytest
-
 from app.core.exceptions import (
     AccountLockedError,
     APIKeyError,
@@ -185,7 +183,6 @@ class TestExternalAPIDomainErrors:
 
 
 class TestFileProcessingError:
-
     def test_file_processing(self):
         err = FileProcessingError("test.pdf", "파싱 실패")
         assert err.filename == "test.pdf"
@@ -193,7 +190,6 @@ class TestFileProcessingError:
 
 
 class TestPaymentDomainErrors:
-
     def test_payment_error(self):
         err = PaymentError()
         assert err.error_code == "PAYMENT_ERROR"
@@ -204,7 +200,6 @@ class TestPaymentDomainErrors:
 
 
 class TestDatabaseError:
-
     def test_database_error(self):
         err = DatabaseError("INSERT", "connection refused")
         assert err.operation == "INSERT"

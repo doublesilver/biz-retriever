@@ -5,8 +5,7 @@
 import pytest
 
 from app.core.exceptions import WeakPasswordError
-from app.core.security import (get_password_hash, validate_password,
-                               verify_password)
+from app.core.security import get_password_hash, validate_password, verify_password
 
 
 def test_validate_password_strong():

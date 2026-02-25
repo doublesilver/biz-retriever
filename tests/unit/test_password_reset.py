@@ -6,13 +6,13 @@
 
 import secrets
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import get_password_hash, verify_password
+from app.core.security import verify_password
 from app.db.models import User
 
 
@@ -20,9 +20,7 @@ class TestPasswordResetRequest:
     """비밀번호 재설정 요청 (POST /auth/password-reset-request)"""
 
     @pytest.mark.asyncio
-    async def test_password_reset_request_existing_user(
-        self, async_client: AsyncClient, test_user: User
-    ):
+    async def test_password_reset_request_existing_user(self, async_client: AsyncClient, test_user: User):
         """존재하는 사용자에 대한 재설정 요청 - 성공 응답"""
         with patch("app.api.endpoints.auth.email_service") as mock_email:
             mock_email.is_configured.return_value = False
@@ -36,9 +34,7 @@ class TestPasswordResetRequest:
         assert "message" in data
 
     @pytest.mark.asyncio
-    async def test_password_reset_request_nonexistent_user(
-        self, async_client: AsyncClient
-    ):
+    async def test_password_reset_request_nonexistent_user(self, async_client: AsyncClient):
         """존재하지 않는 사용자 - 동일한 성공 응답 (Enumeration 방지)"""
         response = await async_client.post(
             "/api/v1/auth/password-reset-request",
@@ -50,9 +46,7 @@ class TestPasswordResetRequest:
         assert "message" in data
 
     @pytest.mark.asyncio
-    async def test_password_reset_request_invalid_email(
-        self, async_client: AsyncClient
-    ):
+    async def test_password_reset_request_invalid_email(self, async_client: AsyncClient):
         """잘못된 이메일 형식 - 422 Validation Error"""
         response = await async_client.post(
             "/api/v1/auth/password-reset-request",
@@ -126,9 +120,7 @@ class TestPasswordResetConfirm:
         assert response.status_code == 400
 
     @pytest.mark.asyncio
-    async def test_password_reset_confirm_invalid_token(
-        self, async_client: AsyncClient
-    ):
+    async def test_password_reset_confirm_invalid_token(self, async_client: AsyncClient):
         """존재하지 않는 토큰 - 400 에러"""
         response = await async_client.post(
             "/api/v1/auth/password-reset-confirm",

@@ -5,11 +5,9 @@ WebSocket 엔드포인트 통합 테스트
 - 토큰 없이 연결 시도
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.api.endpoints.websocket import websocket_endpoint
-from app.core.websocket import ConnectionManager
 
 
 class TestWebSocketEndpoint:
@@ -21,8 +19,7 @@ class TestWebSocketEndpoint:
         mock_ws.accept = AsyncMock()
         mock_ws.close = AsyncMock()
 
-        with patch("app.api.endpoints.websocket.get_current_user_from_token",
-                    AsyncMock(return_value=None)):
+        with patch("app.api.endpoints.websocket.get_current_user_from_token", AsyncMock(return_value=None)):
             await websocket_endpoint(websocket=mock_ws, token="invalid-token")
 
         mock_ws.accept.assert_awaited_once()
@@ -43,8 +40,7 @@ class TestWebSocketEndpoint:
         mock_manager.connect = AsyncMock()
         mock_manager.disconnect = MagicMock()
 
-        with patch("app.api.endpoints.websocket.get_current_user_from_token",
-                    AsyncMock(return_value=mock_user)):
+        with patch("app.api.endpoints.websocket.get_current_user_from_token", AsyncMock(return_value=mock_user)):
             with patch("app.api.endpoints.websocket.manager", mock_manager):
                 await websocket_endpoint(websocket=mock_ws, token="valid-token")
 
@@ -56,8 +52,9 @@ class TestWebSocketEndpoint:
         mock_ws = AsyncMock()
         mock_ws.close = AsyncMock()
 
-        with patch("app.api.endpoints.websocket.get_current_user_from_token",
-                    AsyncMock(side_effect=Exception("Auth error"))):
+        with patch(
+            "app.api.endpoints.websocket.get_current_user_from_token", AsyncMock(side_effect=Exception("Auth error"))
+        ):
             await websocket_endpoint(websocket=mock_ws, token="bad-token")
 
         mock_ws.close.assert_awaited_once()
@@ -67,7 +64,8 @@ class TestWebSocketEndpoint:
         mock_ws = AsyncMock()
         mock_ws.close = AsyncMock(side_effect=Exception("Already closed"))
 
-        with patch("app.api.endpoints.websocket.get_current_user_from_token",
-                    AsyncMock(side_effect=Exception("Auth error"))):
+        with patch(
+            "app.api.endpoints.websocket.get_current_user_from_token", AsyncMock(side_effect=Exception("Auth error"))
+        ):
             # Should not raise
             await websocket_endpoint(websocket=mock_ws, token="bad-token")

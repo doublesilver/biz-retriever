@@ -3,7 +3,7 @@ Rate Limiting Service
 Implements rate limiting for API endpoints
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 import redis
 from fastapi import HTTPException, Request
@@ -30,9 +30,7 @@ class RateLimiter:
         except Exception:
             self.enabled = False
 
-    def check_rate_limit(
-        self, key: str, max_requests: int = 10, window_seconds: int = 60
-    ) -> bool:
+    def check_rate_limit(self, key: str, max_requests: int = 10, window_seconds: int = 60) -> bool:
         """
         Check if request is within rate limit
 
