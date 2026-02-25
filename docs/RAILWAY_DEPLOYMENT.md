@@ -5,6 +5,40 @@
 - GitHub repository connected
 - Environment variables ready
 
+## Docker 구성
+
+### Multi-stage Build (3단계)
+
+| Stage | 용도 | 설명 |
+|-------|------|------|
+| `builder` | 의존성 빌드 | 가상환경 생성, pip install |
+| `runtime` | 프로덕션 | 최소 런타임, 비루트 사용자, tini PID 1 |
+| `development` | 개발/테스트 | pytest, ruff, mypy 포함 |
+
+### 주요 특징
+- **tini**: PID 1로 좀비 프로세스 방지, SIGTERM 시그널 올바르게 전달 (Graceful Shutdown)
+- **비루트 사용자**: `appuser` (UID 1000)로 컨테이너 실행
+- **헬스체크**: `curl -f http://localhost:${PORT}/health` (30초 간격)
+- **OCI 메타데이터**: 이미지 title, description, version, source 라벨
+
+## CI/CD Pipeline (GitHub Actions 5단계)
+
+`master` 브랜치 push 시 자동 실행:
+
+```
+lint → security → test → build → deploy
+```
+
+| 단계 | 도구 | 설명 |
+|------|------|------|
+| **Lint** | ruff, mypy | 코드 스타일 + 타입 체크 |
+| **Security** | bandit, pip-audit | 보안 취약점 + 의존성 스캔 |
+| **Test** | pytest | PostgreSQL/Redis 서비스 컨테이너에서 테스트 |
+| **Build** | Docker Buildx, Trivy | 이미지 빌드 + 취약점 스캔 |
+| **Deploy** | Railway CLI | 자동 배포 + 헬스체크 + Slack 알림 |
+
+설정 파일: `.github/workflows/ci.yml`
+
 ## Quick Deploy
 
 ### 1. Install Railway CLI
@@ -57,7 +91,9 @@ G2B_API_KEY=<your-g2b-api-key>
 GEMINI_API_KEY=<your-gemini-api-key>
 SLACK_WEBHOOK_URL=<your-slack-webhook>
 SLACK_CHANNEL=#입찰-알림
-ACCESS_TOKEN_EXPIRE_MINUTES=11520
+ACCESS_TOKEN_EXPIRE_MINUTES=15
+SENTRY_DSN=<your-sentry-dsn>
+ENVIRONMENT=production
 ```
 
 ## Post-Deployment
@@ -103,8 +139,10 @@ Upgrade resources in Railway dashboard under Settings > Resources
 ## Monitoring
 
 - **Metrics**: Railway dashboard > Metrics tab
-- **Logs**: `railway logs --tail`
-- **Health Check**: Add `/health` endpoint monitoring
+- **Logs**: `railway logs --tail` (structlog JSON 형식)
+- **Health Check**: `/health` 엔드포인트 (railway.toml에서 120초 타임아웃 설정)
+- **Error Tracking**: Sentry (환경변수 `SENTRY_DSN` 설정 필요)
+- **DB 백업**: GitHub Actions 자동화 (매일, `.github/workflows/db-backup.yml`)
 
 ## Cost Optimization
 

@@ -7,7 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.0] - 2026-02-24 (In Progress)
+## [2.0.0] - 2026-02-25 (Enterprise Upgrade)
+
+### Enterprise Infrastructure
+
+#### Added
+- **OWASP Top 10 보안 감사**: 전수 감사 수행, 12건 발견 → 10건 수정, 2건 권고사항 문서화
+- **보안 헤더 미들웨어** (`SecurityHeadersMiddleware`):
+  - `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection`, `Referrer-Policy`, `Permissions-Policy`
+  - Production 환경 HSTS 자동 적용
+- **Fail-closed 패턴**: Redis 장애 시 토큰 검증 거부 (재로그인으로 복구)
+- **CI/CD 파이프라인** (GitHub Actions 5단계):
+  1. Lint: ruff check + format, mypy type check
+  2. Security: bandit scan, pip-audit dependency scan
+  3. Test: pytest + coverage (PostgreSQL/Redis 서비스 컨테이너)
+  4. Build: Docker multi-stage build + Trivy 취약점 스캔
+  5. Deploy: Railway 자동 배포 (master 브랜치) + 헬스체크 + Slack 알림
+- **Docker 개선**: tini PID 1 (좀비 프로세스 방지, Graceful Shutdown), OCI 메타데이터
+- **structlog JSON 로깅** + **Sentry 통합**: 구조화된 로깅 및 에러 트래킹
+- **Tosspayments V2 결제**: 구독 라이프사이클, 과금 엔진 (인보이스), 결제 위젯
+- **디자인 시스템 v2.0**: Pretendard 폰트, 50-950 색상 스케일, MD3 다크모드
+- **WCAG 2.1 AA 접근성**: Skip navigation, focus-visible, 키보드 탐색
+- **DB 백업 자동화**: GitHub Actions 매일 자동 백업
+- **ruff 린터 도입**: black + flake8 + isort 통합 대체
+
+#### Changed
+- 테스트: 164개 → **955개** (100% pass, **95% coverage**)
+- 린터: black + flake8 + isort → **ruff**
+- 의존성 추가: structlog==24.4.0, sentry-sdk[fastapi]==2.14.0, tenacity==9.0.0
+- Backend 배포: Raspberry Pi → **Railway**
+
+---
+
+## [1.1.0] - 2026-02-24
 
 ### Enterprise Architecture Patterns
 
@@ -215,25 +247,20 @@ NAVER_REDIRECT_URI
 
 ## Known Issues
 
-### Non-Blocking
-- Pydantic Field deprecation warnings (cosmetic, will fix in v1.1.0)
-- LSP type hints in `security.py` (non-functional, will fix in v1.1.0)
-
-### Fixed in This Release
-- ✅ Token blacklist now properly checked on all authenticated requests
-- ✅ Database migration for security fields
-- ✅ Refresh token rotation working correctly
+### Fixed in v2.0.0
+- Token blacklist now properly checked on all authenticated requests
+- Database migration for security fields
+- Refresh token rotation working correctly
+- Pydantic Field deprecation warnings resolved
+- `security.py` Redis 클라이언트 함수명 불일치 수정
+- Fail-closed 패턴 적용 (Redis 장애 시 토큰 거부)
 
 ---
 
-## Upcoming Features (v1.1.0)
+## Upcoming Features (Stretch Goals)
 
-- Password reset functionality (email-based)
+- Password reset functionality (email-based, SendGrid)
 - Email verification for new accounts
-- Batch operations (bulk bid status updates)
-- Rate limiting on all endpoints
-- Service file consolidation (matching_service.py)
-- Database index optimization
 
 ---
 

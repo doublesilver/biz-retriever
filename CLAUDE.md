@@ -29,9 +29,9 @@
 - **서비스**: 입찰 공고 자동 수집 + Gemini AI 분석 시스템
 - **Stack**: FastAPI (Async) + SQLAlchemy 2.0 + PostgreSQL + Valkey + Taskiq
 - **Frontend**: Vanilla JS SPA (Vercel 배포) — https://biz-retriever.vercel.app
-- **Backend**: Raspberry Pi + Tailscale (Railway 이전 예정)
+- **Backend**: Railway (Docker + tini)
 - **AI**: Google Gemini 2.5 Flash + LangChain
-- **Tests**: 164/164 (100% pass), 85% coverage
+- **Tests**: 955/955 (100% pass), 95% coverage
 
 ## 핵심 경로
 
@@ -75,29 +75,28 @@ monitoring/           # Prometheus + Grafana
 - **Repository 레이어**: 데이터 접근만 (SQLAlchemy 쿼리)
 - **예외**: auth 엔드포인트는 보안 민감성으로 인해 Service 없이 직접 DB 접근 허용
 
-## 현재 상태 — v1.1.0 엔터프라이즈 고도화 진행중 (2026-02-24)
+## 현재 상태 — v2.0.0 Enterprise 완료 (2026-02-25)
 
-### 완료
+### 완료 (v1.1.0 ~ v2.0.0)
 - 불필요 문서 49개 삭제, README 리팩토링
 - Backend 보안 강화: JWT refresh token rotation, 계정 잠금(5회 실패 → 30분), 토큰 블랙리스트
 - OAuth2 소셜 로그인 제거 (Kakao/Naver) → email/password only
 - Frontend 보안 적용: token refresh 자동 갱신, 계정 잠금 UI, API URL config 분리
-- Railway 배포 설정: Dockerfile (multi-stage), railway.toml, start.sh
+- Railway 배포 설정: Dockerfile (multi-stage, tini), railway.toml, start.sh
 - DB migration: 사용자 보안 필드 추가 (`failed_login_attempts`, `locked_until`, `last_login_at`)
-- **엔터프라이즈 패턴**: 표준 API 응답 래퍼, 에러 계층 구조, 글로벌 에러 핸들링
+- **엔터프라이즈 패턴**: 표준 API 응답 래퍼(ApiResponse), 에러 계층 29개, 글로벌 에러 핸들링
+- **보안 감사**: OWASP Top 10 전수 감사 (12건 발견, 10건 수정), 보안 헤더 미들웨어, Fail-closed 패턴
+- **CI/CD**: GitHub Actions 5단계 파이프라인 (lint→security→test→build→deploy)
+- **결제**: Tosspayments V2 통합, 구독 라이프사이클, 과금 엔진 (인보이스)
+- **로깅**: structlog JSON + Sentry 통합
+- **디자인 시스템**: Pretendard, 50-950 색상 스케일, MD3 다크모드, WCAG 2.1 AA
+- **린터**: ruff (black + flake8 + isort 대체)
+- **DB 백업**: GitHub Actions 자동화 (매일)
+- **테스트**: 955개 통과, 95% 커버리지, 0 실패
 
-### 진행중
-- Railway 실제 배포 및 연동 테스트
-- Backend 버그 수정 (`security.py` Redis 클라이언트 함수명 불일치)
-- 코드 품질 개선 및 테스트 보강
-- 서비스 통합 (match_service + matching_service)
-- DB 복합 인덱스 추가
-- 엔터프라이즈 고도화 (결제 하드닝, CI/CD, 보안 감사, 디자인 시스템)
-
-### 남은 작업 (v1.1.0 범위)
-- Frontend API URL을 Railway 도메인으로 전환 (config.js 수정)
-- Password reset (SendGrid) — stretch goal
-- Email verification — stretch goal
+### 향후 고려 (Stretch Goals)
+- Password reset (SendGrid)
+- Email verification
 
 ## 코딩 컨벤션
 

@@ -1,6 +1,37 @@
-# Biz-Retriever 보안 강화 가이드 (Raspberry Pi)
+# Biz-Retriever 보안 가이드
 
-라즈베리파이를 공용 인터넷(Tailscale Funnel 등)에 연결할 때 반드시 고려해야 할 보안 체크리스트입니다.
+프로덕션 환경(Railway Docker)에서의 보안 체크리스트입니다.
+
+## 0. OWASP Top 10 감사 현황 (v2.0.0)
+
+전체 OWASP Top 10 카테고리에 대한 전수 감사 완료. 상세 보고서: `docs/SECURITY_AUDIT_OWASP_2026.md`
+
+| 심각도 | 발견 | 수정 | 미수정(권고) |
+|--------|------|------|-------------|
+| Critical | 2 | 2 | 0 |
+| High | 4 | 4 | 0 |
+| Medium | 4 | 4 | 0 |
+| Low | 2 | 0 | 2 |
+| **Total** | **12** | **10** | **2** |
+
+### 보안 헤더 미들웨어 (`SecurityHeadersMiddleware`)
+
+모든 HTTP 응답에 자동 적용:
+
+| 헤더 | 값 | 목적 |
+|------|-----|------|
+| `X-Content-Type-Options` | `nosniff` | MIME 스니핑 방지 |
+| `X-Frame-Options` | `DENY` | 클릭재킹 방지 |
+| `X-XSS-Protection` | `1; mode=block` | XSS 필터 |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | 리퍼러 정보 제한 |
+| `Permissions-Policy` | `camera=(), microphone=()` | 브라우저 API 제한 |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | HTTPS 강제 (Production) |
+
+### Fail-closed 패턴
+
+Redis 장애 시 토큰 블랙리스트 검증이 **거부(fail-closed)** 로 동작합니다.
+- 장애 시: 모든 토큰 요청 거부 (사용자는 재로그인으로 복구)
+- 이유: 탈취된 토큰으로의 무단 접근 차단이 가용성보다 우선
 
 ## 1. 계정 및 접속 보안 (SSH)
 
@@ -35,7 +66,12 @@
 *   **Postgres 비밀번호 강화**:
     *   운영 환경에서는 초기 비밀번호 대신 복잡한 무작위 문자열을 사용하세요.
 *   **Docker 컨테이너 권한**:
-    *   가능하다면 Docker 컨테이너 내부 프로세스를 `root`가 아닌 일반 사용자 권한으로 실행하세요.
+    *   비루트 사용자(`appuser`, UID 1000)로 실행 (Dockerfile에 적용 완료)
+    *   tini를 PID 1로 사용하여 시그널 올바르게 전달
+*   **CI/CD 보안 스캔**:
+    *   bandit: Python 코드 보안 취약점 스캔
+    *   pip-audit: 의존성 취약점 스캔
+    *   Trivy: Docker 이미지 취약점 스캔 (CRITICAL, HIGH)
 
 ## 4. 시스템 운영 및 유지보수
 
@@ -53,5 +89,19 @@
 *   **MicroSD 카드 수명**:
     *   잦은 로그 쓰기는 SD 카드를 손상시킵니다. 쓰기 작업이 많은 경우 SSD 연결(USB 3.0)을 권장합니다.
 
+## 6. 인증 및 토큰 보안
+
+*   **Access Token**: 15분 만료 (99.87% 감소: 기존 8일 → 15분)
+*   **Refresh Token**: 30일 만료, 갱신 시 rotation (이전 토큰 블랙리스트)
+*   **토큰 블랙리스트**: Redis 기반, TTL 자동 만료
+*   **계정 잠금**: 5회 로그인 실패 → 30분 잠금
+*   **비밀번호 정책**: 8자 이상, 대/소문자, 숫자, 특수문자 필수
+
+## 7. 에러 계층 보안
+
+*   구조화된 에러 계층 29개 (`app/core/exceptions.py`)
+*   Production 환경에서 Catch-all 핸들러가 에러 상세 숨김
+*   도메인별 에러 코드 (`AUTH_*`, `BID_*`, `CRAWLER_*`, `PAYMENT_*`)
+
 ---
-*Last Updated: 2026-01-28*
+*Last Updated: 2026-02-25*

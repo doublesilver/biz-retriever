@@ -2,8 +2,44 @@
 
 ## 개요
 
-Prometheus + Grafana + Alertmanager를 사용한 실시간 모니터링 시스템입니다.
-라즈베리파이 4GB RAM 환경에 최적화되어 있습니다.
+**structlog JSON 로깅 + Sentry 에러 트래킹 + Prometheus + Grafana + Alertmanager**를 사용한 실시간 모니터링 시스템입니다.
+
+## Application-level 로깅 (v2.0.0 추가)
+
+### structlog JSON 로깅
+
+구조화된 JSON 로그를 통해 검색, 필터링, 집계가 용이합니다.
+
+- **설정**: `app/core/logging.py`
+- **패키지**: `structlog==24.4.0`
+- **형식**: JSON (timestamp, level, event, context)
+
+```python
+# 사용 예시
+import structlog
+logger = structlog.get_logger()
+logger.info("bid_crawled", bid_id=123, source="g2b", count=50)
+```
+
+### Sentry 에러 트래킹
+
+실시간 에러 수집, 성능 모니터링, 릴리즈 추적을 제공합니다.
+
+- **설정**: `app/core/sentry.py`
+- **패키지**: `sentry-sdk[fastapi]==2.14.0`
+- **필수 환경변수**: `SENTRY_DSN`, `ENVIRONMENT`, `SENTRY_RELEASE`
+
+```bash
+# .env 파일
+SENTRY_DSN=https://xxx@sentry.io/xxx
+ENVIRONMENT=production
+SENTRY_RELEASE=2.0.0
+```
+
+**주요 기능**:
+- FastAPI 자동 통합 (요청/응답 추적)
+- `BizRetrieverError` 계층과 연동 (에러 코드별 그룹화)
+- Release tracking (배포 버전별 에러 추적)
 
 ## 아키텍처
 
@@ -129,7 +165,7 @@ Grafana 로그인 후 자동으로 "Biz-Retriever Dashboard"가 프로비저닝�
 #### 하단 메트릭 (Gauges & Stats)
 - **Cache Hit Rate**: 캐시 히트율 (게이지)
 - **Notifications Sent (24h)**: 일일 알림 발송 수
-- **Celery Tasks (24h)**: 일일 Celery 작업 완료 수
+- **Taskiq Tasks (24h)**: 일일 Taskiq 작업 완료 수
 
 ### 3. 시간 범위 변경
 우측 상단 시간 선택기에서 조정:
@@ -157,7 +193,7 @@ Grafana 로그인 후 자동으로 "Biz-Retriever Dashboard"가 프로비저닝�
 - **SlowDatabaseQueries**: P95 쿼리 시간 > 1초
 - **HighRedisMemory**: Redis 메모리 > 180MB
 - **LowCacheHitRate**: 캐시 히트율 < 70%
-- **HighCeleryTaskFailureRate**: Celery 실패율 > 10%
+- **HighTaskFailureRate**: Taskiq 실패율 > 10%
 
 ### 2. Slack 채널 설정
 
