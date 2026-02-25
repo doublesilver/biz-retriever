@@ -4,7 +4,7 @@
 
 from typing import List
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Path
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +13,7 @@ from app.core.logging import logger
 from app.core.security import get_current_user
 from app.db.models import User
 from app.services.keyword_service import keyword_service
+from app.services.rate_limiter import limiter
 
 router = APIRouter()
 
@@ -24,7 +25,9 @@ class KeywordRequest(BaseModel):
 
 
 @router.post("/keywords")
+@limiter.limit("20/minute")
 async def add_exclude_keyword(
+    http_request: Request,
     request: KeywordRequest,
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(get_current_user),
@@ -43,8 +46,11 @@ async def add_exclude_keyword(
 
 
 @router.get("/keywords")
+@limiter.limit("30/minute")
 async def get_exclude_keywords(
-    active_only: bool = True, db: AsyncSession = Depends(deps.get_db)
+    request: Request,
+    active_only: bool = True,
+    db: AsyncSession = Depends(deps.get_db),
 ):
     """
     제외 키워드 목록 조회
@@ -60,7 +66,9 @@ async def get_exclude_keywords(
 
 
 @router.delete("/keywords/{keyword}")
+@limiter.limit("20/minute")
 async def remove_exclude_keyword(
+    request: Request,
     keyword: str = Path(..., min_length=1, max_length=50, description="삭제할 키워드"),
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(get_current_user),

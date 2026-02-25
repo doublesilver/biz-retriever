@@ -1,3 +1,12 @@
+"""
+ML Service 단위 테스트
+- 학습/예측 플로우
+- 데이터 부족 처리
+- 모델 미학습 에러
+
+sklearn/joblib이 설치되지 않은 환경에서는 skip
+"""
+
 import os
 from unittest.mock import AsyncMock, MagicMock
 
@@ -6,6 +15,21 @@ import pytest
 from app.core.exceptions import InsufficientDataError, ModelNotTrainedError
 from app.db.models import BidResult
 from app.services.ml_service import MLService
+
+try:
+    import joblib
+    import numpy
+    import pandas
+    import sklearn
+
+    HAS_ML_DEPS = True
+except ImportError:
+    HAS_ML_DEPS = False
+
+ml_deps_required = pytest.mark.skipif(
+    not HAS_ML_DEPS,
+    reason="ML dependencies (sklearn, joblib, pandas, numpy) not installed",
+)
 
 
 @pytest.fixture
@@ -30,6 +54,7 @@ def ml_service():
     MLService.MODEL_PATH = original_path
 
 
+@ml_deps_required
 @pytest.mark.asyncio
 async def test_train_model_insufficient_data(ml_service, mock_db_session):
     """데이터 부족 시 InsufficientDataError 발생"""
@@ -42,6 +67,7 @@ async def test_train_model_insufficient_data(ml_service, mock_db_session):
         await ml_service.train_model(mock_db_session)
 
 
+@ml_deps_required
 @pytest.mark.asyncio
 async def test_train_and_predict_flow(ml_service, mock_db_session):
     """학습 및 예측 플로우 테스트"""
@@ -89,6 +115,7 @@ async def test_predict_without_trained_model(ml_service):
         ml_service.predict_price(estimated_price=10000)
 
 
+@ml_deps_required
 @pytest.mark.asyncio
 async def test_predict_returns_required_fields(ml_service, mock_db_session):
     """예측 결과가 필수 필드를 포함하는지 확인"""

@@ -4,7 +4,7 @@ AI 분석 API 엔드포인트 (Phase 3)
 
 import asyncio
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,12 +14,15 @@ from app.core.security import get_current_user
 from app.db.models import BidAnnouncement, User
 from app.db.session import get_db
 from app.services.ml_service import ml_predictor
+from app.services.rate_limiter import limiter
 
 router = APIRouter()
 
 
 @router.get("/predict-price/{announcement_id}")
+@limiter.limit("20/minute")
 async def predict_winning_price(
+    request: Request,
     announcement_id: int = Path(..., ge=1, description="공고 ID (양수)"),
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -79,7 +82,9 @@ async def predict_winning_price(
 
 
 @router.get("/match/{announcement_id}")
+@limiter.limit("30/minute")
 async def check_match(
+    request: Request,
     announcement_id: int = Path(..., ge=1, description="공고 ID (양수)"),
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -135,7 +140,9 @@ class SmartSearchRequest(BaseModel):
 
 
 @router.post("/smart-search")
+@limiter.limit("10/minute")
 async def smart_search(
+    http_request: Request,
     request: SmartSearchRequest,
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -194,8 +201,6 @@ async def smart_search(
 
         return {"query": request.query, "results": top_results}
     except Exception as e:
-        import traceback
-
-        error_msg = f"Smart Search Error: {str(e)}\n{traceback.format_exc()}"
-        logger.error(error_msg)
-        return {"error": str(e), "traceback": traceback.format_exc(), "results": []}
+        logger.error(f"Smart Search Error: {str(e)}", exc_info=True)
+        # A03: 트레이스백을 클라이언트에 노출하지 않음
+        return {"error": "검색 처리 중 오류가 발생했습니다.", "results": []}

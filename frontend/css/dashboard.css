@@ -1,46 +1,69 @@
-/* Dashboard Specific Styles */
+/* ============================================
+   Biz-Retriever Dashboard Styles v2.0
+   Production-grade layout for dashboard page
+   Uses Design System tokens from variables.css
+   ============================================ */
 
+/* ============================================
+   LAYOUT
+   ============================================ */
 .container {
     max-width: 1400px;
     margin: 0 auto;
-    padding: var(--spacing-md);  /* KRDS 표준 여백 (24px) */
+    padding: var(--spacing-6);
 }
 
 .section {
-    margin-bottom: var(--spacing-md);  /* KRDS 표준 여백 (24px) */
+    margin-bottom: var(--spacing-6);
 }
 
 .section-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--spacing-md);  /* KRDS 표준 여백 (24px) */
+    margin-bottom: var(--spacing-6);
 }
 
+.section-header h1,
 .section-header h2 {
     font-size: var(--font-size-2xl);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    letter-spacing: var(--letter-spacing-tight);
 }
 
-/* Icon Buttons - KRDS 정부24 스타일 */
+.section-header p {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-top: var(--spacing-1-5);
+}
+
+/* ============================================
+   ICON BUTTONS (Dashboard-specific overrides)
+   ============================================ */
 .btn-icon {
-    width: 4.8rem;  /* KRDS 소형 버튼 (48px) */
-    height: 4.8rem;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
-    background: rgba(255, 255, 255, 0.1);  /* navbar 내에서 사용 시 흰색 배경 */
-    font-size: 1.25rem;
-    transition: background-color var(--transition-fast);
-    color: white;
+    border-radius: var(--radius-lg);
+    background: transparent;
+    font-size: 1.15rem;
+    transition:
+        background var(--duration-150) var(--ease-in-out),
+        color var(--duration-150) var(--ease-in-out);
+    color: var(--slate-400);
 }
 
 .btn-icon:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
 }
 
-/* User Menu */
+/* ============================================
+   USER MENU
+   ============================================ */
 .user-menu {
     position: relative;
 }
@@ -49,11 +72,11 @@
     position: absolute;
     top: 100%;
     right: 0;
-    margin-top: var(--spacing-sm);
+    margin-top: var(--spacing-2);
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
-    box-shadow: var(--card-shadow-lg);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
     min-width: 150px;
     display: none;
     z-index: var(--z-dropdown);
@@ -61,112 +84,137 @@
 
 .dropdown-menu.show {
     display: block;
-    animation: fadeIn var(--transition-fast);
+    animation: fadeIn var(--duration-150) var(--ease-out);
 }
 
 .dropdown-menu button {
     width: 100%;
-    padding: var(--spacing-md);
+    padding: var(--spacing-3) var(--spacing-4);
     text-align: left;
-    transition: background var(--transition-fast);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    transition: background var(--duration-150) var(--ease-in-out);
 }
 
 .dropdown-menu button:hover {
-    background: var(--bg-secondary);
+    background: var(--bg-hover);
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(-10px);
+        transform: translateY(-6px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
     }
 }
 
-/* Filters */
+/* ============================================
+   FILTERS
+   ============================================ */
 .filters {
     display: flex;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-xl);
+    gap: var(--spacing-3);
+    margin-bottom: var(--spacing-6);
     flex-wrap: wrap;
 }
 
 .search-input {
     flex: 1;
     min-width: 250px;
-    height: 5.6rem;  /* KRDS 중형 입력 (56px) */
-    padding: 0 var(--spacing-sm);
+    height: var(--input-height-lg);
+    padding: 0 var(--spacing-4);
     border: 1.5px solid var(--border-color);
-    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
-    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    background: var(--input-bg);
     color: var(--text-primary);
-    transition: all var(--transition-fast);
+    font-size: var(--font-size-sm);
+    transition:
+        border-color var(--duration-150) var(--ease-in-out),
+        box-shadow var(--duration-150) var(--ease-in-out);
+}
+
+.search-input:hover {
+    border-color: var(--border-color-strong);
 }
 
 .search-input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: var(--focus-ring);
 }
 
 .filter-select {
-    height: 5.6rem;  /* KRDS 중형 입력 (56px) */
-    padding: 0 var(--spacing-sm);
+    height: var(--input-height-lg);
+    padding: 0 var(--spacing-4);
     border: 1.5px solid var(--border-color);
-    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
-    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    background: var(--input-bg);
     color: var(--text-primary);
+    font-size: var(--font-size-sm);
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition:
+        border-color var(--duration-150) var(--ease-in-out),
+        box-shadow var(--duration-150) var(--ease-in-out);
+}
+
+.filter-select:hover {
+    border-color: var(--border-color-strong);
 }
 
 .filter-select:focus {
     outline: none;
     border-color: var(--primary);
+    box-shadow: var(--focus-ring);
 }
 
-/* Bids List */
+/* ============================================
+   BIDS LIST
+   ============================================ */
 .bids-list {
     display: grid;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-4);
 }
 
 .loading-container {
     text-align: center;
-    padding: var(--spacing-2xl);
+    padding: var(--spacing-12);
     color: var(--text-secondary);
 }
 
 .empty-state {
     text-align: center;
-    padding: var(--spacing-2xl);
+    padding: var(--spacing-12);
     color: var(--text-secondary);
 }
 
 .empty-state-icon {
-    font-size: 4rem;
-    margin-bottom: var(--spacing-md);
+    font-size: 3.5rem;
+    margin-bottom: var(--spacing-4);
+    opacity: 0.5;
 }
 
-/* Bid Card - KRDS 정부24 스타일 */
+/* ============================================
+   BID CARD
+   ============================================ */
 .bid-card {
-    background: var(--bg-primary);
-    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
-    padding: var(--spacing-md);  /* KRDS 표준 여백 (24px) */
-    border: 1px solid var(--gray-200);
-    border-left: 4px solid var(--gray-300);
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    transition: box-shadow var(--transition-base), border-color var(--transition-base);
+    background: var(--card-bg);
+    border-radius: var(--card-radius);
+    padding: var(--spacing-5) var(--spacing-6);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--slate-300);
+    box-shadow: var(--card-shadow);
+    transition:
+        box-shadow var(--duration-200) var(--ease-in-out),
+        border-color var(--duration-200) var(--ease-in-out);
     cursor: pointer;
 }
 
 .bid-card:hover {
-    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
-    border-left-width: 5px;  /* transform 대신 테두리 강조 */
+    box-shadow: var(--card-shadow-hover);
+    border-left-width: 5px;
 }
 
 .bid-card.priority-high {
@@ -185,79 +233,88 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-3);
 }
 
 .bid-priority {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     line-height: 1;
 }
 
 .bid-status {
     font-size: var(--font-size-xs);
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-sm);
-    background: var(--gray-100);
-    color: var(--gray-700);
+    padding: var(--spacing-0-5) var(--spacing-2);
+    border-radius: var(--radius-full);
+    background: var(--slate-100);
+    color: var(--slate-700);
+    font-weight: var(--font-weight-medium);
 }
 
 .bid-title {
     font-size: var(--font-size-lg);
-    font-weight: 600;
-    margin-bottom: var(--spacing-sm);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-2);
     color: var(--text-primary);
+    line-height: var(--line-height-snug);
 }
 
 .bid-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--spacing-md);
+    gap: var(--spacing-4);
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-3);
 }
 
 .bid-meta-item {
     display: flex;
     align-items: center;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-1-5);
 }
 
 .bid-summary {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
-    line-height: 1.6;
-    margin-bottom: var(--spacing-sm);
-    padding: var(--spacing-sm);  /* KRDS 표준 여백 (16px) */
+    line-height: var(--line-height-relaxed);
+    margin-bottom: var(--spacing-3);
+    padding: var(--spacing-3) var(--spacing-4);
     background: var(--bg-secondary);
-    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
+    border-radius: var(--radius-lg);
     border-left: 3px solid var(--primary);
 }
 
 .bid-keywords {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-1-5);
 }
 
-/* Pagination */
+/* ============================================
+   PAGINATION
+   ============================================ */
 .pagination {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: var(--spacing-sm);
-    margin-top: var(--spacing-xl);
+    gap: var(--spacing-2);
+    margin-top: var(--spacing-8);
 }
 
 .pagination button {
-    min-width: 4.8rem;  /* KRDS 소형 버튼 (48px) */
-    height: 4.8rem;
-    padding: 0 var(--spacing-sm);
+    min-width: 40px;
+    height: 40px;
+    padding: 0 var(--spacing-3);
     border: 1.5px solid var(--border-color);
-    border-radius: var(--radius-lg);  /* KRDS 표준 (8px) */
+    border-radius: var(--radius-lg);
     background: var(--bg-primary);
     color: var(--text-primary);
-    transition: all var(--transition-fast);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    transition:
+        background var(--duration-150) var(--ease-in-out),
+        border-color var(--duration-150) var(--ease-in-out),
+        color var(--duration-150) var(--ease-in-out);
 }
 
 .pagination button:hover:not(:disabled) {
@@ -267,7 +324,7 @@
 }
 
 .pagination button:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
 }
 
@@ -275,18 +332,60 @@
     background: var(--primary);
     color: white;
     border-color: var(--primary);
+    box-shadow: var(--shadow-primary-sm);
 }
 
-/* Responsive - KRDS 정부24 */
+/* ============================================
+   FORM CONTROLS (Dashboard-specific)
+   ============================================ */
+.form-control {
+    width: 100%;
+    height: var(--input-height-md);
+    padding: 0 var(--spacing-3-5);
+    border: 1.5px solid var(--input-border);
+    border-radius: var(--radius-lg);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    transition:
+        border-color var(--duration-150) var(--ease-in-out),
+        box-shadow var(--duration-150) var(--ease-in-out);
+}
+
+.form-control:hover {
+    border-color: var(--border-color-strong);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--input-border-focus);
+    box-shadow: var(--focus-ring);
+}
+
+.form-group {
+    margin-bottom: var(--spacing-5);
+}
+
+.form-group label {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-1-5);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
 @media (max-width: 768px) {
     .container {
-        padding: var(--spacing-sm);  /* KRDS 표준 여백 (16px) */
+        padding: var(--spacing-4);
     }
 
     .section-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: var(--spacing-sm);
+        gap: var(--spacing-2);
     }
 
     .filters {
@@ -299,5 +398,10 @@
 
     .bid-meta {
         flex-direction: column;
+        gap: var(--spacing-2);
+    }
+
+    .bid-card {
+        padding: var(--spacing-4) var(--spacing-5);
     }
 }

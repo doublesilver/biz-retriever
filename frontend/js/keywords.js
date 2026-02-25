@@ -125,12 +125,8 @@ function setupLogout() {
         userDropdown?.classList.remove('show');
     });
 
-    // Logout button
+    // Logout (POST /api/v1/auth/logout 호출 후 로컬 토큰 삭제)
     document.getElementById('logoutBtn')?.addEventListener('click', () => {
-        localStorage.removeItem('token');
-        utils.showToast('로그아웃되었습니다', 'success');
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 500);
+        API.logout();
     });
 }

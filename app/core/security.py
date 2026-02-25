@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timedelta
-from typing import Any, Union
+from typing import Any
 
 import bcrypt
 from fastapi import Depends, HTTPException, status
@@ -52,7 +52,7 @@ def validate_password(password: str) -> None:
 
 
 def create_access_token(
-    subject: Union[str, Any], expires_delta: timedelta | None = None
+    subject: str | Any, expires_delta: timedelta | None = None
 ) -> str:
     """
     JWT Access Token 생성
@@ -62,15 +62,16 @@ def create_access_token(
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        # 보안 강화: 60분 → 15분으로 단축
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(
+            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
 
     to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def create_refresh_token(subject: Union[str, Any]) -> str:
+def create_refresh_token(subject: str | Any) -> str:
     """
     JWT Refresh Token 생성
 
@@ -83,7 +84,7 @@ def create_refresh_token(subject: Union[str, Any]) -> str:
     return encoded_jwt
 
 
-def create_token_pair(subject: Union[str, Any]) -> dict[str, str]:
+def create_token_pair(subject: str | Any) -> dict[str, str]:
     """
     Access Token + Refresh Token 쌍 생성
 
@@ -139,7 +140,7 @@ async def get_current_user(
 
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
+        email: str | None = payload.get("sub")
         if email is None:
             raise credentials_exception
     except JWTError:
@@ -150,13 +151,13 @@ async def get_current_user(
     user = result.scalar_one_or_none()
 
     if user is None:
-        logger.warning(f"User not found: {email}")
+        logger.warning("User not found for token subject")
         raise credentials_exception
 
     return user
 
 
-async def get_current_user_from_token(token: str) -> Union[User, None]:
+async def get_current_user_from_token(token: str) -> User | None:
     """
     WebSocket용 토큰 검증 함수 (Depends 사용 불가)
     """
@@ -164,7 +165,7 @@ async def get_current_user_from_token(token: str) -> Union[User, None]:
 
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
+        email: str | None = payload.get("sub")
         if email is None:
             return None
     except JWTError:
@@ -198,8 +199,8 @@ async def verify_refresh_token(refresh_token: str, session: AsyncSession) -> Use
 
     try:
         payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        token_type: str = payload.get("type")
+        email: str | None = payload.get("sub")
+        token_type: str | None = payload.get("type")
 
         # Refresh Token인지 확인
         if token_type != "refresh":
@@ -218,7 +219,7 @@ async def verify_refresh_token(refresh_token: str, session: AsyncSession) -> Use
     user = result.scalar_one_or_none()
 
     if user is None:
-        logger.warning("User not found: %s", email)
+        logger.warning("User not found for refresh token subject")
         raise credentials_exception
 
     return user
@@ -233,7 +234,7 @@ async def blacklist_token(token: str, token_type: str = "access") -> None:
         token_type: "access" or "refresh"
     """
     try:
-        from app.core.cache import get_redis_client
+        from app.core.cache import get_redis
 
         # Decode token to get expiry time
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
@@ -246,7 +247,7 @@ async def blacklist_token(token: str, token_type: str = "access") -> None:
 
             if ttl > 0:
                 # Store in Redis with TTL matching token expiry
-                redis_client = get_redis_client()
+                redis_client = await get_redis()
                 key = f"blacklist:{token_type}:{token}"
                 await redis_client.setex(key, ttl, "1")
                 logger.info(f"Token blacklisted: {token_type}, TTL: {ttl}s")
@@ -267,12 +268,15 @@ async def is_token_blacklisted(token: str, token_type: str = "access") -> bool:
         True if blacklisted, False otherwise
     """
     try:
-        from app.core.cache import get_redis_client
+        from app.core.cache import get_redis
 
-        redis_client = get_redis_client()
+        redis_client = await get_redis()
         key = f"blacklist:{token_type}:{token}"
         result = await redis_client.get(key)
         return result is not None
     except Exception as e:
         logger.error(f"Failed to check token blacklist: {e}")
-        return False  # Fail open - allow request if Redis is down
+        # A02/A07: Fail closed - Redis 장애 시 안전하게 거부
+        # 토큰 블랙리스트 확인이 불가하면 탈취된 토큰이 사용될 수 있으므로
+        # 보안을 우선하여 요청을 거부한다. 클라이언트는 재로그인하면 된다.
+        return True

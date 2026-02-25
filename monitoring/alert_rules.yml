@@ -142,30 +142,30 @@ groups:
           summary: "크롤러가 2시간 이상 실행되지 않았습니다"
           description: "{{ $labels.source }} 크롤러 마지막 실행: {{ $value | humanizeDuration }}초 전"
 
-  - name: celery_alerts
+  - name: taskiq_alerts
     interval: 30s
     rules:
-      # Celery 작업 실패율 > 10%
-      - alert: HighCeleryTaskFailureRate
+      # Taskiq 작업 실패율 > 10%
+      - alert: HighTaskiqTaskFailureRate
         expr: |
           (sum(rate(celery_tasks_total{status="failure"}[5m])) / sum(rate(celery_tasks_total[5m]))) > 0.1
         for: 10m
         labels:
           severity: warning
-          component: celery
+          component: taskiq
         annotations:
-          summary: "Celery 작업 실패율이 높습니다 (> 10%)"
+          summary: "Taskiq 작업 실패율이 높습니다 (> 10%)"
           description: "현재 실패율: {{ $value | humanizePercentage }}"
 
-      # Celery 큐 대기 작업 > 100개
-      - alert: HighCeleryQueueLength
+      # Taskiq 큐 대기 작업 > 100개
+      - alert: HighTaskiqQueueLength
         expr: celery_queue_length > 100
         for: 10m
         labels:
           severity: warning
-          component: celery
+          component: taskiq
         annotations:
-          summary: "Celery 큐에 대기 중인 작업이 많습니다"
+          summary: "Taskiq 큐에 대기 중인 작업이 많습니다"
           description: "{{ $labels.queue_name }} 큐 대기 작업: {{ $value }}개"
 
   - name: system_alerts

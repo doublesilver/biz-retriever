@@ -1,17 +1,33 @@
+# ==========================================================
+# Integration & E2E Tests
+# ==========================================================
+# 학습 노트:
+#
+# 통합 테스트 vs 단위 테스트:
+# - 단위 테스트: 함수 하나만 독립적으로 검증 (CI에서 매번 실행)
+# - 통합 테스트: 여러 컴포넌트가 연동되는지 검증 (주 1회 + 수동)
+# - E2E 테스트: 실제 사용자 시나리오대로 전체 흐름 검증
+#
+# 통합 테스트는 외부 API 키가 필요하므로 secrets 사용.
+# 주간 실행 + 수동 트리거로 리소스 절약.
+# ==========================================================
+
 name: Integration Tests
 
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 0'  # Weekly on Sunday
+    - cron: "0 0 * * 0" # Weekly on Sunday
 
 permissions:
   contents: read
 
 jobs:
   integration-test:
+    name: Integration & E2E
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 20
+
     services:
       postgres:
         image: postgres:15-alpine
@@ -26,50 +42,58 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      
+
       redis:
         image: redis:7-alpine
         ports:
           - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Run integration tests
-      env:
-        POSTGRES_SERVER: localhost
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: password
-        POSTGRES_DB: bizmatch_test
-        POSTGRES_PORT: 5432
-        REDIS_HOST: localhost
-        REDIS_PORT: 6379
-        SECRET_KEY: test_secret_key_for_ci
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        G2B_API_KEY: ${{ secrets.G2B_API_KEY }}
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      run: |
-        pytest tests/integration/ -v --maxfail=5
-    
-    - name: Run E2E tests
-      env:
-        POSTGRES_SERVER: localhost
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: password
-        POSTGRES_DB: bizmatch_test
-        POSTGRES_PORT: 5432
-        REDIS_HOST: localhost
-        REDIS_PORT: 6379
-        SECRET_KEY: test_secret_key_for_ci
-      run: |
-        pytest tests/e2e/ -v --maxfail=3 || true
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run integration tests
+        env:
+          POSTGRES_SERVER: localhost
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: bizmatch_test
+          POSTGRES_PORT: "5432"
+          REDIS_HOST: localhost
+          REDIS_PORT: "6379"
+          SECRET_KEY: test_secret_key_for_ci_do_not_use_in_production
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          G2B_API_KEY: ${{ secrets.G2B_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          ENVIRONMENT: test
+        run: |
+          pytest tests/integration/ -v --maxfail=5 --tb=short
+
+      - name: Run E2E tests
+        env:
+          POSTGRES_SERVER: localhost
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: bizmatch_test
+          POSTGRES_PORT: "5432"
+          REDIS_HOST: localhost
+          REDIS_PORT: "6379"
+          SECRET_KEY: test_secret_key_for_ci_do_not_use_in_production
+          ENVIRONMENT: test
+        run: |
+          pytest tests/e2e/ -v --maxfail=3 --tb=short || true

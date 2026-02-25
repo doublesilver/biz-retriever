@@ -1,0 +1,46 @@
+# Version control
+.git
+.gitignore
+
+# Environment files
+.env
+.env.*
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# IDE
+.vscode
+.idea
+
+# Frontend (separate Vercel deployment)
+frontend
+
+# Documentation
+docs
+*.md
+!requirements.txt
+
+# Monitoring (Raspberry Pi specific)
+monitoring
+nginx
+
+# Tests (not needed in production image)
+tests
+
+# Docker Compose (local only)
+docker-compose*.yml
+
+# Logs
+logs
+
+# Claude
+.claude
+CLAUDE.md
+HANDOFF.md

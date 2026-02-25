@@ -5,17 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Biz-Retriever - 입찰 공고 자동 수집 플랫폼</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/variables.css?v=v3">
-    <link rel="stylesheet" href="css/reset.css?v=v3">
-    <link rel="stylesheet" href="css/components.css?v=v3">
-    <link rel="stylesheet" href="css/main.css?v=v3">
+    <link rel="stylesheet" href="css/variables.css?v=v4">
+    <link rel="stylesheet" href="css/reset.css?v=v4">
+    <link rel="stylesheet" href="css/components.css?v=v4">
+    <link rel="stylesheet" href="css/main.css?v=v4">
+    <link rel="stylesheet" href="css/accessibility.css?v=v4">
 </head>
 
 <body>
-    <div class="login-container">
+    <!-- Skip Navigation -->
+    <a href="#loginForm" class="skip-link">로그인 폼으로 건너뛰기</a>
+
+    <main class="login-container" role="main">
         <div class="login-info">
             <div class="info-content">
                 <div class="info-logo">
@@ -31,23 +32,23 @@
                     <p>B2B 기업들이 신뢰하는 정부 조달 기회 모니터링 및 분석 플랫폼으로,<br>군사급 암호화로 안전하게 보호됩니다.</p>
                 </div>
 
-                <ul class="feature-list">
+                <ul class="feature-list" aria-label="주요 기능">
                     <li>
-                        <span>🔍</span>
+                        <span aria-hidden="true">🔍</span>
                         <div>
                             <h4>24/7 실시간 모니터링</h4>
                             <p>정부 포털의 자동화된 스캔과 AI 기반 즉시 알림</p>
                         </div>
                     </li>
                     <li>
-                        <span>✅</span>
+                        <span aria-hidden="true">✅</span>
                         <div>
                             <h4>AI 매칭 스코어링</h4>
                             <p>지능형 알고리즘이 입찰 요구사항과 귀사의 역량을 분석</p>
                         </div>
                     </li>
                     <li>
-                        <span>🔒</span>
+                        <span aria-hidden="true">🔒</span>
                         <div>
                             <h4>엔터프라이즈 보안</h4>
                             <p>SOC 2 Type II 인증 및 종단간 암호화</p>
@@ -105,18 +106,18 @@
             </button>
 
             <p class="footer-text">
-                포트폴리오 프로젝트 · <a href="https://github.com/doublesilver/biz-retriever" target="_blank">GitHub</a>
+                포트폴리오 프로젝트 · <a href="https://github.com/doublesilver/biz-retriever" target="_blank" rel="noopener noreferrer">GitHub<span class="sr-only"> (새 탭에서 열림)</span></a>
             </p>
         </div>
-    </div>
+    </main>
 
     <!-- 회원가입 모달 -->
-    <div id="registerModal" class="modal">
+    <div id="registerModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="registerModalTitle" aria-hidden="true">
         <div class="modal-backdrop"></div>
         <div class="modal-content">
             <div class="modal-header">
-                <h2>회원가입</h2>
-                <button class="modal-close" aria-label="닫기">×</button>
+                <h2 id="registerModalTitle">회원가입</h2>
+                <button class="modal-close" aria-label="회원가입 모달 닫기">×</button>
             </div>
             <div class="modal-body">
                 <form id="registerForm" class="auth-form">
@@ -163,10 +164,11 @@
         </div>
     </div>
 
-    <!-- Toast 알림 -->
-    <div id="toast" class="toast"></div>
+    <!-- Toast 알림 - 스크린 리더 지원 -->
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <!-- JavaScript Module -->
+    <script src="/js/config.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>

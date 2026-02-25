@@ -333,6 +333,86 @@ class EmailService:
 
         return await self.send_email(to_email, subject, html_content, plain_content)
 
+    async def send_subscription_notification(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+    ) -> bool:
+        """
+        구독 관련 이메일 전송 (갱신, 결제 실패, 만료 임박, 해지 확인).
+
+        Args:
+            to_email: 수신자 이메일
+            subject: 제목
+            html_content: HTML 본문
+
+        Returns:
+            전송 성공 여부
+        """
+        return await self.send_email(to_email, subject, html_content)
+
+    async def send_invoice_receipt(
+        self,
+        to_email: str,
+        user_name: str,
+        invoice_number: str,
+        plan_name: str,
+        amount: int,
+        billing_period: str,
+    ) -> bool:
+        """
+        인보이스 영수증 이메일 전송.
+
+        Args:
+            to_email: 수신자 이메일
+            user_name: 사용자 이름
+            invoice_number: 인보이스 번호
+            plan_name: 플랜 이름
+            amount: 결제 금액
+            billing_period: 결제 기간 (예: "2026.02.24 ~ 2026.03.26")
+        """
+        subject = f"Biz-Retriever 결제 영수증 ({invoice_number})"
+
+        html_content = f"""
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;font-family:'Malgun Gothic',Arial,sans-serif;background:#f5f5f5;">
+<table role="presentation" width="100%" style="background:#f5f5f5;">
+<tr><td style="padding:40px 20px;">
+<table role="presentation" width="100%" style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+<tr><td style="padding:30px;text-align:center;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:8px 8px 0 0;">
+<h1 style="margin:0;color:#fff;font-size:22px;">Biz-Retriever</h1>
+<p style="margin:8px 0 0;color:#fff;font-size:14px;">결제 영수증</p>
+</td></tr>
+<tr><td style="padding:30px;">
+<p style="font-size:16px;color:#333;">안녕하세요 <strong>{user_name}</strong>님,</p>
+<p style="font-size:14px;color:#666;">결제가 정상적으로 처리되었습니다.</p>
+
+<table style="width:100%;background:#f8f9fa;border-radius:8px;margin:20px 0;border-collapse:collapse;">
+<tr><td style="padding:12px 15px;font-size:14px;color:#666;border-bottom:1px solid #e9ecef;">인보이스 번호</td>
+<td style="padding:12px 15px;font-size:14px;color:#333;font-weight:600;text-align:right;border-bottom:1px solid #e9ecef;">{invoice_number}</td></tr>
+<tr><td style="padding:12px 15px;font-size:14px;color:#666;border-bottom:1px solid #e9ecef;">플랜</td>
+<td style="padding:12px 15px;font-size:14px;color:#333;font-weight:600;text-align:right;border-bottom:1px solid #e9ecef;">{plan_name.upper()}</td></tr>
+<tr><td style="padding:12px 15px;font-size:14px;color:#666;border-bottom:1px solid #e9ecef;">결제 기간</td>
+<td style="padding:12px 15px;font-size:14px;color:#333;text-align:right;border-bottom:1px solid #e9ecef;">{billing_period}</td></tr>
+<tr><td style="padding:12px 15px;font-size:14px;color:#666;">결제 금액</td>
+<td style="padding:12px 15px;font-size:18px;color:#28a745;font-weight:700;text-align:right;">{amount:,}원</td></tr>
+</table>
+
+<p style="font-size:13px;color:#999;">이 영수증은 세금 계산서를 대체하지 않습니다. 세금 계산서가 필요하시면 고객센터로 문의해 주세요.</p>
+</td></tr>
+<tr><td style="padding:20px 30px;background:#f8f9fa;border-radius:0 0 8px 8px;text-align:center;">
+<p style="margin:0;font-size:12px;color:#999;">
+Biz-Retriever | <a href="{settings.FRONTEND_URL}" style="color:#667eea;">biz-retriever.vercel.app</a>
+</p></td></tr>
+</table>
+</td></tr></table>
+</body></html>"""
+
+        return await self.send_email(to_email, subject, html_content)
+
 
 # Singleton instance
 email_service = EmailService()

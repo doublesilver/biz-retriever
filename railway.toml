@@ -1,0 +1,26 @@
+# ==========================================================
+# Railway Deployment Configuration
+# ==========================================================
+# 학습 노트:
+#
+# railway.toml은 Railway 플랫폼의 배포 설정 파일입니다.
+# - dockerfilePath: 어떤 Dockerfile을 사용할지
+# - healthcheckPath: 배포 후 이 경로가 200을 반환해야 성공
+# - restartPolicyType: 프로세스 실패 시 재시작 정책
+# - numReplicas: 인스턴스 수 (무중단 배포 시 2로 설정 가능)
+#
+# Railway는 롤링 배포를 지원합니다:
+# 새 컨테이너가 헬스체크를 통과하면 이전 컨테이너를 종료합니다.
+# ==========================================================
+
+[build]
+dockerfilePath = "Dockerfile"
+dockerfileTarget = "runtime"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+startCommand = "bash /app/start.sh"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+numReplicas = 1

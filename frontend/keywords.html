@@ -5,81 +5,107 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>제외어 관리 - Biz-Retriever</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/variables.css">
-    <link rel="stylesheet" href="css/reset.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/variables.css?v=v4">
+    <link rel="stylesheet" href="css/reset.css?v=v4">
+    <link rel="stylesheet" href="css/components.css?v=v4">
+    <link rel="stylesheet" href="css/main.css?v=v4">
+    <link rel="stylesheet" href="css/accessibility.css?v=v4">
     <style>
         .keywords-container {
             max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
+            margin: var(--spacing-8) auto;
+            padding: var(--spacing-8);
             background: var(--card-bg);
-            border-radius: var(--radius-lg);
+            border-radius: var(--card-radius);
             border: 1px solid var(--border-color);
+            box-shadow: var(--card-shadow);
         }
 
         .input-group {
             display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
+            gap: var(--spacing-3);
+            margin-bottom: var(--spacing-6);
         }
 
         .keywords-list {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.8rem;
+            gap: var(--spacing-2-5);
         }
 
         .keyword-chip {
             background: var(--bg-hover);
-            padding: 0.5rem 1rem;
-            border-radius: 999px;
-            font-size: 0.95rem;
+            padding: var(--spacing-2) var(--spacing-4);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-sm);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: var(--spacing-2);
             border: 1px solid var(--border-color);
+            transition:
+                border-color var(--duration-150) var(--ease-in-out),
+                background var(--duration-150) var(--ease-in-out);
         }
 
         .keyword-chip:hover {
-            border-color: var(--primary-color);
+            border-color: var(--primary);
+            background: var(--primary-light);
         }
 
         .btn-delete {
             background: none;
             border: none;
-            color: var(--text-secondary);
+            color: var(--text-tertiary);
             cursor: pointer;
-            padding: 0;
+            padding: var(--spacing-0-5);
             font-size: 1.1rem;
             line-height: 1;
+            border-radius: var(--radius-full);
+            transition: color var(--duration-150) var(--ease-in-out);
         }
 
         .btn-delete:hover {
-            color: var(--error-color);
+            color: var(--danger);
+        }
+
+        @media (max-width: 480px) {
+            .keywords-container {
+                margin: var(--spacing-4);
+                padding: var(--spacing-5);
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 
 <body>
+    <!-- Skip Navigation -->
+    <a href="#keywordInput" class="skip-link">제외어 입력으로 건너뛰기</a>
     <!-- Navbar -->
-    <nav class="navbar">
+    <nav class="navbar" role="navigation" aria-label="메인 네비게이션">
         <div class="navbar-brand">
-            <span>🐕</span>
+            <span aria-hidden="true">🐕</span>
             <span>Biz-Retriever Keywords</span>
         </div>
         <div class="navbar-actions">
-            <a href="dashboard.html" class="btn-icon" title="대시보드">📊</a>
-            <a href="kanban.html" class="btn-icon" title="칸반 보드">📋</a>
-            <button class="btn-icon" id="darkModeToggle" title="다크모드">🌙</button>
+            <a href="dashboard.html" class="btn-icon" title="대시보드" aria-label="대시보드">
+                <span aria-hidden="true">📊</span>
+            </a>
+            <a href="kanban.html" class="btn-icon" title="칸반 보드" aria-label="칸반 보드">
+                <span aria-hidden="true">📋</span>
+            </a>
+            <button class="btn-icon" id="darkModeToggle" title="다크모드 전환" aria-label="다크모드 전환" aria-pressed="false">
+                <span aria-hidden="true">🌙</span>
+            </button>
             <div class="user-menu">
-                <button class="btn-icon" id="userMenuBtn">👤</button>
-                <div class="dropdown-menu" id="userDropdown">
-                    <button id="logoutBtn">로그아웃</button>
+                <button class="btn-icon" id="userMenuBtn" aria-label="사용자 메뉴" aria-expanded="false" aria-haspopup="true">
+                    <span aria-hidden="true">👤</span>
+                </button>
+                <div class="dropdown-menu" id="userDropdown" role="menu">
+                    <button id="logoutBtn" role="menuitem">로그아웃</button>
                 </div>
             </div>
         </div>
@@ -110,12 +136,13 @@
     </main>
 
     <!-- Toast -->
-    <div id="toast" class="toast"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <!-- JavaScript Module -->
-    <script src="/js/utils.js"></script>
-    <script src="/js/api.js"></script>
-    <script src="/js/keywords.js"></script>
+    <script src="js/config.js?v=v4"></script>
+    <script src="js/utils.js?v=v4"></script>
+    <script src="js/api.js?v=v4"></script>
+    <script src="js/keywords.js?v=v4"></script>
 </body>
 
 </html>

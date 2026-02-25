@@ -10,8 +10,7 @@ class UserBasicInfo(BaseModel):
     id: int
     email: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class BidBase(BaseModel):
@@ -72,8 +71,7 @@ class BidResponse(BidBase):
     # 담당자 정보 (relationship)
     assignee: Optional[UserBasicInfo] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class BidAnnouncementCreate(BaseModel):

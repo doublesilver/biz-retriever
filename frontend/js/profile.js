@@ -5,6 +5,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadStatus = document.getElementById('uploadStatus');
     const statusText = document.getElementById('statusText');
 
+    // User menu & Logout
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userDropdown = document.getElementById('userDropdown');
+    if (userMenuBtn && userDropdown) {
+        userMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            userDropdown.classList.toggle('show');
+        });
+        document.addEventListener('click', () => {
+            userDropdown.classList.remove('show');
+        });
+    }
+    document.getElementById('logoutBtn')?.addEventListener('click', () => {
+        API.logout();
+    });
+
     // 1. 프로필 정보 로드
     async function loadProfile() {
         try {

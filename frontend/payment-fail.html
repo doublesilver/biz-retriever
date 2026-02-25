@@ -5,17 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>결제 실패 - Biz-Retriever</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/variables.css">
-    <link rel="stylesheet" href="css/reset.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/main.css">
-    
+    <link rel="stylesheet" href="css/variables.css?v=v4">
+    <link rel="stylesheet" href="css/reset.css?v=v4">
+    <link rel="stylesheet" href="css/components.css?v=v4">
+    <link rel="stylesheet" href="css/main.css?v=v4">
+    <link rel="stylesheet" href="css/accessibility.css?v=v4">
+
     <style>
         body {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            background: var(--bg-tertiary);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -24,19 +22,20 @@
         }
 
         .fail-container {
-            background: white;
-            border-radius: var(--radius-lg);
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
             padding: 3rem;
             max-width: 500px;
             width: 100%;
             text-align: center;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border-color);
         }
 
         .fail-icon {
             width: 80px;
             height: 80px;
-            background: var(--error-color);
+            background: var(--danger-light);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -46,58 +45,57 @@
         }
 
         .fail-icon::after {
-            content: "✕";
-            color: white;
-            font-size: 3rem;
+            content: "!";
+            color: var(--danger);
+            font-size: 2.5rem;
             font-weight: bold;
         }
 
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
         }
 
         .fail-container h1 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
+            font-size: var(--font-size-2xl);
+            margin-bottom: var(--spacing-3);
             color: var(--text-primary);
         }
 
         .fail-message {
             color: var(--text-secondary);
-            margin-bottom: 2rem;
-            line-height: 1.6;
+            margin-bottom: var(--spacing-6);
+            line-height: var(--line-height-relaxed);
         }
 
         .error-details {
-            background: #fff5f5;
-            border-left: 4px solid var(--error-color);
+            background: var(--danger-light);
+            border-left: 4px solid var(--danger);
             border-radius: var(--radius-md);
-            padding: 1.5rem;
+            padding: 1.25rem;
             margin-bottom: 2rem;
             text-align: left;
         }
 
-        .error-details h3 {
-            font-size: 0.9rem;
-            color: var(--error-color);
-            margin-bottom: 0.5rem;
+        .error-details .error-label {
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-semibold);
+            color: var(--danger);
             text-transform: uppercase;
+            margin-bottom: var(--spacing-2);
         }
 
-        .error-details p {
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
+        .error-details .error-msg {
+            color: var(--text-primary);
+            font-size: var(--font-size-sm);
+            margin-bottom: var(--spacing-2);
         }
 
-        .error-code {
+        .error-details .error-code {
             font-family: monospace;
-            background: white;
-            padding: 0.5rem;
-            border-radius: var(--radius-sm);
-            font-size: 0.9rem;
-            color: var(--error-color);
+            font-size: var(--font-size-xs);
+            color: var(--text-tertiary);
         }
 
         .btn-group {
@@ -105,25 +103,37 @@
             gap: 1rem;
         }
 
-        .btn-group .btn {
-            flex: 1;
-        }
+        .btn-group .btn { flex: 1; }
 
         .help-text {
             margin-top: 2rem;
-            padding-top: 2rem;
+            padding-top: 1.5rem;
             border-top: 1px solid var(--border-color);
-            font-size: 0.9rem;
-            color: var(--text-muted);
+            font-size: var(--font-size-xs);
+            color: var(--text-tertiary);
         }
 
-        .help-text a {
-            color: var(--primary-color);
-            text-decoration: none;
+        .troubleshoot-list {
+            text-align: left;
+            margin: var(--spacing-4) 0;
+            padding: 0;
+            list-style: none;
         }
 
-        .help-text a:hover {
-            text-decoration: underline;
+        .troubleshoot-list li {
+            padding: 0.4rem 0;
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-2);
+        }
+
+        .troubleshoot-list li::before {
+            content: ">";
+            color: var(--text-tertiary);
+            flex-shrink: 0;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -134,40 +144,93 @@
         <h1>결제에 실패했습니다</h1>
         <p class="fail-message">
             결제 처리 중 문제가 발생했습니다.<br>
-            아래 오류 정보를 확인하신 후 다시 시도해주세요.
+            아래 정보를 확인한 후 다시 시도해주세요.
         </p>
 
         <div class="error-details">
-            <h3>오류 정보</h3>
-            <p id="error-message">오류 메시지를 불러오는 중...</p>
-            <div class="error-code" id="error-code">-</div>
+            <div class="error-label">오류 정보</div>
+            <div class="error-msg" id="error-message">오류 정보를 확인하는 중...</div>
+            <div class="error-code" id="error-code"></div>
         </div>
 
+        <ul class="troubleshoot-list" id="troubleshoot-tips">
+            <!-- Populated by JS based on error code -->
+        </ul>
+
         <div class="btn-group">
-            <button class="btn btn-outline" onclick="window.location.href='dashboard.html'">
+            <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
                 대시보드로 이동
             </button>
-            <button class="btn btn-primary" onclick="retryPayment()">
+            <button class="btn btn-primary" id="retryBtn" onclick="retryPayment()">
                 다시 시도
             </button>
         </div>
 
         <div class="help-text">
-            문제가 계속되면 <a href="mailto:support@biz-retriever.com">고객지원</a>으로 문의하세요.
+            문제가 계속되면 고객지원으로 문의하세요.
         </div>
     </div>
 
     <script>
         let failedPlan = null;
 
+        // Error code to user-friendly message mapping
+        const errorTranslations = {
+            'INVALID_CARD_NUMBER': {
+                message: '카드 번호가 올바르지 않습니다.',
+                tips: ['카드 번호를 다시 확인해주세요.', '16자리가 맞는지 확인하세요.']
+            },
+            'INVALID_STOPPED_CARD': {
+                message: '사용이 정지된 카드입니다.',
+                tips: ['카드사에 문의하여 카드 상태를 확인하세요.', '다른 카드로 결제를 시도해주세요.']
+            },
+            'INVALID_EXPIRY': {
+                message: '유효기간이 올바르지 않습니다.',
+                tips: ['카드 앞면의 유효기간을 확인해주세요.']
+            },
+            'INVALID_CVC': {
+                message: 'CVC 번호가 올바르지 않습니다.',
+                tips: ['카드 뒷면의 3자리 번호를 확인해주세요.']
+            },
+            'EXCEED_MAX_DAILY_PAYMENT_COUNT': {
+                message: '일일 결제 횟수를 초과했습니다.',
+                tips: ['내일 다시 시도해주세요.', '카드사에 한도를 확인하세요.']
+            },
+            'INSUFFICIENT_FUNDS': {
+                message: '잔액이 부족합니다.',
+                tips: ['카드 잔액을 확인해주세요.', '다른 카드를 사용해보세요.']
+            },
+            'CARD_EXPIRED': {
+                message: '만료된 카드입니다.',
+                tips: ['새 카드를 발급받으세요.', '다른 유효한 카드를 사용해주세요.']
+            },
+            'USER_CANCEL': {
+                message: '결제가 취소되었습니다.',
+                tips: ['원하실 때 다시 결제를 진행할 수 있습니다.']
+            },
+            'TIMEOUT': {
+                message: '결제 요청 시간이 초과되었습니다.',
+                tips: ['네트워크 연결을 확인해주세요.', '잠시 후 다시 시도해주세요.']
+            },
+            'NOT_SUPPORTED_INSTALLMENT_PLAN': {
+                message: '할부가 지원되지 않는 카드입니다.',
+                tips: ['일시불로 결제하거나 다른 카드를 사용해주세요.']
+            }
+        };
+
+        const defaultTips = [
+            '인터넷 연결이 안정적인지 확인해주세요.',
+            '다른 결제 수단을 시도해보세요.',
+            '문제가 지속되면 카드사에 문의하세요.'
+        ];
+
         window.addEventListener('DOMContentLoaded', () => {
-            // Extract error info from URL
             const urlParams = new URLSearchParams(window.location.search);
             const errorCode = urlParams.get('code');
             const errorMessage = urlParams.get('message');
             const orderId = urlParams.get('orderId');
 
-            // Try to extract plan from orderId (format: BIZ-{user_id}-{PLAN}-{timestamp})
+            // Try to extract plan from orderId
             if (orderId) {
                 const parts = orderId.split('-');
                 if (parts.length >= 3) {
@@ -175,39 +238,35 @@
                 }
             }
 
-            // Display error information
-            if (errorMessage) {
+            // Display error info
+            const errorInfo = errorCode && errorTranslations[errorCode]
+                ? errorTranslations[errorCode]
+                : null;
+
+            if (errorInfo) {
+                document.getElementById('error-message').textContent = errorInfo.message;
+                renderTips(errorInfo.tips);
+            } else if (errorMessage) {
                 document.getElementById('error-message').textContent = decodeURIComponent(errorMessage);
+                renderTips(defaultTips);
             } else {
                 document.getElementById('error-message').textContent = '알 수 없는 오류가 발생했습니다.';
+                renderTips(defaultTips);
             }
 
             if (errorCode) {
-                document.getElementById('error-code').textContent = `오류 코드: ${errorCode}`;
-            } else {
-                document.getElementById('error-code').textContent = '오류 코드: UNKNOWN';
-            }
-
-            // Common error translations
-            const errorTranslations = {
-                'INVALID_CARD_NUMBER': '카드 번호가 올바르지 않습니다',
-                'INVALID_EXPIRY': '유효기간이 올바르지 않습니다',
-                'INVALID_CVC': 'CVC 번호가 올바르지 않습니다',
-                'INSUFFICIENT_FUNDS': '잔액이 부족합니다',
-                'CARD_EXPIRED': '카드가 만료되었습니다',
-                'USER_CANCEL': '사용자가 결제를 취소했습니다',
-                'TIMEOUT': '결제 요청 시간이 초과되었습니다'
-            };
-
-            if (errorCode && errorTranslations[errorCode]) {
-                document.getElementById('error-message').textContent = errorTranslations[errorCode];
+                document.getElementById('error-code').textContent = 'Error Code: ' + errorCode;
             }
         });
 
+        function renderTips(tips) {
+            const list = document.getElementById('troubleshoot-tips');
+            list.innerHTML = tips.map(tip => '<li>' + tip + '</li>').join('');
+        }
+
         function retryPayment() {
-            // Redirect to payment page with pre-selected plan if available
             if (failedPlan) {
-                window.location.href = `payment.html?plan=${failedPlan}`;
+                window.location.href = 'payment.html?plan=' + failedPlan;
             } else {
                 window.location.href = 'payment.html';
             }

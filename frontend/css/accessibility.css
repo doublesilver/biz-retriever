@@ -1,0 +1,279 @@
+/* ============================================
+   Accessibility Layer — WCAG 2.1 AA Compliance
+   Biz-Retriever Design System v2.0
+
+   This file MUST be loaded AFTER components.css
+   ============================================ */
+
+/* ============================================
+   Skip Navigation
+   ============================================ */
+.skip-link {
+    position: absolute;
+    top: -100%;
+    left: var(--spacing-4);
+    z-index: calc(var(--z-notification) + 10);
+    padding: var(--spacing-2-5) var(--spacing-5);
+    background: var(--primary);
+    color: #fff;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    text-decoration: none;
+    box-shadow: var(--shadow-lg);
+    transition: top var(--duration-150) var(--ease-out);
+}
+
+.skip-link:focus {
+    top: 0;
+    outline: none;
+    color: #fff;
+}
+
+/* ============================================
+   Focus Visible — Keyboard-only focus ring
+   Uses :focus-visible to avoid showing focus
+   ring on mouse click
+   ============================================ */
+:focus-visible {
+    outline: 2px solid var(--blue-500);
+    outline-offset: 2px;
+}
+
+/* Buttons, links — use box-shadow ring instead of outline */
+.btn:focus-visible,
+.btn-icon:focus-visible,
+.nav-link:focus-visible,
+a:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring-offset);
+}
+
+/* Form elements */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: none;
+    border-color: var(--input-border-focus);
+    box-shadow: var(--focus-ring);
+}
+
+/* Cards — subtle ring */
+.card:focus-visible,
+.bid-card:focus-visible,
+.kanban-card:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring-offset);
+}
+
+/* ============================================
+   Reduced Motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .btn:hover,
+    .btn:active {
+        transform: none !important;
+    }
+
+    .modal-content {
+        animation: none !important;
+    }
+
+    .toast {
+        transition: opacity 0.01ms !important;
+    }
+}
+
+/* ============================================
+   Screen Reader Only
+   ============================================ */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+.sr-only-focusable:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+}
+
+/* ============================================
+   High Contrast Mode (Windows)
+   ============================================ */
+@media (forced-colors: active) {
+    .btn {
+        border: 2px solid ButtonText;
+    }
+
+    .btn-primary {
+        background: Highlight;
+        color: HighlightText;
+        forced-color-adjust: none;
+    }
+
+    .badge {
+        border: 1px solid;
+    }
+
+    .stat-card,
+    .card,
+    .kanban-card,
+    .bid-card {
+        border: 2px solid;
+    }
+
+    input,
+    textarea,
+    select {
+        border: 2px solid;
+    }
+
+    :focus-visible {
+        outline: 3px solid Highlight;
+        outline-offset: 2px;
+    }
+
+    .skeleton {
+        background: Canvas;
+        border: 1px solid;
+        animation: none;
+    }
+}
+
+/* ============================================
+   Touch Target — WCAG 2.5.8 (44x44px minimum)
+   ============================================ */
+.btn,
+.btn-icon,
+.nav-link,
+.toggle-password,
+.modal-close,
+.close-btn,
+.pagination button,
+.dropdown-menu button {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+/* ============================================
+   ARIA States
+   ============================================ */
+[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+[aria-busy="true"] {
+    cursor: wait;
+}
+
+/* Validation */
+[aria-invalid="true"] {
+    border-color: var(--danger) !important;
+}
+
+[aria-invalid="true"]:focus-visible {
+    box-shadow: var(--focus-ring-error) !important;
+}
+
+.form-error {
+    color: var(--danger);
+    font-size: var(--font-size-xs);
+    margin-top: var(--spacing-1-5);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    line-height: var(--line-height-normal);
+}
+
+/* ============================================
+   Modal Accessibility
+   ============================================ */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* ============================================
+   Table Accessibility — Sortable headers
+   ============================================ */
+table[role="grid"] th[aria-sort] {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: var(--spacing-6);
+}
+
+table[role="grid"] th[aria-sort]::after {
+    content: '';
+    position: absolute;
+    right: var(--spacing-3);
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-block;
+    width: 0;
+    height: 0;
+}
+
+table[role="grid"] th[aria-sort="ascending"]::after {
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 5px solid currentColor;
+}
+
+table[role="grid"] th[aria-sort="descending"]::after {
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid currentColor;
+}
+
+/* ============================================
+   Dark Mode Toggle
+   ============================================ */
+.dark-mode-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: var(--radius-lg);
+    transition: background var(--transition-fast);
+}
+
+.dark-mode-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode-toggle[aria-pressed="true"] {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================
+   Color Contrast — Minimum 4.5:1 for text
+   ============================================ */
+.text-muted {
+    color: var(--text-secondary); /* 6.0:1 on white */
+}

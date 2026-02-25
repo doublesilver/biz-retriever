@@ -5,17 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>결제 완료 - Biz-Retriever</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/variables.css">
-    <link rel="stylesheet" href="css/reset.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/main.css">
-    
+    <link rel="stylesheet" href="css/variables.css?v=v4">
+    <link rel="stylesheet" href="css/reset.css?v=v4">
+    <link rel="stylesheet" href="css/components.css?v=v4">
+    <link rel="stylesheet" href="css/main.css?v=v4">
+    <link rel="stylesheet" href="css/accessibility.css?v=v4">
+
     <style>
         body {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background: var(--bg-tertiary);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -23,20 +21,20 @@
             padding: 2rem;
         }
 
-        .success-container {
-            background: white;
-            border-radius: var(--radius-lg);
+        .result-container {
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
             padding: 3rem;
             max-width: 500px;
             width: 100%;
             text-align: center;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border-color);
         }
 
-        .success-icon {
+        .result-icon {
             width: 80px;
             height: 80px;
-            background: var(--success-color);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -45,32 +43,27 @@
             animation: scaleIn 0.3s ease-out;
         }
 
-        .success-icon::after {
-            content: "✓";
-            color: white;
-            font-size: 3rem;
-            font-weight: bold;
-        }
+        .result-icon.success { background: var(--success-light); }
+        .result-icon.success::after { content: "✓"; color: var(--success); font-size: 2.5rem; font-weight: bold; }
+
+        .result-icon.error { background: var(--danger-light); }
+        .result-icon.error::after { content: "X"; color: var(--danger); font-size: 2.5rem; font-weight: bold; }
 
         @keyframes scaleIn {
-            from {
-                transform: scale(0);
-            }
-            to {
-                transform: scale(1);
-            }
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
 
-        .success-container h1 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
+        .result-container h1 {
+            font-size: var(--font-size-2xl);
+            margin-bottom: var(--spacing-3);
             color: var(--text-primary);
         }
 
-        .success-message {
+        .result-message {
             color: var(--text-secondary);
-            margin-bottom: 2rem;
-            line-height: 1.6;
+            margin-bottom: var(--spacing-6);
+            line-height: var(--line-height-relaxed);
         }
 
         .payment-details {
@@ -86,20 +79,12 @@
             justify-content: space-between;
             padding: 0.75rem 0;
             border-bottom: 1px solid var(--border-color);
+            font-size: var(--font-size-sm);
         }
 
-        .detail-row:last-child {
-            border-bottom: none;
-        }
-
-        .detail-label {
-            color: var(--text-muted);
-        }
-
-        .detail-value {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { color: var(--text-tertiary); }
+        .detail-value { font-weight: var(--font-weight-semibold); color: var(--text-primary); }
 
         .btn-group {
             display: flex;
@@ -111,17 +96,17 @@
         }
 
         .loading-container {
-            padding: 2rem;
+            padding: 3rem 2rem;
         }
 
-        .spinner {
+        .spinner-result {
             border: 4px solid var(--border-color);
-            border-top: 4px solid var(--primary-color);
+            border-top: 4px solid var(--primary);
             border-radius: 50%;
             width: 50px;
             height: 50px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
+            margin: 0 auto 1.5rem;
         }
 
         @keyframes spin {
@@ -129,45 +114,48 @@
             100% { transform: rotate(360deg); }
         }
 
-        .error-container {
-            display: none;
+        .progress-bar-wrapper {
+            width: 100%;
+            height: 4px;
+            background: var(--gray-200);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            margin-top: 1rem;
         }
 
-        .error-icon {
-            width: 80px;
-            height: 80px;
-            background: var(--error-color);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem;
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: var(--radius-full);
+            animation: progressAnim 3s ease-in-out;
         }
 
-        .error-icon::after {
-            content: "✕";
-            color: white;
-            font-size: 3rem;
-            font-weight: bold;
+        @keyframes progressAnim {
+            from { width: 0%; }
+            to { width: 100%; }
         }
     </style>
 </head>
 
 <body>
-    <div class="success-container">
+    <div class="result-container">
         <!-- Loading State -->
         <div id="loading-state" class="loading-container">
-            <div class="spinner"></div>
-            <p>결제 확인 중...</p>
+            <div class="spinner-result"></div>
+            <h2 style="font-size: var(--font-size-lg); margin-bottom: var(--spacing-2);">결제 확인 중</h2>
+            <p style="color: var(--text-tertiary); font-size: var(--font-size-sm);">잠시만 기다려주세요...</p>
+            <div class="progress-bar-wrapper">
+                <div class="progress-bar-fill"></div>
+            </div>
         </div>
 
         <!-- Success State -->
         <div id="success-state" style="display: none;">
-            <div class="success-icon"></div>
+            <div class="result-icon success"></div>
             <h1>결제가 완료되었습니다!</h1>
-            <p class="success-message">
-                <span id="plan-name-display">-</span> 플랜 구독이 활성화되었습니다.<br>
-                이제 모든 기능을 제한 없이 사용하실 수 있습니다.
+            <p class="result-message">
+                <strong id="plan-name-display">-</strong> 플랜 구독이 활성화되었습니다.<br>
+                이제 모든 프리미엄 기능을 사용하실 수 있습니다.
             </p>
 
             <div class="payment-details">
@@ -186,8 +174,8 @@
             </div>
 
             <div class="btn-group">
-                <button class="btn btn-outline" onclick="window.location.href='profile.html'">
-                    프로필 관리
+                <button class="btn btn-secondary" onclick="window.location.href='payment.html'">
+                    구독 관리
                 </button>
                 <button class="btn btn-primary" onclick="window.location.href='dashboard.html'">
                     대시보드로 이동
@@ -196,66 +184,98 @@
         </div>
 
         <!-- Error State -->
-        <div id="error-state" class="error-container">
-            <div class="error-icon"></div>
+        <div id="error-state" style="display: none;">
+            <div class="result-icon error"></div>
             <h1>결제 확인 실패</h1>
-            <p class="success-message" id="error-message">
+            <p class="result-message" id="error-message">
                 결제 확인 중 문제가 발생했습니다.
             </p>
-            <button class="btn btn-primary" onclick="window.location.href='payment.html'">
-                다시 시도
-            </button>
+            <p style="font-size: var(--font-size-xs); color: var(--text-tertiary); margin-bottom: var(--spacing-6);">
+                결제가 정상 처리된 경우 잠시 후 자동으로 반영됩니다.<br>
+                문제가 계속되면 고객지원에 문의해주세요.
+            </p>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
+                    대시보드로 이동
+                </button>
+                <button class="btn btn-primary" id="retryBtn" onclick="confirmPayment()">
+                    다시 확인
+                </button>
+            </div>
         </div>
     </div>
 
-    <script src="js/api.js"></script>
-    <script src="js/utils.js"></script>
+    <script src="js/config.js?v=v4"></script>
+    <script src="js/api.js?v=v4"></script>
+    <script src="js/utils.js?v=v4"></script>
     <script>
+        let retryCount = 0;
+        const MAX_RETRIES = 3;
+
         async function confirmPayment() {
+            const loadingEl = document.getElementById('loading-state');
+            const successEl = document.getElementById('success-state');
+            const errorEl = document.getElementById('error-state');
+
+            // Show loading
+            loadingEl.style.display = 'block';
+            successEl.style.display = 'none';
+            errorEl.style.display = 'none';
+
             try {
-                // Extract params from URL
                 const urlParams = new URLSearchParams(window.location.search);
                 const paymentKey = urlParams.get('paymentKey');
                 const orderId = urlParams.get('orderId');
                 const amount = urlParams.get('amount');
 
                 if (!paymentKey || !orderId || !amount) {
-                    throw new Error('결제 정보가 올바르지 않습니다');
+                    throw new Error('결제 정보가 올바르지 않습니다. URL 파라미터를 확인해주세요.');
                 }
 
-                // Confirm payment with backend
                 const response = await API.confirmPayment(paymentKey, orderId, parseInt(amount));
 
-                // Show success state
-                document.getElementById('loading-state').style.display = 'none';
-                document.getElementById('success-state').style.display = 'block';
+                // Show success
+                loadingEl.style.display = 'none';
+                successEl.style.display = 'block';
 
-                // Populate details
                 document.getElementById('plan-name-display').textContent = response.plan_name.toUpperCase();
                 document.getElementById('order-id-display').textContent = orderId;
-                document.getElementById('amount-display').textContent = `${parseInt(amount).toLocaleString()}원`;
-                
-                // Format next billing date
+                document.getElementById('amount-display').textContent = parseInt(amount).toLocaleString() + '원';
+
                 const nextBilling = new Date(response.next_billing_date);
-                document.getElementById('next-billing-display').textContent = 
-                    nextBilling.toLocaleDateString('ko-KR', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
+                document.getElementById('next-billing-display').textContent =
+                    nextBilling.toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
                     });
 
             } catch (error) {
                 console.error('Payment confirmation error:', error);
-                
-                // Show error state
-                document.getElementById('loading-state').style.display = 'none';
-                document.getElementById('error-state').style.display = 'block';
-                document.getElementById('error-message').textContent = 
-                    error.message || '결제 확인 중 오류가 발생했습니다. 관리자에게 문의하세요.';
+
+                retryCount++;
+
+                // Auto-retry for retryable errors
+                if (error.isRetryable && retryCount <= MAX_RETRIES) {
+                    loadingEl.querySelector('p').textContent =
+                        `확인 중... (${retryCount}/${MAX_RETRIES} 재시도)`;
+                    setTimeout(confirmPayment, 2000 * retryCount);
+                    return;
+                }
+
+                // Show error
+                loadingEl.style.display = 'none';
+                errorEl.style.display = 'block';
+                document.getElementById('error-message').textContent =
+                    error.message || '결제 확인 중 오류가 발생했습니다.';
+
+                // Hide retry button if max retries reached
+                if (retryCount > MAX_RETRIES) {
+                    document.getElementById('retryBtn').style.display = 'none';
+                }
             }
         }
 
-        // Run confirmation on page load
         window.addEventListener('DOMContentLoaded', confirmPayment);
     </script>
 </body>

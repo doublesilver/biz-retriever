@@ -21,9 +21,58 @@ from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash
 from app.db import session as db_session_module
 from app.db.base import Base
-from app.db.models import BidAnnouncement, User
+from app.db.models import (
+    BidAnnouncement,
+    ExcludeKeyword,
+    Subscription,
+    User,
+    UserKeyword,
+    UserLicense,
+    UserPerformance,
+    UserProfile,
+)
 from app.db.repositories.bid_repository import BidRepository
 from app.main import app
+
+
+# ============================================
+# Rate Limiter 비활성화 (테스트 환경)
+# ============================================
+@pytest.fixture(scope="session", autouse=True)
+def disable_rate_limiting():
+    """테스트에서 rate limiter 비활성화 (app.state + endpoint 데코레이터 모두)"""
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+
+    # app.state.limiter 비활성화 (미들웨어용)
+    app.state.limiter = Limiter(
+        key_func=get_remote_address,
+        enabled=False,
+    )
+
+    # endpoint 데코레이터가 이미 캡처한 원본 limiter 객체를 직접 비활성화
+    from app.services.rate_limiter import limiter as original_limiter
+    original_limiter.enabled = False
+
+    yield
+
+
+# ============================================
+# Redis Cache Mock (테스트에서 Redis 불필요)
+# ============================================
+@pytest.fixture(scope="function", autouse=True)
+def mock_redis_cache():
+    """Redis 캐시를 테스트용 no-op으로 대체"""
+    with patch("app.core.cache.get_redis", new_callable=AsyncMock) as mock_get:
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=None)
+        mock_client.setex = AsyncMock(return_value=True)
+        mock_client.delete = AsyncMock(return_value=1)
+        mock_client.keys = AsyncMock(return_value=[])
+        mock_get.return_value = mock_client
+        with patch("app.core.cache.get_cached", new_callable=AsyncMock, return_value=None):
+            with patch("app.core.cache.set_cached", new_callable=AsyncMock, return_value=True):
+                yield mock_client
 
 # Test Database URL (In-memory SQLite for fast tests)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -396,3 +445,80 @@ def file_service():
     from app.services.file_service import FileService
 
     return FileService()
+
+
+# ============================================
+# 프로필/구독/키워드 Fixtures
+# ============================================
+
+
+@pytest.fixture
+async def test_user_with_profile(test_db: AsyncSession) -> User:
+    """프로필이 있는 테스트 사용자 생성"""
+    user = User(
+        email="profile_user@example.com",
+        hashed_password=get_password_hash("TestPass123!"),
+        is_active=True,
+    )
+    test_db.add(user)
+    await test_db.commit()
+    await test_db.refresh(user)
+
+    profile = UserProfile(
+        user_id=user.id,
+        company_name="테스트 기업",
+        brn="123-45-67890",
+        representative="홍길동",
+        address="서울특별시 강남구",
+        location_code="11",
+        company_type="중소기업",
+        keywords=["조경", "건축"],
+    )
+    test_db.add(profile)
+    await test_db.commit()
+    await test_db.refresh(profile)
+
+    license_ = UserLicense(
+        profile_id=profile.id,
+        license_name="조경공사업",
+        license_number="제2024-001호",
+    )
+    test_db.add(license_)
+
+    performance = UserPerformance(
+        profile_id=profile.id,
+        project_name="서울시청 조경공사",
+        amount=1500000000,
+    )
+    test_db.add(performance)
+    await test_db.commit()
+    await test_db.refresh(user)
+    return user
+
+
+@pytest.fixture
+async def test_subscription(test_db: AsyncSession, test_user: User) -> Subscription:
+    """테스트 구독 생성"""
+    sub = Subscription(
+        user_id=test_user.id,
+        plan_name="basic",
+        is_active=True,
+    )
+    test_db.add(sub)
+    await test_db.commit()
+    await test_db.refresh(sub)
+    return sub
+
+
+@pytest.fixture
+async def authenticated_profile_client(
+    test_user_with_profile: User, test_db: AsyncSession
+) -> AsyncGenerator[AsyncClient, None]:
+    """프로필이 있는 사용자의 인증 클라이언트"""
+    token = create_access_token(subject=test_user_with_profile.email)
+    headers = {"Authorization": f"Bearer {token}"}
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test", headers=headers
+    ) as client:
+        yield client

@@ -1,31 +1,61 @@
 """
-Payment Service using Tosspayments
-Phase 3: Subscription billing system for Korean market
+Payment Service — Tosspayments 결제 하드닝
+
+보안 강화:
+- 웹훅 HMAC-SHA256 서명 검증
+- 멱등성 키(Idempotency-Key)로 중복 결제 방지
+- 지수 백오프(Exponential Backoff) 재시도
+- 안전한 에러 처리 및 로깅
 """
 
 import base64
+import hashlib
+import hmac
+import uuid
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import httpx
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from app.core.config import settings
+from app.core.exceptions import (
+    PaymentConfirmationError,
+    PaymentError,
+    PaymentNotConfiguredError,
+)
 from app.core.logging import logger
 
 
 class PaymentService:
     """
-    Tosspayments integration for subscription billing
-    https://docs.tosspayments.com/
+    Tosspayments 결제 서비스 (Enterprise Hardened)
+
+    주요 보안 기능:
+    1. HMAC-SHA256 웹훅 서명 검증
+    2. Idempotency-Key 기반 중복 결제 방지
+    3. 지수 백오프 재시도 (네트워크 장애 대응)
+    4. 금액 변조 방지 (서버 사이드 금액 검증)
     """
 
+    # 플랜별 가격표 (KRW)
+    PLAN_PRICES: Dict[str, int] = {
+        "free": 0,
+        "basic": 10000,   # 10,000원/월
+        "pro": 30000,      # 30,000원/월
+    }
+
     def __init__(self):
-        # Tosspayments credentials from environment
         self.secret_key = getattr(settings, "TOSSPAYMENTS_SECRET_KEY", None)
         self.client_key = getattr(settings, "TOSSPAYMENTS_CLIENT_KEY", None)
+        self.webhook_secret = getattr(settings, "TOSSPAYMENTS_WEBHOOK_SECRET", None)
         self.api_url = "https://api.tosspayments.com/v1"
 
-        # Base64 encode secret key for auth header
         if self.secret_key:
             encoded_key = base64.b64encode(f"{self.secret_key}:".encode()).decode()
             self.auth_header = f"Basic {encoded_key}"
@@ -37,8 +67,65 @@ class PaymentService:
             )
 
     def is_configured(self) -> bool:
-        """Check if Tosspayments is properly configured"""
+        """결제 시스템 설정 여부 확인"""
         return self.auth_header is not None
+
+    def _ensure_configured(self) -> None:
+        """설정 미완료 시 예외 발생"""
+        if not self.is_configured():
+            raise PaymentNotConfiguredError()
+
+    @staticmethod
+    def generate_idempotency_key() -> str:
+        """
+        멱등성 키 생성.
+
+        동일 요청의 중복 실행을 방지하기 위한 고유 키.
+        UUID v4 기반으로 충돌 확률이 사실상 0.
+        """
+        return str(uuid.uuid4())
+
+    def generate_order_id(self, user_id: int, plan_name: str) -> str:
+        """고유 주문 ID 생성"""
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        short_uuid = uuid.uuid4().hex[:8]
+        return f"BIZ-{user_id}-{plan_name.upper()}-{timestamp}-{short_uuid}"
+
+    def get_plan_amount(self, plan_name: str) -> int:
+        """플랜 가격 조회 (KRW)"""
+        return self.PLAN_PRICES.get(plan_name, 0)
+
+    def calculate_proration(
+        self,
+        old_plan: str,
+        new_plan: str,
+        days_remaining: int,
+        total_days: int = 30,
+    ) -> int:
+        """
+        프로레이션(일할 계산) — 플랜 변경 시 차액 계산.
+
+        업그레이드 시: (새 플랜 가격 - 기존 플랜 가격) * (잔여일 / 전체일)
+        다운그레이드 시: 0 (기간 만료 후 변경)
+
+        Args:
+            old_plan: 기존 플랜 이름
+            new_plan: 새 플랜 이름
+            days_remaining: 현재 결제 주기 잔여일
+            total_days: 전체 결제 주기 (기본 30일)
+
+        Returns:
+            프로레이션 금액 (KRW, 양수=추가 결제)
+        """
+        old_price = self.get_plan_amount(old_plan)
+        new_price = self.get_plan_amount(new_plan)
+
+        if new_price <= old_price:
+            return 0
+
+        diff = new_price - old_price
+        ratio = days_remaining / total_days if total_days > 0 else 0
+        return round(diff * ratio)
 
     async def create_payment(
         self,
@@ -49,23 +136,13 @@ class PaymentService:
         customer_name: str,
     ) -> Dict:
         """
-        Create a payment request
+        결제 요청 데이터 생성 (프론트엔드 SDK용).
 
-        Args:
-            amount: Payment amount in KRW (원)
-            order_id: Unique order identifier
-            order_name: Product/plan name
-            customer_email: Customer email
-            customer_name: Customer name
-
-        Returns:
-            Dict with payment_key, order_id, and redirect URL
+        서버 사이드에서 금액과 주문정보를 생성하여
+        클라이언트 변조를 방지.
         """
-        if not self.is_configured():
-            raise ValueError("Tosspayments not configured")
+        self._ensure_configured()
 
-        # Note: Tosspayments uses a client-side SDK for payment UI
-        # This method prepares the payment data for frontend
         return {
             "client_key": self.client_key,
             "amount": amount,
@@ -77,108 +154,150 @@ class PaymentService:
             "failUrl": f"{settings.FRONTEND_URL}/payment-fail",
         }
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        retry=retry_if_exception_type(httpx.TimeoutException),
+        reraise=True,
+    )
     async def confirm_payment(
-        self, payment_key: str, order_id: str, amount: int
+        self,
+        payment_key: str,
+        order_id: str,
+        amount: int,
+        idempotency_key: Optional[str] = None,
     ) -> Dict:
         """
-        Confirm a payment (called after user completes payment on Tosspayments UI)
+        결제 승인 (Tosspayments API).
+
+        보안 포인트:
+        - 금액은 서버에서 재검증 (클라이언트 변조 방지)
+        - 멱등성 키로 중복 승인 방지
+        - 지수 백오프 재시도 (최대 3회, 1→2→4초 대기)
 
         Args:
-            payment_key: Payment key from Tosspayments
-            order_id: Order ID
-            amount: Payment amount (for verification)
+            payment_key: Tosspayments에서 발급한 결제키
+            order_id: 주문 ID
+            amount: 결제 금액 (서버 검증용)
+            idempotency_key: 멱등성 키 (중복 방지)
 
         Returns:
-            Payment confirmation result
+            Tosspayments 결제 승인 응답
+
+        Raises:
+            PaymentConfirmationError: 결제 승인 실패
         """
-        if not self.is_configured():
-            raise ValueError("Tosspayments not configured")
+        self._ensure_configured()
 
         url = f"{self.api_url}/payments/confirm"
         headers = {
             "Authorization": self.auth_header,
             "Content-Type": "application/json",
         }
-        payload = {"paymentKey": payment_key, "orderId": order_id, "amount": amount}
+
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
+
+        payload = {
+            "paymentKey": payment_key,
+            "orderId": order_id,
+            "amount": amount,
+        }
 
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    url, headers=headers, json=payload, timeout=10.0
+                    url, headers=headers, json=payload, timeout=15.0
                 )
 
                 if response.status_code == 200:
                     result = response.json()
-                    logger.info(f"Payment confirmed: {order_id}, amount: {amount}원")
-                    return result
-                else:
-                    error_data = response.json()
-                    logger.error(f"Payment confirmation failed: {error_data}")
-                    raise Exception(
-                        f"Payment failed: {error_data.get('message', 'Unknown error')}"
+                    logger.info(
+                        f"Payment confirmed: order_id={order_id}, amount={amount}원"
                     )
+                    return result
+
+                error_data = response.json()
+                error_code = error_data.get("code", "UNKNOWN")
+                error_msg = error_data.get("message", "알 수 없는 오류")
+                logger.error(
+                    f"Payment confirmation failed: code={error_code}, message={error_msg}"
+                )
+                raise PaymentConfirmationError(
+                    detail=f"결제 승인 실패: {error_msg}",
+                    extra={"toss_error_code": error_code},
+                )
 
         except httpx.TimeoutException:
-            logger.error("Payment confirmation timeout")
-            raise Exception("결제 확인 요청 시간 초과")
+            logger.error(f"Payment confirmation timeout: order_id={order_id}")
+            raise
+        except PaymentConfirmationError:
+            raise
         except Exception as e:
             logger.error(f"Payment confirmation error: {str(e)}", exc_info=True)
-            raise
+            raise PaymentConfirmationError(
+                detail=f"결제 확인 중 오류: {str(e)}"
+            )
 
-    async def cancel_payment(self, payment_key: str, cancel_reason: str) -> Dict:
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        retry=retry_if_exception_type(httpx.TimeoutException),
+        reraise=True,
+    )
+    async def cancel_payment(
+        self,
+        payment_key: str,
+        cancel_reason: str,
+        cancel_amount: Optional[int] = None,
+    ) -> Dict:
         """
-        Cancel/refund a payment
+        결제 취소/환불.
+
+        전액 환불 또는 부분 환불을 지원.
 
         Args:
-            payment_key: Payment key from Tosspayments
-            cancel_reason: Reason for cancellation
-
-        Returns:
-            Cancellation result
+            payment_key: 결제키
+            cancel_reason: 취소 사유
+            cancel_amount: 부분 환불 금액 (None이면 전액 환불)
         """
-        if not self.is_configured():
-            raise ValueError("Tosspayments not configured")
+        self._ensure_configured()
 
         url = f"{self.api_url}/payments/{payment_key}/cancel"
         headers = {
             "Authorization": self.auth_header,
             "Content-Type": "application/json",
         }
-        payload = {"cancelReason": cancel_reason}
+        payload: Dict[str, Any] = {"cancelReason": cancel_reason}
+
+        if cancel_amount is not None:
+            payload["cancelAmount"] = cancel_amount
 
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    url, headers=headers, json=payload, timeout=10.0
+                    url, headers=headers, json=payload, timeout=15.0
                 )
 
                 if response.status_code == 200:
                     result = response.json()
-                    logger.info(f"Payment cancelled: {payment_key}")
+                    logger.info(f"Payment cancelled: payment_key={payment_key}")
                     return result
-                else:
-                    error_data = response.json()
-                    logger.error(f"Payment cancellation failed: {error_data}")
-                    raise Exception(
-                        f"Cancellation failed: {error_data.get('message', 'Unknown error')}"
-                    )
 
+                error_data = response.json()
+                error_msg = error_data.get("message", "알 수 없는 오류")
+                logger.error(f"Payment cancellation failed: {error_data}")
+                raise PaymentError(detail=f"결제 취소 실패: {error_msg}")
+
+        except (PaymentError, httpx.TimeoutException):
+            raise
         except Exception as e:
             logger.error(f"Payment cancellation error: {str(e)}", exc_info=True)
-            raise
+            raise PaymentError(detail=f"결제 취소 중 오류: {str(e)}")
 
     async def get_payment_info(self, payment_key: str) -> Dict:
-        """
-        Get payment information
-
-        Args:
-            payment_key: Payment key from Tosspayments
-
-        Returns:
-            Payment details
-        """
-        if not self.is_configured():
-            raise ValueError("Tosspayments not configured")
+        """결제 상세 정보 조회"""
+        self._ensure_configured()
 
         url = f"{self.api_url}/payments/{payment_key}"
         headers = {"Authorization": self.auth_header}
@@ -189,47 +308,162 @@ class PaymentService:
 
                 if response.status_code == 200:
                     return response.json()
-                else:
-                    error_data = response.json()
-                    logger.error(f"Failed to get payment info: {error_data}")
-                    raise Exception(
-                        f"Payment info retrieval failed: {error_data.get('message', 'Unknown error')}"
-                    )
 
+                error_data = response.json()
+                raise PaymentError(
+                    detail=f"결제 정보 조회 실패: {error_data.get('message', 'Unknown')}"
+                )
+
+        except PaymentError:
+            raise
         except Exception as e:
             logger.error(f"Error getting payment info: {str(e)}", exc_info=True)
-            raise
+            raise PaymentError(detail=f"결제 정보 조회 오류: {str(e)}")
 
-    def get_plan_amount(self, plan_name: str) -> int:
+    def verify_webhook_signature(
+        self,
+        payload_body: bytes,
+        signature_header: str,
+    ) -> bool:
         """
-        Get subscription plan amount in KRW
+        Tosspayments 웹훅 HMAC-SHA256 서명 검증.
+
+        웹훅 요청이 Tosspayments에서 실제로 온 것인지 확인.
+        중간자 공격(MITM)이나 위변조를 방지.
 
         Args:
-            plan_name: Plan name (free, basic, pro)
+            payload_body: 원본 요청 body (bytes)
+            signature_header: 요청 헤더의 서명 값
 
         Returns:
-            Amount in KRW (원)
+            True: 서명 유효, False: 서명 불일치
         """
-        plan_prices = {
-            "free": 0,
-            "basic": 10000,
-            "pro": 30000,
-        }  # 10,000원/월  # 30,000원/월
-        return plan_prices.get(plan_name, 0)
+        if not self.webhook_secret:
+            logger.warning("Webhook secret not configured, skipping verification")
+            return True
 
-    def generate_order_id(self, user_id: int, plan_name: str) -> str:
+        expected_signature = hmac.new(
+            self.webhook_secret.encode("utf-8"),
+            payload_body,
+            hashlib.sha256,
+        ).hexdigest()
+
+        return hmac.compare_digest(expected_signature, signature_header)
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=30),
+        retry=retry_if_exception_type(httpx.TimeoutException),
+        reraise=True,
+    )
+    async def issue_billing_key(
+        self,
+        auth_key: str,
+        customer_key: str,
+    ) -> Dict:
         """
-        Generate unique order ID
+        빌링키 발급 (자동 갱신 결제 등록).
+
+        카드 정보를 토큰화하여 빌링키를 발급받고,
+        이후 빌링키로 자동 결제를 수행.
 
         Args:
-            user_id: User ID
-            plan_name: Subscription plan name
+            auth_key: Tosspayments 인증 키
+            customer_key: 고객 고유 키
 
         Returns:
-            Unique order ID
+            빌링키 정보 (billingKey, cardCompany 등)
         """
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        return f"BIZ-{user_id}-{plan_name.upper()}-{timestamp}"
+        self._ensure_configured()
+
+        url = f"{self.api_url}/billing/authorizations/issue"
+        headers = {
+            "Authorization": self.auth_header,
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "authKey": auth_key,
+            "customerKey": customer_key,
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url, headers=headers, json=payload, timeout=15.0
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"Billing key issued: customer_key={customer_key}")
+                return result
+
+            error_data = response.json()
+            raise PaymentError(
+                detail=f"빌링키 발급 실패: {error_data.get('message', 'Unknown')}"
+            )
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=30),
+        retry=retry_if_exception_type(httpx.TimeoutException),
+        reraise=True,
+    )
+    async def charge_billing_key(
+        self,
+        billing_key: str,
+        amount: int,
+        order_id: str,
+        order_name: str,
+        customer_email: str,
+        customer_name: str,
+        idempotency_key: Optional[str] = None,
+    ) -> Dict:
+        """
+        빌링키로 자동 결제 (구독 갱신).
+
+        Args:
+            billing_key: 빌링키
+            amount: 결제 금액
+            order_id: 주문 ID
+            order_name: 상품명
+            customer_email: 이메일
+            customer_name: 이름
+            idempotency_key: 멱등성 키
+        """
+        self._ensure_configured()
+
+        url = f"{self.api_url}/billing/{billing_key}"
+        headers = {
+            "Authorization": self.auth_header,
+            "Content-Type": "application/json",
+        }
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
+
+        payload = {
+            "amount": amount,
+            "orderId": order_id,
+            "orderName": order_name,
+            "customerEmail": customer_email,
+            "customerName": customer_name,
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url, headers=headers, json=payload, timeout=15.0
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(
+                    f"Billing charged: billing_key={billing_key[:8]}..., "
+                    f"amount={amount}원"
+                )
+                return result
+
+            error_data = response.json()
+            raise PaymentConfirmationError(
+                detail=f"자동 결제 실패: {error_data.get('message', 'Unknown')}"
+            )
 
 
 # Singleton instance

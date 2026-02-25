@@ -45,13 +45,14 @@ class TestBidsAPI:
 
     @pytest.mark.asyncio
     async def test_get_bids_default(self, async_client: AsyncClient, multiple_bids):
-        """기본 조회"""
+        """기본 조회 - paginated envelope"""
         response = await async_client.get("/api/v1/bids/")
 
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        assert len(data) == 5
+        assert "items" in data
+        assert "total" in data
+        assert len(data["items"]) == 5
 
     @pytest.mark.asyncio
     async def test_get_bids_with_pagination(
@@ -62,7 +63,9 @@ class TestBidsAPI:
 
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 2
+        assert len(data["items"]) == 2
+        assert data["skip"] == 2
+        assert data["limit"] == 2
 
     @pytest.mark.asyncio
     async def test_get_bids_with_keyword(self, async_client: AsyncClient, sample_bid):
@@ -71,7 +74,7 @@ class TestBidsAPI:
 
         assert response.status_code == 200
         data = response.json()
-        assert len(data) >= 1
+        assert len(data["items"]) >= 1
 
     @pytest.mark.asyncio
     async def test_get_bids_with_agency(self, async_client: AsyncClient, sample_bid):
@@ -150,3 +153,56 @@ class TestBidsAPI:
         )
 
         assert response.status_code == 400
+
+    # ============================================
+    # POST /bids/ 성공 테스트
+    # ============================================
+
+    @pytest.mark.asyncio
+    async def test_create_bid_success(self, authenticated_client: AsyncClient):
+        """공고 생성 성공"""
+        bid_data = {
+            "title": "새 입찰 공고",
+            "content": "공고 상세 내용입니다",
+            "agency": "테스트 기관",
+            "posted_at": datetime.utcnow().isoformat(),
+            "url": "https://example.com/new-bid",
+        }
+        response = await authenticated_client.post("/api/v1/bids/", json=bid_data)
+        assert response.status_code == 201
+        data = response.json()
+        assert data["title"] == "새 입찰 공고"
+
+    # ============================================
+    # PATCH /bids/{bid_id} 테스트
+    # ============================================
+
+    @pytest.mark.asyncio
+    async def test_update_bid_unauthenticated(self, async_client: AsyncClient, sample_bid):
+        """미인증 시 401"""
+        response = await async_client.patch(
+            f"/api/v1/bids/{sample_bid.id}",
+            json={"status": "reviewing"},
+        )
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_update_bid_success(
+        self, authenticated_client: AsyncClient, sample_bid
+    ):
+        """상태 변경 성공"""
+        response = await authenticated_client.patch(
+            f"/api/v1/bids/{sample_bid.id}",
+            json={"status": "reviewing"},
+        )
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_update_bid_not_found(self, authenticated_client: AsyncClient):
+        """존재하지 않는 공고 수정 - 404"""
+        response = await authenticated_client.patch(
+            "/api/v1/bids/99999",
+            json={"status": "reviewing"},
+        )
+        assert response.status_code == 404
+

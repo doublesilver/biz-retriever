@@ -1,6 +1,6 @@
 from typing import Any, List
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
@@ -8,12 +8,15 @@ from app.core.logging import logger
 from app.db.models import User
 from app.db.session import get_db
 from app.services.profile_service import profile_service
+from app.services.rate_limiter import limiter
 
 router = APIRouter()
 
 
 @router.get("/", response_model=dict)
+@limiter.limit("30/minute")
 async def get_my_profile(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
@@ -58,7 +61,9 @@ async def get_my_profile(
 
 
 @router.post("/upload-certificate", response_model=dict)
+@limiter.limit("5/minute")
 async def upload_business_certificate(
+    request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
@@ -92,9 +97,11 @@ async def upload_business_certificate(
             "profile_id": profile.id,
         }
     except Exception as e:
-        logger.error(f"Profile upload error: {e}")
+        logger.error(f"Profile upload error: {e}", exc_info=True)
+        # A03: 내부 에러 상세를 클라이언트에 노출하지 않음
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="사업자등록증 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
         )
 
 
@@ -105,7 +112,9 @@ from app.schemas.profile import (UserLicenseCreate, UserLicenseResponse,
 
 
 @router.put("/", response_model=UserProfileResponse)
+@limiter.limit("20/minute")
 async def update_profile(
+    request: Request,
     profile_in: UserProfileUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
@@ -128,7 +137,9 @@ async def update_profile(
 @router.post(
     "/licenses", response_model=UserLicenseResponse, status_code=status.HTTP_201_CREATED
 )
+@limiter.limit("20/minute")
 async def add_license(
+    request: Request,
     license_in: UserLicenseCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
@@ -142,7 +153,9 @@ async def add_license(
 
 
 @router.get("/licenses", response_model=List[UserLicenseResponse])
+@limiter.limit("30/minute")
 async def get_licenses(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
@@ -156,7 +169,9 @@ async def get_licenses(
 
 
 @router.delete("/licenses/{license_id}", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("20/minute")
 async def delete_license(
+    request: Request,
     license_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
@@ -181,7 +196,9 @@ async def delete_license(
     response_model=UserPerformanceResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("20/minute")
 async def add_performance(
+    request: Request,
     performance_in: UserPerformanceCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
@@ -197,7 +214,9 @@ async def add_performance(
 
 
 @router.get("/performances", response_model=List[UserPerformanceResponse])
+@limiter.limit("30/minute")
 async def get_performances(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
@@ -211,7 +230,9 @@ async def get_performances(
 
 
 @router.delete("/performances/{performance_id}", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("20/minute")
 async def delete_performance(
+    request: Request,
     performance_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),

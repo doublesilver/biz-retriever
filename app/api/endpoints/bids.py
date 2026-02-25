@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import (APIRouter, Depends, File, HTTPException, Path, Query,
-                     UploadFile, status)
+                     Request, UploadFile, status)
 # from fastapi_cache.decorator import cache  # Removed due to dependency conflict
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +18,7 @@ from app.schemas.bid import BidCreate, BidListResponse, BidResponse, BidUpdate
 from app.schemas.query import BidsQueryParams, FileUploadParams
 from app.services.bid_service import bid_service
 from app.services.file_service import file_service
+from app.services.rate_limiter import limiter
 
 router = APIRouter()
 logger.info("CORE_MODULE_LOADED: bids.py with BidListResponse")
@@ -38,7 +39,9 @@ MAX_FILE_SIZE = MAX_FILE_SIZE_BYTES
         422: {"description": "입력값 검증 실패"},
     },
 )
+@limiter.limit("30/minute")
 async def create_bid(
+    request: Request,
     bid_in: BidCreate,
     repo: deps.BidRepo,
     current_user: deps.CurrentUser,
@@ -64,9 +67,11 @@ async def create_bid(
         404: {"description": "공고를 찾을 수 없음"},
     },
 )
+@limiter.limit("60/minute")
 async def read_bid(
+    request: Request,
     repo: deps.BidRepo,
-    bid_id: int = Path(..., ge=1, description="공고 ID (양수)", example=1),
+    bid_id: int = Path(..., ge=1, description="공고 ID (양수)", examples=[1]),
 ):
     """
     특정 입찰 공고의 상세 정보를 조회합니다.
@@ -88,7 +93,9 @@ async def read_bid(
         404: {"description": "공고를 찾을 수 없음"},
     },
 )
+@limiter.limit("30/minute")
 async def update_bid(
+    request: Request,
     repo: deps.BidRepo,
     current_user: deps.CurrentUser,
     bid_in: BidUpdate,
@@ -107,7 +114,9 @@ async def update_bid(
 
 
 @router.get("/", response_model=BidListResponse)
+@limiter.limit("60/minute")
 async def read_bids(
+    request: Request,
     skip: int = Query(default=0, ge=0, description="건너뛸 개수"),
     limit: int = Query(default=100, ge=1, le=500, description="조회 개수 (최대 500)"),
     keyword: Optional[str] = Query(
@@ -161,7 +170,9 @@ async def read_bids(
 
 
 @router.get("/matched", response_model=BidListResponse)
+@limiter.limit("30/minute")
 async def read_matching_bids(
+    request: Request,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=500),
     repo: BidRepository = Depends(deps.get_bid_repository),
@@ -211,7 +222,9 @@ async def read_matching_bids(
 
 
 @router.post("/upload", response_model=BidResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
 async def upload_bid(
+    request: Request,
     file: UploadFile = File(..., description="PDF 또는 HWP 파일"),
     title: str = Query(..., min_length=1, max_length=200, description="공고 제목"),
     agency: str = Query(default="Unknown", max_length=200, description="기관명"),

@@ -1,20 +1,117 @@
+# ==========================================================
+# CI/CD Pipeline - biz-retriever
+# ==========================================================
+# 학습 노트:
+#
+# GitHub Actions CI/CD란?
+# 코드를 push하면 자동으로 "검사 → 테스트 → 빌드 → 배포"가 실행되는 파이프라인입니다.
+# 비유하면 자동차 생산 라인처럼, 각 단계를 통과해야만 다음 단계로 넘어갑니다.
+#
+# 파이프라인 구성:
+# 1. lint: 코드 스타일/규칙 검사 (ruff, mypy)
+# 2. security: 보안 취약점 스캔 (bandit, safety, trivy)
+# 3. test: 단위 테스트 + 커버리지
+# 4. build: Docker 이미지 빌드 + 캐시
+# 5. deploy: Railway 자동 배포 (main 브랜치만)
+# ==========================================================
+
 name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master, main]
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
 
 permissions:
   contents: read
   pull-requests: write
+  security-events: write
+
+# 동일 브랜치에서 새 push가 오면 이전 실행 취소 (리소스 절약)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  test:
+  # ==========================================================
+  # Stage 1: Lint (코드 품질 검사)
+  # ==========================================================
+  lint:
+    name: Lint & Type Check
     runs-on: ubuntu-latest
-    continue-on-error: true
-    
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install linting tools
+        run: pip install ruff==0.6.0 mypy==1.11.0
+
+      - name: Ruff lint
+        run: ruff check app/ tests/ --output-format=github
+
+      - name: Ruff format check
+        run: ruff format --check app/ tests/
+
+      - name: MyPy type check
+        run: |
+          pip install pydantic==2.10.0 sqlalchemy==2.0.25 types-redis pydantic-settings==2.6.0
+          mypy app/ --ignore-missing-imports --no-strict || true
+
+  # ==========================================================
+  # Stage 2: Security Scan (보안 취약점 검사)
+  # ==========================================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install security tools
+        run: pip install bandit[toml] pip-audit
+
+      - name: Bandit security scan
+        run: bandit -c pyproject.toml -r app/ -f json -o bandit-report.json || true
+
+      - name: pip-audit dependency scan
+        run: pip-audit -r requirements.txt --ignore-vuln PYSEC-2024-* || true
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: bandit-report.json
+          retention-days: 30
+
+  # ==========================================================
+  # Stage 3: Test (단위 테스트 + 커버리지)
+  # ==========================================================
+  test:
+    name: Test & Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     services:
       postgres:
         image: postgres:15-alpine
@@ -29,7 +126,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      
+
       redis:
         image: redis:7-alpine
         ports:
@@ -41,102 +138,137 @@ jobs:
           --health-retries 5
 
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Run tests
-      env:
-        POSTGRES_SERVER: localhost
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: password
-        POSTGRES_DB: bizmatch_test
-        POSTGRES_PORT: 5432
-        REDIS_HOST: localhost
-        REDIS_PORT: 6379
-        SECRET_KEY: test_secret_key_for_ci
-        GEMINI_API_KEY: mock_key_for_ci
-        G2B_API_KEY: mock_key_for_ci
-        SLACK_WEBHOOK_URL: https://hooks.slack.com/mock
-      run: |
-        # Run only unit tests, skip integration tests that require external APIs
-        pytest tests/unit/ -v --cov=app --cov-report=xml --cov-report=term || true
-    
-    - name: Upload coverage to Codecov
-      if: success()
-      uses: codecov/codecov-action@v3
-      continue-on-error: true
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
+      - uses: actions/checkout@v4
 
-  lint:
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install linting tools
-      run: |
-        python -m pip install --upgrade pip
-        pip install flake8 black isort
-    
-    - name: Run flake8
-      continue-on-error: true
-      run: |
-        flake8 app tests --count --select=E9,F63,F7,F82 --show-source --statistics || true
-        flake8 app tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    
-    - name: Check code formatting with black
-      continue-on-error: true
-      run: |
-        black --check app tests || true
-    
-    - name: Check import sorting with isort
-      continue-on-error: true
-      run: |
-        isort --check-only app tests || true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
 
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit tests with coverage
+        env:
+          POSTGRES_SERVER: localhost
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: bizmatch_test
+          POSTGRES_PORT: "5432"
+          REDIS_HOST: localhost
+          REDIS_PORT: "6379"
+          SECRET_KEY: test_secret_key_for_ci_do_not_use_in_production
+          GEMINI_API_KEY: mock_key_for_ci
+          G2B_API_KEY: mock_key_for_ci
+          SLACK_WEBHOOK_URL: ""
+          ENVIRONMENT: test
+        run: |
+          pytest tests/unit/ -v \
+            --cov=app \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing \
+            --cov-fail-under=60 \
+            --tb=short \
+            -q
+
+      - name: Upload coverage to Codecov
+        if: github.event_name == 'push'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  # ==========================================================
+  # Stage 4: Build Docker Image
+  # ==========================================================
   build:
+    name: Build Docker Image
     runs-on: ubuntu-latest
-    needs: [test, lint]
-    continue-on-error: true
-    if: always()
-    
+    needs: [lint, test]
+    timeout-minutes: 15
+
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-    
-    - name: Build Docker image
-      run: |
-        docker build -t biz-retriever:latest .
-    
-    - name: Test Docker image
-      run: |
-        docker run --rm biz-retriever:latest python --version
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and cache Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          push: false
+          tags: biz-retriever:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker image
+        run: |
+          docker build -t biz-retriever:test --target runtime .
+          docker run --rm biz-retriever:test python -c "import app; print('Import OK')"
+
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: biz-retriever:test
+          format: "table"
+          exit-code: "0"
+          severity: "CRITICAL,HIGH"
+
+  # ==========================================================
+  # Stage 5: Deploy to Railway (main 브랜치만)
+  # ==========================================================
+  deploy:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    timeout-minutes: 10
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
+
+      - name: Deploy to Railway
+        run: railway up --service biz-retriever
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Health check after deploy
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 30
+          if [ -n "${{ secrets.RAILWAY_PUBLIC_URL }}" ]; then
+            for i in 1 2 3 4 5; do
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.RAILWAY_PUBLIC_URL }}/health" || echo "000")
+              if [ "$STATUS" = "200" ]; then
+                echo "Health check passed (attempt $i)"
+                exit 0
+              fi
+              echo "Health check failed (attempt $i, status: $STATUS), retrying in 10s..."
+              sleep 10
+            done
+            echo "Health check failed after 5 attempts"
+            exit 1
+          else
+            echo "RAILWAY_PUBLIC_URL not set, skipping health check"
+          fi
+
+      - name: Notify Slack on deploy
+        if: success()
+        run: |
+          if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"text\": \"Biz-Retriever deployed successfully. Commit: ${{ github.sha }}\"}"
+          fi

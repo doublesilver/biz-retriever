@@ -5,16 +5,18 @@
 
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
 
 from app.api import deps
 from app.core.logging import logger
+from app.services.rate_limiter import limiter
 
 router = APIRouter()
 
 
 @router.post("/trigger")
-async def trigger_manual_crawl(current_user: deps.CurrentUser):
+@limiter.limit("5/minute")
+async def trigger_manual_crawl(request: Request, current_user: deps.CurrentUser):
     """
     수동 크롤링 트리거 (관리자용)
 
@@ -22,7 +24,14 @@ async def trigger_manual_crawl(current_user: deps.CurrentUser):
         task_id: Taskiq task ID
         status: 작업 상태
     """
-    logger.info(f"수동 크롤링 트리거: user={current_user.email}")
+    # A01: Broken Access Control - 관리자만 크롤링 트리거 가능
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="관리자만 크롤링을 트리거할 수 있습니다.",
+        )
+
+    logger.info(f"수동 크롤링 트리거: user_id={current_user.id}")
 
     try:
         # Taskiq 태스크 import
@@ -42,20 +51,21 @@ async def trigger_manual_crawl(current_user: deps.CurrentUser):
         logger.error(f"Taskiq 태스크 임포트 실패: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=503,
-            detail=f"크롤링 모듈을 로드할 수 없습니다. (원인: {str(e)})",
+            detail="크롤링 모듈을 로드할 수 없습니다. 관리자에게 문의하세요.",
         )
     except Exception as e:
-        error_type = type(e).__name__
-        logger.error(f"크롤링 트리거 실패 [{error_type}]: {str(e)}", exc_info=True)
+        logger.error(f"크롤링 트리거 실패: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=503,
-            detail=f"크롤링 서비스를 시작할 수 없습니다. ({error_type}: {str(e)})",
+            detail="크롤링 서비스를 시작할 수 없습니다. 관리자에게 문의하세요.",
         )
 
 
 @router.get("/status/{task_id}")
+@limiter.limit("30/minute")
 async def check_crawl_status(
-    task_id: str = Path(..., min_length=1, max_length=100, description="Taskiq Task ID")
+    request: Request,
+    task_id: str = Path(..., min_length=1, max_length=100, description="Taskiq Task ID"),
 ):
     """
     크롤링 작업 상태 확인

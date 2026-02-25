@@ -4,17 +4,6 @@ let currentPage = 1;
 let currentFilters = {};
 
 document.addEventListener('DOMContentLoaded', async function () {
-  // Check for SNS Login Token (Redirected from Backend)
-  const urlParams = new URLSearchParams(window.location.search);
-  const accessToken = urlParams.get('access_token');
-
-  if (accessToken) {
-    localStorage.setItem('token', accessToken);
-    // Clean URL
-    window.history.replaceState({}, document.title, window.location.pathname);
-    console.log('SNS Login Successful');
-  }
-
   // Check authentication
   if (!localStorage.getItem('token')) {
     window.location.href = '/index.html';
@@ -25,22 +14,23 @@ document.addEventListener('DOMContentLoaded', async function () {
   utils.initDarkMode();
   initEventListeners();
 
-  // Load data
-  await loadStats();
-  await loadBids();
+  // Load data (parallel where possible)
+  loadSubscriptionBanner();
+  await Promise.all([loadStats(), loadBids()]);
 });
 
 function initEventListeners() {
-  // Dark mode toggle
+  // Dark mode toggle (uses UX Engineer's 3-state toggle)
   const darkModeToggle = document.getElementById('darkModeToggle');
-  // Update icon based on current state
-  if (darkModeToggle && document.body.classList.contains('dark-mode')) {
-    darkModeToggle.textContent = '☀️';
+  if (darkModeToggle) {
+    darkModeToggle.addEventListener('click', function () {
+      if (typeof toggleDarkMode === 'function') {
+        toggleDarkMode();
+      } else if (utils.toggleDarkMode) {
+        utils.toggleDarkMode();
+      }
+    });
   }
-  darkModeToggle.addEventListener('click', function () {
-    utils.toggleDarkMode();
-    this.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
-  });
 
   // Refresh
   document.getElementById('refreshBtn').addEventListener('click', async function () {
@@ -84,13 +74,9 @@ function initEventListeners() {
     userDropdown.classList.remove('show');
   });
 
-  // Logout
+  // Logout (POST /api/v1/auth/logout 호출 후 로컬 토큰 삭제)
   document.getElementById('logoutBtn').addEventListener('click', function () {
-    localStorage.removeItem('token');
-    utils.showToast('로그아웃되었습니다', 'success');
-    setTimeout(() => {
-      window.location.href = '/index.html';
-    }, 500);
+    API.logout();
   });
 
   // Export Excel
@@ -207,7 +193,7 @@ async function loadStats() {
 
 async function loadBids() {
   const bidsList = document.getElementById('bidsList');
-  bidsList.innerHTML = '<div class="loading-container"><div class="spinner-lg"></div><p>공고를 불러오는 중...</p></div>';
+  bidsList.innerHTML = utils.createSkeleton('card', 3);
 
   try {
     const params = {
@@ -256,14 +242,23 @@ async function loadBids() {
     }
   } catch (error) {
     console.error('Failed to load bids:', error);
-    bidsList.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">⚠️</div>
-        <h3>오류가 발생했습니다</h3>
-        <p>${error.message}</p>
-        <button class="btn btn-primary" onclick="loadBids()">다시 시도</button>
-      </div>
-    `;
+    var errorMsg = utils.escapeHtml(error.message || '공고 목록을 불러오는데 실패했습니다.');
+    bidsList.innerHTML =
+      '<div class="empty-state" style="padding:3rem 1.5rem;text-align:center;">' +
+        '<div style="width:64px;height:64px;border-radius:50%;background:var(--danger-light);display:flex;align-items:center;justify-content:center;margin:0 auto var(--spacing-4);font-size:1.5rem;">!</div>' +
+        '<h3 style="font-size:var(--font-size-lg);font-weight:var(--font-weight-semibold);color:var(--text-primary);margin-bottom:var(--spacing-2);">데이터를 불러올 수 없습니다</h3>' +
+        '<p style="color:var(--text-secondary);font-size:var(--font-size-sm);margin-bottom:var(--spacing-5);max-width:360px;margin-left:auto;margin-right:auto;line-height:var(--line-height-relaxed);">' + errorMsg + '</p>' +
+        '<button class="btn btn-primary btn-sm" onclick="loadBids()" style="gap:var(--spacing-2);">다시 시도</button>' +
+      '</div>';
+
+    // 재시도 가능한 에러일 때 action toast
+    if (error.isRetryable) {
+      utils.showActionToast(
+        '네트워크 오류가 발생했습니다.',
+        'error',
+        { actionText: '다시 시도', onAction: loadBids, duration: 10000 }
+      );
+    }
   }
 }
 
@@ -544,6 +539,38 @@ document.getElementById('matchModal').addEventListener('click', function (e) {
     closeMatchModal();
   }
 });
+
+// Load subscription banner on dashboard
+async function loadSubscriptionBanner() {
+  var banner = document.getElementById('subscriptionBanner');
+  if (!banner) return;
+
+  try {
+    var profile = await API.getProfile();
+    var plan = (profile.plan_name || 'free').toLowerCase();
+    var icons = { free: '🆓', basic: '⭐', pro: '👑' };
+    var names = { free: 'Free', basic: 'Basic', pro: 'Pro' };
+    var bgColors = { free: 'var(--gray-100)', basic: 'var(--info-light)', pro: 'var(--warning-light)' };
+
+    document.getElementById('subBannerIcon').textContent = icons[plan] || '🆓';
+    document.getElementById('subBannerIcon').style.background = bgColors[plan] || 'var(--gray-100)';
+    document.getElementById('subBannerPlan').textContent = names[plan] || plan;
+
+    var actionEl = document.getElementById('subBannerAction');
+    if (plan === 'pro') {
+      actionEl.textContent = '구독 관리';
+      actionEl.style.borderColor = 'var(--success)';
+      actionEl.style.color = 'var(--success)';
+    } else {
+      actionEl.textContent = '업그레이드';
+    }
+
+    banner.style.display = 'block';
+  } catch (error) {
+    // 배너 로딩 실패 시 조용히 숨김 (중요하지 않은 UI)
+    console.warn('Subscription banner load failed:', error);
+  }
+}
 
 // Export for inline onclick handlers
 window.changePage = changePage;

@@ -8,7 +8,7 @@ from io import BytesIO
 from typing import Optional
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -20,12 +20,15 @@ from app.core.security import get_current_user
 from app.db.models import BidAnnouncement, User
 from app.db.session import get_db
 from app.schemas.query import BidSource
+from app.services.rate_limiter import limiter
 
 router = APIRouter()
 
 
 @router.get("/excel")
+@limiter.limit("10/minute")
 async def export_bids_to_excel(
+    request: Request,
     importance_score: Optional[int] = Query(
         default=None, ge=1, le=3, description="중요도 필터 (1-3)"
     ),
@@ -47,7 +50,7 @@ async def export_bids_to_excel(
     - **agency**: 기관명 필터 (부분 일치)
     """
     logger.info(
-        f"엑셀 Export 요청: user={current_user.email}, filters=(importance={importance_score}, source={source})"
+        f"엑셀 Export 요청: user_id={current_user.id}, filters=(importance={importance_score}, source={source})"
     )
 
     # 필터 조건 구성
@@ -57,8 +60,9 @@ async def export_bids_to_excel(
     if source:
         conditions.append(BidAnnouncement.source == source.value)
     if agency:
-        # SQL Injection 방지
-        safe_agency = agency.replace("'", "").replace('"', "").replace(";", "")
+        # SQLAlchemy 파라미터 바인딩이 SQL Injection을 방지하므로
+        # 별도의 문자열 필터링은 불필요 (LIKE 패턴의 %, _ 이스케이프만 처리)
+        safe_agency = agency.replace("%", r"\%").replace("_", r"\_")
         conditions.append(BidAnnouncement.agency.like(f"%{safe_agency}%"))
 
     # DB 조회
@@ -154,7 +158,9 @@ async def export_bids_to_excel(
 
 
 @router.get("/priority-agencies")
+@limiter.limit("10/minute")
 async def export_priority_agencies_excel(
+    request: Request,
     agencies: str = Query(
         ...,
         min_length=1,
@@ -189,8 +195,8 @@ async def export_priority_agencies_excel(
     # 우선 기관 공고만 조회
     all_bids = []
     for agency in priority_list:
-        # SQL Injection 방지
-        safe_agency = agency.replace("'", "").replace('"', "").replace(";", "")
+        # SQLAlchemy 파라미터 바인딩 사용 (LIKE 패턴 이스케이프만 처리)
+        safe_agency = agency.replace("%", r"\%").replace("_", r"\_")
         result = await session.execute(
             select(BidAnnouncement)
             .where(BidAnnouncement.agency.like(f"%{safe_agency}%"))

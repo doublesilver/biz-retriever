@@ -1,152 +1,560 @@
+/* ============================================
+   Biz-Retriever Design System v2.0
+   Production-grade Design Tokens
+
+   Architecture:
+   1. Primitive Tokens (raw color palette)
+   2. Semantic Tokens (contextual meaning)
+   3. Component Tokens (specific UI elements)
+
+   Grid: 4px base unit (0.25rem)
+   Type Scale: Major Third (1.250)
+   ============================================ */
+
+/* ============================================
+   1. PRIMITIVE TOKENS — Raw Palette
+   Full 50~950 scale, Tailwind CSS v3 Slate
+   ============================================ */
 :root {
-    /* Primary Colors - Reference Design Slate Style */
-    --primary: #2563EB;        /* Action Blue (Reference) */
-    --primary-hover: #1d4ed8;
-    --primary-light: #dbeafe;
-    --primary-dark: #1e40af;
-    
-    /* Accent Colors - Slate Based */
-    --accent: #059669;         /* Success Green (Emerald 600) */
-    --accent-secondary: #8b5cf6; /* Purple for variety */
+    /* --- Slate (Neutral) --- */
+    --slate-50:  #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
+    --slate-950: #020617;
 
-    /* Secondary Colors - Slate Tones */
-    --secondary: #475569;      /* Slate 600 */
-    --secondary-hover: #334155; /* Slate 700 */
+    /* --- Blue (Primary) --- */
+    --blue-50:  #eff6ff;
+    --blue-100: #dbeafe;
+    --blue-200: #bfdbfe;
+    --blue-300: #93c5fd;
+    --blue-400: #60a5fa;
+    --blue-500: #3b82f6;
+    --blue-600: #2563eb;
+    --blue-700: #1d4ed8;
+    --blue-800: #1e40af;
+    --blue-900: #1e3a8a;
+    --blue-950: #172554;
 
-    /* Status Colors - Reference Design */
-    --success: #059669;        /* Emerald 600 */
-    --success-light: #d1fae5;  /* Emerald 100 */
-    --warning: #d97706;        /* Amber 600 */
-    --warning-light: #fef3c7;  /* Amber 100 */
-    --danger: #dc2626;         /* Red 600 */
-    --danger-light: #fee2e2;   /* Red 100 */
-    --info: #2563EB;           /* Blue 600 */
-    --info-light: #dbeafe;     /* Blue 100 */
+    /* --- Emerald (Success) --- */
+    --emerald-50:  #ecfdf5;
+    --emerald-100: #d1fae5;
+    --emerald-200: #a7f3d0;
+    --emerald-300: #6ee7b7;
+    --emerald-400: #34d399;
+    --emerald-500: #10b981;
+    --emerald-600: #059669;
+    --emerald-700: #047857;
+    --emerald-800: #065f46;
+    --emerald-900: #064e3b;
+    --emerald-950: #022c22;
 
-    /* Neutral Colors - Slate Scale (Reference Design) */
-    --gray-50: #f8fafc;        /* Slate 50 */
-    --gray-100: #f1f5f9;       /* Slate 100 (Admin Gray) */
-    --gray-200: #e2e8f0;       /* Slate 200 (Borders) */
-    --gray-300: #cbd5e1;       /* Slate 300 */
-    --gray-400: #94a3b8;       /* Slate 400 */
-    --gray-500: #64748b;       /* Slate 500 */
-    --gray-600: #475569;       /* Slate 600 (Body text) */
-    --gray-700: #334155;       /* Slate 700 */
-    --gray-800: #1e293b;       /* Slate 800 (Trust Navy/Header) */
-    --gray-900: #0f172a;       /* Slate 900 (Darkest) */
+    /* --- Amber (Warning) --- */
+    --amber-50:  #fffbeb;
+    --amber-100: #fef3c7;
+    --amber-200: #fde68a;
+    --amber-300: #fcd34d;
+    --amber-400: #fbbf24;
+    --amber-500: #f59e0b;
+    --amber-600: #d97706;
+    --amber-700: #b45309;
+    --amber-800: #92400e;
+    --amber-900: #78350f;
+    --amber-950: #451a03;
 
-    /* Light Mode - Reference Design Style */
-    --bg-primary: #ffffff;
-    --bg-secondary: var(--gray-50);      /* #f8fafc */
-    --bg-tertiary: var(--gray-100);      /* #f1f5f9 (Page background) */
-    --text-primary: var(--gray-900);     /* #0f172a */
-    --text-secondary: var(--gray-600);   /* #475569 */
-    --text-tertiary: var(--gray-500);    /* #64748b */
-    --text-disabled: var(--gray-400);    /* #94a3b8 */
-    --border-color: var(--gray-200);     /* #e2e8f0 */
-    --border-color-strong: var(--gray-300); /* #cbd5e1 */
-    --divider-color: var(--gray-200);    /* #e2e8f0 */
-    
-    /* Shadows - 자연스럽고 미묘하게 */
-    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    
-    /* Focus Ring - 접근성 */
-    --focus-ring: 0 0 0 3px rgba(49, 130, 246, 0.1);
-    --focus-ring-error: 0 0 0 3px rgba(255, 59, 48, 0.1);
+    /* --- Red (Danger/Error) --- */
+    --red-50:  #fef2f2;
+    --red-100: #fee2e2;
+    --red-200: #fecaca;
+    --red-300: #fca5a5;
+    --red-400: #f87171;
+    --red-500: #ef4444;
+    --red-600: #dc2626;
+    --red-700: #b91c1c;
+    --red-800: #991b1b;
+    --red-900: #7f1d1d;
+    --red-950: #450a0a;
 
-    /* Typography - 페이히어/네이버 스타일 */
-    --font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', sans-serif;
-    
-    /* Font Size Scale - 실제 서비스 수준 */
-    --font-size-xs: 0.75rem;     /* 12px */
-    --font-size-sm: 0.875rem;    /* 14px */
+    /* --- Violet (Accent) --- */
+    --violet-50:  #f5f3ff;
+    --violet-100: #ede9fe;
+    --violet-200: #ddd6fe;
+    --violet-300: #c4b5fd;
+    --violet-400: #a78bfa;
+    --violet-500: #8b5cf6;
+    --violet-600: #7c3aed;
+    --violet-700: #6d28d9;
+    --violet-800: #5b21b6;
+    --violet-900: #4c1d95;
+    --violet-950: #2e1065;
+}
+
+/* ============================================
+   2. SEMANTIC TOKENS — Light Mode (Default)
+   ============================================ */
+:root {
+    /* --- Brand --- */
+    --primary: var(--blue-600);
+    --primary-hover: var(--blue-700);
+    --primary-active: var(--blue-800);
+    --primary-light: var(--blue-50);
+    --primary-subtle: var(--blue-100);
+    --primary-dark: var(--blue-800);
+    --primary-rgb: 37, 99, 235;
+    --primary-color: var(--primary);
+
+    --accent: var(--violet-500);
+    --accent-hover: var(--violet-600);
+    --accent-light: var(--violet-50);
+    --accent-secondary: var(--violet-500);
+
+    --secondary: var(--slate-600);
+    --secondary-hover: var(--slate-700);
+    --secondary-color: var(--secondary);
+
+    /* --- Semantic Status --- */
+    --success:       var(--emerald-600);
+    --success-hover: var(--emerald-700);
+    --success-light: var(--emerald-50);
+    --success-subtle: var(--emerald-100);
+    --success-color: var(--emerald-600);
+
+    --warning:       var(--amber-600);
+    --warning-hover: var(--amber-700);
+    --warning-light: var(--amber-50);
+    --warning-subtle: var(--amber-100);
+
+    --danger:       var(--red-600);
+    --danger-hover: var(--red-700);
+    --danger-light: var(--red-50);
+    --danger-subtle: var(--red-100);
+    --error-color:  var(--red-600);
+
+    --info:       var(--blue-600);
+    --info-hover: var(--blue-700);
+    --info-light: var(--blue-50);
+    --info-subtle: var(--blue-100);
+
+    /* --- Neutral Aliases (backward compat) --- */
+    --gray-50:  var(--slate-50);
+    --gray-100: var(--slate-100);
+    --gray-200: var(--slate-200);
+    --gray-300: var(--slate-300);
+    --gray-400: var(--slate-400);
+    --gray-500: var(--slate-500);
+    --gray-600: var(--slate-600);
+    --gray-700: var(--slate-700);
+    --gray-800: var(--slate-800);
+    --gray-900: var(--slate-900);
+
+    /* --- Surfaces --- */
+    --bg-primary:   #ffffff;
+    --bg-secondary: var(--slate-50);
+    --bg-tertiary:  var(--slate-100);
+    --bg-hover:     var(--slate-100);
+    --bg-active:    var(--slate-200);
+    --bg-overlay:   rgba(15, 23, 42, 0.6);
+    --card-bg:      #ffffff;
+
+    /* --- Text Hierarchy (WCAG AA contrast on white) --- */
+    --text-primary:   var(--slate-900);   /* 15.4:1 */
+    --text-secondary: var(--slate-600);   /* 6.0:1  */
+    --text-tertiary:  var(--slate-500);   /* 4.6:1  */
+    --text-disabled:  var(--slate-400);   /* decorative only */
+    --text-muted:     var(--slate-500);
+    --text-color:     var(--slate-900);
+    --text-on-primary: #ffffff;
+    --text-on-dark:    var(--slate-100);
+
+    /* --- Borders --- */
+    --border-color:        var(--slate-200);
+    --border-color-strong: var(--slate-300);
+    --border-color-subtle: var(--slate-100);
+    --divider-color:       var(--slate-200);
+
+    /* --- Shadows — Layered for depth perception --- */
+    --shadow-xs:  0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    --shadow-sm:  0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+    --shadow-md:  0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    --shadow-lg:  0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+    --shadow-xl:  0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+    --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.04);
+    --card-shadow-lg: var(--shadow-lg);
+
+    /* Colored Shadows — primary tinted */
+    --shadow-primary-sm: 0 1px 3px 0 rgba(37, 99, 235, 0.12), 0 1px 2px -1px rgba(37, 99, 235, 0.08);
+    --shadow-primary-md: 0 4px 14px -2px rgba(37, 99, 235, 0.16);
+    --shadow-primary-lg: 0 10px 25px -4px rgba(37, 99, 235, 0.2);
+
+    /* --- Focus Ring — WCAG 2.1 AA (3:1 non-text contrast) --- */
+    --focus-ring:        0 0 0 3px rgba(37, 99, 235, 0.35);
+    --focus-ring-error:  0 0 0 3px rgba(220, 38, 38, 0.35);
+    --focus-ring-offset: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--blue-500);
+
+    /* ============================================
+       3. TYPOGRAPHY — Pretendard First, Modular Scale
+       ============================================ */
+    --font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont,
+        'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
+
+    /* Type Scale — Major Third (1.250) */
+    --font-size-2xs: 0.625rem;   /* 10px */
+    --font-size-xs:  0.75rem;    /* 12px */
+    --font-size-sm:  0.875rem;   /* 14px */
     --font-size-base: 1rem;      /* 16px */
-    --font-size-lg: 1.125rem;    /* 18px */
-    --font-size-xl: 1.25rem;     /* 20px */
+    --font-size-lg:  1.125rem;   /* 18px */
+    --font-size-xl:  1.25rem;    /* 20px */
     --font-size-2xl: 1.5rem;     /* 24px */
     --font-size-3xl: 1.875rem;   /* 30px */
     --font-size-4xl: 2.25rem;    /* 36px */
-    
-    /* Font Weight - 한글 최적화 */
-    --font-weight-regular: 400;
-    --font-weight-medium: 500;
+    --font-size-5xl: 3rem;       /* 48px */
+
+    /* Font Weight */
+    --font-weight-regular:  400;
+    --font-weight-medium:   500;
     --font-weight-semibold: 600;
-    --font-weight-bold: 700;
-    
-    /* Line Height - 가독성 최적화 */
-    --line-height-tight: 1.3;
-    --line-height-normal: 1.5;
-    --line-height-relaxed: 1.7;
-    
-    /* Letter Spacing - 한글은 기본값 */
-    --letter-spacing-tight: -0.01em;
-    --letter-spacing-normal: 0;
-    --letter-spacing-wide: 0.01em;
+    --font-weight-bold:     700;
+    --font-weight-extrabold: 800;
 
-    /* Spacing - 페이히어/네이버 표준 (적절한 여백) */
-    --spacing-1: 0.25rem;    /* 4px */
-    --spacing-2: 0.5rem;     /* 8px */
-    --spacing-3: 0.75rem;    /* 12px */
-    --spacing-4: 1rem;       /* 16px */
-    --spacing-5: 1.25rem;    /* 20px */
-    --spacing-6: 1.5rem;     /* 24px */
-    --spacing-8: 2rem;       /* 32px */
-    --spacing-10: 2.5rem;    /* 40px */
-    --spacing-12: 3rem;      /* 48px */
-    --spacing-16: 4rem;      /* 64px */
+    /* Line Height — Optimized for Korean + Latin mixed */
+    --line-height-none:    1;
+    --line-height-tight:   1.25;
+    --line-height-snug:    1.375;
+    --line-height-normal:  1.5;
+    --line-height-relaxed: 1.625;
+    --line-height-loose:   1.75;
 
-    /* Border Radius - 카카오/네이버 스타일 */
+    /* Letter Spacing — Korean optimized */
+    --letter-spacing-tighter: -0.02em;
+    --letter-spacing-tight:   -0.01em;
+    --letter-spacing-normal:  0;
+    --letter-spacing-wide:    0.01em;
+    --letter-spacing-wider:   0.025em;
+
+    /* ============================================
+       4. SPACING — 4px/8px Grid System
+       ============================================ */
+    /* Named aliases (backward compat) */
+    --spacing-px:  1px;
+    --spacing-0:   0;
+    --spacing-0-5: 0.125rem;  /* 2px */
+    --spacing-1:   0.25rem;   /* 4px  — base unit */
+    --spacing-1-5: 0.375rem;  /* 6px */
+    --spacing-2:   0.5rem;    /* 8px */
+    --spacing-2-5: 0.625rem;  /* 10px */
+    --spacing-3:   0.75rem;   /* 12px */
+    --spacing-3-5: 0.875rem;  /* 14px */
+    --spacing-4:   1rem;      /* 16px */
+    --spacing-5:   1.25rem;   /* 20px */
+    --spacing-6:   1.5rem;    /* 24px */
+    --spacing-7:   1.75rem;   /* 28px */
+    --spacing-8:   2rem;      /* 32px */
+    --spacing-9:   2.25rem;   /* 36px */
+    --spacing-10:  2.5rem;    /* 40px */
+    --spacing-11:  2.75rem;   /* 44px */
+    --spacing-12:  3rem;      /* 48px */
+    --spacing-14:  3.5rem;    /* 56px */
+    --spacing-16:  4rem;      /* 64px */
+    --spacing-20:  5rem;      /* 80px */
+    --spacing-24:  6rem;      /* 96px */
+
+    /* Legacy aliases for existing code */
+    --spacing-xs:  0.25rem;
+    --spacing-sm:  1rem;
+    --spacing-md:  1.5rem;
+    --spacing-lg:  2rem;
+    --spacing-xl:  2.5rem;
+    --spacing-2xl: 3rem;
+
+    /* ============================================
+       5. BORDER RADIUS
+       ============================================ */
     --radius-none: 0;
-    --radius-sm: 0.25rem;    /* 4px */
-    --radius-md: 0.5rem;     /* 8px */
-    --radius-lg: 0.75rem;    /* 12px */
-    --radius-xl: 1rem;       /* 16px */
-    --radius-2xl: 1.5rem;    /* 24px */
+    --radius-xs:   0.125rem;  /* 2px */
+    --radius-sm:   0.25rem;   /* 4px */
+    --radius-md:   0.375rem;  /* 6px */
+    --radius-DEFAULT: 0.5rem; /* 8px */
+    --radius-lg:   0.5rem;    /* 8px */
+    --radius-xl:   0.75rem;   /* 12px */
+    --radius-2xl:  1rem;      /* 16px */
+    --radius-3xl:  1.5rem;    /* 24px */
     --radius-full: 9999px;
 
-    /* Transitions - 부드럽고 자연스럽게 */
-    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* ============================================
+       6. TRANSITIONS & ANIMATIONS
+       ============================================ */
+    --ease-in:     cubic-bezier(0.4, 0, 1, 1);
+    --ease-out:    cubic-bezier(0, 0, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
 
-    /* Z-index */
-    --z-dropdown: 1000;
-    --z-sticky: 1020;
-    --z-fixed: 1030;
+    --duration-75:  75ms;
+    --duration-100: 100ms;
+    --duration-150: 150ms;
+    --duration-200: 200ms;
+    --duration-300: 300ms;
+    --duration-500: 500ms;
+
+    --transition-fast:   var(--duration-150) var(--ease-in-out);
+    --transition-base:   var(--duration-200) var(--ease-in-out);
+    --transition-slow:   var(--duration-300) var(--ease-in-out);
+    --transition-bounce: var(--duration-500) var(--ease-bounce);
+    --transition-spring: var(--duration-500) var(--ease-spring);
+
+    /* ============================================
+       7. Z-INDEX SCALE
+       ============================================ */
+    --z-hide:           -1;
+    --z-base:           0;
+    --z-raised:         1;
+    --z-dropdown:       1000;
+    --z-sticky:         1020;
+    --z-fixed:          1030;
     --z-modal-backdrop: 1040;
-    --z-modal: 1050;
-    --z-popover: 1060;
-    --z-tooltip: 1070;
-}
+    --z-modal:          1050;
+    --z-popover:        1060;
+    --z-tooltip:        1070;
+    --z-notification:   1080;
 
-/* Dark Mode - Reference Design Slate Style */
-body.dark-mode {
-    --bg-primary: #0f172a;     /* Slate 900 */
-    --bg-secondary: #1e293b;   /* Slate 800 */
-    --bg-tertiary: #334155;    /* Slate 700 */
-    --text-primary: #f1f5f9;   /* Slate 100 */
-    --text-secondary: #94a3b8; /* Slate 400 */
-    --text-tertiary: #64748b;  /* Slate 500 */
-    --text-disabled: #475569;  /* Slate 600 */
-    --border-color: #334155;   /* Slate 700 */
-    --border-color-strong: #475569; /* Slate 600 */
-    --divider-color: #334155;  /* Slate 700 */
-    
-    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
-}
+    /* ============================================
+       8. COMPONENT TOKENS
+       ============================================ */
+    /* Navbar */
+    --navbar-height: 64px;
+    --navbar-bg: var(--slate-800);
+    --navbar-bg-blur: rgba(30, 41, 59, 0.85);
 
-/* Priority Colors */
-:root {
+    /* Input */
+    --input-height-sm: 36px;
+    --input-height-md: 44px;
+    --input-height-lg: 52px;
+    --input-border: var(--border-color);
+    --input-border-focus: var(--primary);
+    --input-bg: var(--bg-primary);
+
+    /* Button */
+    --btn-height-sm: 36px;
+    --btn-height-md: 44px;
+    --btn-height-lg: 52px;
+
+    /* Card */
+    --card-radius: var(--radius-xl);
+    --card-padding: var(--spacing-6);
+    --card-border: 1px solid var(--border-color);
+    --card-shadow: var(--shadow-sm);
+    --card-shadow-hover: var(--shadow-md);
+
+    /* Priority Colors */
     --priority-high: var(--danger);
     --priority-medium: var(--warning);
     --priority-low: var(--secondary);
+}
+
+/* ============================================
+   DARK MODE — Elevated Surface System
+   Material Design 3 inspired: each layer
+   gets progressively lighter to convey depth
+
+   Surface 0 (base):    #0c1222  (Slate 950+)
+   Surface 1 (card):    #131c2e  (+4% white)
+   Surface 2 (raised):  #1a2438  (+6% white)
+   Surface 3 (overlay):  #1e293b (+8% white = Slate 800)
+   Surface 4 (high):    #263347  (+10% white)
+   Surface 5 (highest): #334155  (+12% white = Slate 700)
+   ============================================ */
+
+/* Dark Mode via prefers-color-scheme (auto) */
+@media (prefers-color-scheme: dark) {
+    :root:not(.light-mode) {
+        /* Surfaces */
+        --bg-primary:   #131c2e;
+        --bg-secondary: #0c1222;
+        --bg-tertiary:  #1a2438;
+        --bg-hover:     #1e293b;
+        --bg-active:    #263347;
+        --bg-overlay:   rgba(0, 0, 0, 0.7);
+        --card-bg:      #131c2e;
+
+        /* Text — WCAG AA on dark surfaces */
+        --text-primary:   var(--slate-100);  /* #f1f5f9 — 14.7:1 */
+        --text-secondary: var(--slate-400);  /* #94a3b8 — 6.3:1 */
+        --text-tertiary:  var(--slate-500);  /* #64748b — 4.5:1 */
+        --text-disabled:  var(--slate-600);
+        --text-muted:     var(--slate-500);
+        --text-color:     var(--slate-100);
+        --text-on-primary: #ffffff;
+
+        /* Borders */
+        --border-color:        rgba(148, 163, 184, 0.12);
+        --border-color-strong: rgba(148, 163, 184, 0.2);
+        --border-color-subtle: rgba(148, 163, 184, 0.06);
+        --divider-color:       rgba(148, 163, 184, 0.1);
+
+        /* Shadows — deeper in dark mode */
+        --shadow-xs:  0 1px 2px 0 rgba(0, 0, 0, 0.2);
+        --shadow-sm:  0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.25);
+        --shadow-md:  0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
+        --shadow-lg:  0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -4px rgba(0, 0, 0, 0.25);
+        --shadow-xl:  0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+        --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+        --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+        --card-shadow-lg: var(--shadow-lg);
+
+        --shadow-primary-sm: 0 1px 3px 0 rgba(37, 99, 235, 0.2);
+        --shadow-primary-md: 0 4px 14px -2px rgba(37, 99, 235, 0.25);
+        --shadow-primary-lg: 0 10px 25px -4px rgba(37, 99, 235, 0.3);
+
+        /* Focus */
+        --focus-ring:        0 0 0 3px rgba(96, 165, 250, 0.45);
+        --focus-ring-offset: 0 0 0 2px #131c2e, 0 0 0 4px var(--blue-400);
+
+        /* Status adjustments for dark bg */
+        --primary-light: rgba(37, 99, 235, 0.12);
+        --primary-subtle: rgba(37, 99, 235, 0.08);
+        --success-light: rgba(5, 150, 105, 0.12);
+        --success-subtle: rgba(5, 150, 105, 0.08);
+        --warning-light: rgba(217, 119, 6, 0.12);
+        --warning-subtle: rgba(217, 119, 6, 0.08);
+        --danger-light: rgba(220, 38, 38, 0.12);
+        --danger-subtle: rgba(220, 38, 38, 0.08);
+        --info-light: rgba(37, 99, 235, 0.12);
+        --info-subtle: rgba(37, 99, 235, 0.08);
+
+        /* Navbar */
+        --navbar-bg: #0c1222;
+        --navbar-bg-blur: rgba(12, 18, 34, 0.85);
+
+        /* Input */
+        --input-bg: #1a2438;
+        --input-border: rgba(148, 163, 184, 0.15);
+
+        /* Card */
+        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+        --card-shadow-hover: 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+    }
+}
+
+/* Dark Mode via manual toggle (body.dark-mode) */
+body.dark-mode {
+    --bg-primary:   #131c2e;
+    --bg-secondary: #0c1222;
+    --bg-tertiary:  #1a2438;
+    --bg-hover:     #1e293b;
+    --bg-active:    #263347;
+    --bg-overlay:   rgba(0, 0, 0, 0.7);
+    --card-bg:      #131c2e;
+
+    --text-primary:   var(--slate-100);
+    --text-secondary: var(--slate-400);
+    --text-tertiary:  var(--slate-500);
+    --text-disabled:  var(--slate-600);
+    --text-muted:     var(--slate-500);
+    --text-color:     var(--slate-100);
+    --text-on-primary: #ffffff;
+
+    --border-color:        rgba(148, 163, 184, 0.12);
+    --border-color-strong: rgba(148, 163, 184, 0.2);
+    --border-color-subtle: rgba(148, 163, 184, 0.06);
+    --divider-color:       rgba(148, 163, 184, 0.1);
+
+    --shadow-xs:  0 1px 2px 0 rgba(0, 0, 0, 0.2);
+    --shadow-sm:  0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.25);
+    --shadow-md:  0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
+    --shadow-lg:  0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -4px rgba(0, 0, 0, 0.25);
+    --shadow-xl:  0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+    --card-shadow-lg: var(--shadow-lg);
+
+    --shadow-primary-sm: 0 1px 3px 0 rgba(37, 99, 235, 0.2);
+    --shadow-primary-md: 0 4px 14px -2px rgba(37, 99, 235, 0.25);
+    --shadow-primary-lg: 0 10px 25px -4px rgba(37, 99, 235, 0.3);
+
+    --focus-ring:        0 0 0 3px rgba(96, 165, 250, 0.45);
+    --focus-ring-offset: 0 0 0 2px #131c2e, 0 0 0 4px var(--blue-400);
+
+    --primary-light: rgba(37, 99, 235, 0.12);
+    --primary-subtle: rgba(37, 99, 235, 0.08);
+    --success-light: rgba(5, 150, 105, 0.12);
+    --success-subtle: rgba(5, 150, 105, 0.08);
+    --warning-light: rgba(217, 119, 6, 0.12);
+    --warning-subtle: rgba(217, 119, 6, 0.08);
+    --danger-light: rgba(220, 38, 38, 0.12);
+    --danger-subtle: rgba(220, 38, 38, 0.08);
+    --info-light: rgba(37, 99, 235, 0.12);
+    --info-subtle: rgba(37, 99, 235, 0.08);
+
+    --navbar-bg: #0c1222;
+    --navbar-bg-blur: rgba(12, 18, 34, 0.85);
+    --input-bg: #1a2438;
+    --input-border: rgba(148, 163, 184, 0.15);
+    --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+    --card-shadow-hover: 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================
+   Dark Mode Component Overrides
+   ============================================ */
+body.dark-mode .stat-card,
+body.dark-mode .login-card,
+body.dark-mode .bid-card,
+body.dark-mode .kanban-card,
+body.dark-mode .pipeline-indicator {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+}
+
+body.dark-mode .kanban-header {
+    background: rgba(96, 165, 250, 0.04);
+}
+
+body.dark-mode .btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color-strong);
+}
+
+body.dark-mode .btn-secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--slate-500);
+}
+
+body.dark-mode .navbar {
+    background: var(--navbar-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not(.light-mode) .stat-card,
+    :root:not(.light-mode) .login-card,
+    :root:not(.light-mode) .bid-card,
+    :root:not(.light-mode) .kanban-card,
+    :root:not(.light-mode) .pipeline-indicator {
+        background: var(--bg-primary);
+        border-color: var(--border-color);
+    }
+
+    :root:not(.light-mode) .kanban-header {
+        background: rgba(96, 165, 250, 0.04);
+    }
+
+    :root:not(.light-mode) .btn-secondary {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border-color: var(--border-color-strong);
+    }
+
+    :root:not(.light-mode) .navbar {
+        background: var(--navbar-bg);
+        border-bottom: 1px solid var(--border-color);
+    }
 }

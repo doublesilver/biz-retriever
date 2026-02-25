@@ -28,15 +28,19 @@ document.addEventListener('DOMContentLoaded', function () {
         utils.setLoading(submitBtn, true);
 
         try {
-            const response = await API.login(email, password);
-            localStorage.setItem('token', response.access_token);
+            await API.login(email, password);
             utils.showToast('로그인 성공!', 'success');
 
             setTimeout(() => {
                 window.location.href = '/dashboard.html';
             }, 500);
         } catch (error) {
-            utils.showToast(error.message || '로그인 실패', 'error');
+            // 계정 잠금 에러 UI 처리
+            if (error.isAccountLocked) {
+                showAccountLockedMessage(error.lockRemainingMinutes);
+            } else {
+                utils.showToast(error.message || '로그인 실패', 'error');
+            }
             utils.setLoading(submitBtn, false);
         }
     });
@@ -251,3 +255,62 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
+/**
+ * 계정 잠금 메시지 UI 표시
+ * 남은 잠금 시간을 실시간 카운트다운으로 보여줌
+ */
+function showAccountLockedMessage(remainingMinutes) {
+    // 기존 잠금 메시지가 있으면 제거
+    const existing = document.getElementById('accountLockedBanner');
+    if (existing) existing.remove();
+
+    const banner = document.createElement('div');
+    banner.id = 'accountLockedBanner';
+    banner.style.cssText = `
+        margin-bottom: var(--spacing-4);
+        padding: var(--spacing-4) var(--spacing-5);
+        background: var(--danger-light);
+        border: 1px solid var(--danger);
+        border-radius: var(--radius-md);
+        color: var(--danger);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-relaxed);
+    `;
+
+    const title = document.createElement('div');
+    title.style.cssText = 'font-weight: 600; margin-bottom: var(--spacing-2);';
+    title.textContent = '계정이 일시적으로 잠겼습니다';
+
+    const desc = document.createElement('div');
+    desc.textContent = '로그인 시도가 너무 많아 보안을 위해 계정이 잠겼습니다.';
+    desc.style.marginBottom = 'var(--spacing-2)';
+
+    const timer = document.createElement('div');
+    timer.style.cssText = 'font-weight: 600; font-size: var(--font-size-base);';
+
+    banner.appendChild(title);
+    banner.appendChild(desc);
+    banner.appendChild(timer);
+
+    // 로그인 폼 위에 삽입
+    const loginForm = document.getElementById('loginForm');
+    loginForm.parentElement.insertBefore(banner, loginForm);
+
+    // 실시간 카운트다운
+    let totalSeconds = remainingMinutes * 60;
+
+    function updateTimer() {
+        if (totalSeconds <= 0) {
+            banner.remove();
+            return;
+        }
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        timer.textContent = `${mins}분 ${String(secs).padStart(2, '0')}초 후 다시 시도할 수 있습니다`;
+        totalSeconds--;
+        setTimeout(updateTimer, 1000);
+    }
+
+    updateTimer();
+}

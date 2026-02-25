@@ -26,8 +26,7 @@ class UserLicenseResponse(UserLicenseBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class UserPerformanceBase(BaseModel):
@@ -52,8 +51,7 @@ class UserPerformanceResponse(UserPerformanceBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class UserProfileBase(BaseModel):
@@ -88,5 +86,4 @@ class UserProfileResponse(UserProfileBase):
     licenses: List[UserLicenseBase] = []
     performances: List[UserPerformanceBase] = []
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

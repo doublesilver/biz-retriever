@@ -113,6 +113,25 @@ class User(Base, TimestampMixin):
         DateTime, nullable=True
     )  # 마지막 로그인 시간
 
+    # Password Reset
+    password_reset_token: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True, index=True
+    )  # 비밀번호 재설정 토큰
+    password_reset_expires: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )  # 토큰 만료 시간
+
+    # Email Verification
+    is_email_verified: Mapped[bool] = mapped_column(
+        Boolean, default=False
+    )  # 이메일 인증 완료 여부
+    email_verification_token: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True, index=True
+    )  # 이메일 인증 토큰
+    email_verification_expires: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )  # 인증 토큰 만료 시간
+
     # OAuth2 Fields (Deprecated - kept for backward compatibility)
     provider: Mapped[str] = mapped_column(
         String, default="email"
@@ -450,7 +469,8 @@ class UserKeyword(Base, TimestampMixin):
 class Subscription(Base, TimestampMixin):
     """
     Subscription Model (구독 관리)
-    Phase 3: Billing System
+    Phase 3: Billing System — 전체 라이프사이클 지원
+    (생성 → 갱신 → 해지 → 만료 → 재구독)
     """
 
     __tablename__ = "subscriptions"
@@ -463,13 +483,31 @@ class Subscription(Base, TimestampMixin):
     plan_name: Mapped[str] = mapped_column(String, default="free")  # free, basic, pro
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     start_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    end_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)  # 구독 종료일
     next_billing_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
-    # Stripe/Payment Gateway IDs
+    # 구독 상태 (active, cancelled, expired, past_due)
+    status: Mapped[str] = mapped_column(
+        String, default="active", index=True
+    )
+    # 해지 요청 시각 (해지 예약 — 기간 만료 시 실제 해지)
+    cancelled_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    cancel_reason: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    # Tosspayments 빌링키 (자동 갱신 결제용)
+    billing_key: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    # 레거시 호환 (stripe_subscription_id → payment_key로 저장)
     stripe_subscription_id: Mapped[Optional[str]] = mapped_column(String, index=True)
+
+    # 결제 실패 추적
+    failed_payment_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_payment_attempt: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Relationship
     user: Mapped["User"] = relationship("User", back_populates="subscription")
+    invoices: Mapped[List["Invoice"]] = relationship(
+        "Invoice", back_populates="subscription", lazy="selectin"
+    )
 
 
 class PaymentHistory(Base, TimestampMixin):
@@ -492,5 +530,62 @@ class PaymentHistory(Base, TimestampMixin):
     payment_method: Mapped[str] = mapped_column(String, default="card")
     transaction_id: Mapped[Optional[str]] = mapped_column(String, index=True)
 
+    # 멱등성 키 (중복 결제 방지)
+    idempotency_key: Mapped[Optional[str]] = mapped_column(
+        String, unique=True, nullable=True, index=True
+    )
+    # 주문 ID (Tosspayments orderId)
+    order_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    # 결제 유형 (subscription_create, subscription_renew, refund 등)
+    payment_type: Mapped[str] = mapped_column(String, default="subscription_create")
+
     # Relationship
     user: Mapped["User"] = relationship("User", back_populates="payments")
+
+
+class Invoice(Base, TimestampMixin):
+    """
+    Invoice Model (인보이스/영수증)
+    구독 결제마다 인보이스를 생성하여 과금 이력을 추적
+    """
+
+    __tablename__ = "invoices"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    invoice_number: Mapped[str] = mapped_column(
+        String, unique=True, nullable=False, index=True
+    )
+    subscription_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("subscriptions.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
+    # 금액 정보
+    amount: Mapped[float] = mapped_column(Float, nullable=False)  # 최종 청구 금액
+    subtotal: Mapped[float] = mapped_column(Float, nullable=False)  # 원래 플랜 금액
+    proration_amount: Mapped[float] = mapped_column(Float, default=0.0)  # 프로레이션 차액
+    tax_amount: Mapped[float] = mapped_column(Float, default=0.0)  # 부가세
+    currency: Mapped[str] = mapped_column(String, default="KRW")
+
+    # 상태 및 기간
+    status: Mapped[str] = mapped_column(
+        String, default="pending", index=True
+    )  # pending, paid, failed, void, refunded
+    billing_period_start: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    billing_period_end: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    # 결제 참조
+    payment_key: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    plan_name: Mapped[str] = mapped_column(String, nullable=False)
+
+    # 설명
+    description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    # Relationships
+    subscription: Mapped["Subscription"] = relationship(
+        "Subscription", back_populates="invoices"
+    )
+    user: Mapped[Optional["User"]] = relationship("User")

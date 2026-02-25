@@ -5,88 +5,99 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>프로필 관리 - Biz-Retriever</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/variables.css">
-    <link rel="stylesheet" href="css/reset.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/variables.css?v=v4">
+    <link rel="stylesheet" href="css/reset.css?v=v4">
+    <link rel="stylesheet" href="css/components.css?v=v4">
+    <link rel="stylesheet" href="css/main.css?v=v4">
+    <link rel="stylesheet" href="css/dashboard.css?v=v4">
+    <link rel="stylesheet" href="css/accessibility.css?v=v4">
     <style>
         .profile-grid {
             display: grid;
             grid-template-columns: 1fr 1.5fr;
-            gap: 2rem;
-            margin-top: 1rem;
+            gap: var(--spacing-6);
+            margin-top: var(--spacing-4);
         }
 
         .upload-card {
             background: var(--bg-secondary);
-            padding: 2rem;
-            border-radius: var(--radius-lg);
+            padding: var(--spacing-8);
+            border-radius: var(--radius-xl);
             border: 2px dashed var(--border-color);
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition:
+                border-color var(--duration-200) var(--ease-in-out),
+                background var(--duration-200) var(--ease-in-out);
         }
 
         .upload-card:hover {
-            border-color: var(--primary-color);
-            background: var(--bg-hover);
+            border-color: var(--primary);
+            background: var(--primary-light);
         }
 
         .form-info {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
+            font-size: var(--font-size-xs);
+            color: var(--text-tertiary);
+            margin-bottom: var(--spacing-2);
+            margin-top: var(--spacing-1-5);
         }
 
         .license-tag {
             display: inline-block;
             background: var(--primary-light);
-            color: var(--primary-color);
-            padding: 0.2rem 0.6rem;
-            border-radius: var(--radius-sm);
-            margin: 0.2rem;
-            font-size: 0.85rem;
+            color: var(--primary);
+            padding: var(--spacing-0-5) var(--spacing-2-5);
+            border-radius: var(--radius-full);
+            margin: var(--spacing-0-5);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
         }
 
-        /* Mobile Responsive */
         @media (max-width: 768px) {
             .profile-grid {
-                grid-template-columns: 1fr !important;
-                gap: 1.5rem !important;
+                grid-template-columns: 1fr;
+                gap: var(--spacing-4);
             }
 
             .upload-card {
-                padding: 1.5rem;
+                padding: var(--spacing-6);
             }
 
             .section-header h1 {
-                font-size: 1.5rem;
+                font-size: var(--font-size-2xl);
             }
         }
     </style>
 </head>
 
 <body>
+    <!-- Skip Navigation -->
+    <a href="#profileForm" class="skip-link">프로필 폼으로 건너뛰기</a>
     <!-- Navbar -->
-    <nav class="navbar">
+    <nav class="navbar" role="navigation" aria-label="메인 네비게이션">
         <div class="navbar-brand">
-            <a href="dashboard.html" style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
-                <span>🐕</span>
+            <a href="dashboard.html">
+                <span aria-hidden="true">🐕</span>
                 <span>Biz-Retriever</span>
             </a>
         </div>
         <div class="navbar-actions">
-            <a href="dashboard.html" class="btn-icon" title="대시보드">🏠</a>
-            <a href="kanban.html" class="btn-icon" title="칸반 보드">📋</a>
-            <button class="btn-icon" id="darkModeToggle" title="다크모드">🌙</button>
+            <a href="dashboard.html" class="btn-icon" title="대시보드" aria-label="대시보드">
+                <span aria-hidden="true">🏠</span>
+            </a>
+            <a href="kanban.html" class="btn-icon" title="칸반 보드" aria-label="칸반 보드">
+                <span aria-hidden="true">📋</span>
+            </a>
+            <button class="btn-icon" id="darkModeToggle" title="다크모드 전환" aria-label="다크모드 전환" aria-pressed="false">
+                <span aria-hidden="true">🌙</span>
+            </button>
             <div class="user-menu">
-                <button class="btn-icon" id="userMenuBtn">👤</button>
-                <div class="dropdown-menu" id="userDropdown">
-                    <button id="logoutBtn">로그아웃</button>
+                <button class="btn-icon" id="userMenuBtn" aria-label="사용자 메뉴" aria-expanded="false" aria-haspopup="true">
+                    <span aria-hidden="true">👤</span>
+                </button>
+                <div class="dropdown-menu" id="userDropdown" role="menu">
+                    <button id="logoutBtn" role="menuitem">로그아웃</button>
                 </div>
             </div>
         </div>
@@ -262,11 +273,11 @@
     </main>
 
     <!-- Add License Modal -->
-    <div id="licenseModal" class="modal">
+    <div id="licenseModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="licenseModalTitle">
         <div class="modal-backdrop" onclick="closeLicenseModal()"></div>
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h3>📜 면허 추가</h3>
+                <h3 id="licenseModalTitle"><span aria-hidden="true">📜</span> 면허 추가</h3>
                 <button class="btn-icon modal-close" onclick="closeLicenseModal()">✖️</button>
             </div>
             <div class="modal-body">
@@ -293,11 +304,11 @@
     </div>
 
     <!-- Add Performance Modal -->
-    <div id="performanceModal" class="modal">
+    <div id="performanceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="performanceModalTitle">
         <div class="modal-backdrop" onclick="closePerformanceModal()"></div>
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h3>🏗️ 실적 추가</h3>
+                <h3 id="performanceModalTitle"><span aria-hidden="true">🏗️</span> 실적 추가</h3>
                 <button class="btn-icon modal-close" onclick="closePerformanceModal()">✖️</button>
             </div>
             <div class="modal-body">
@@ -324,11 +335,12 @@
     </div>
 
     <!-- Toast -->
-    <div id="toast" class="toast"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <script src="/js/utils.js?v=v2"></script>
-    <script src="/js/api.js?v=v2"></script>
-    <script src="/js/profile.js?v=v2"></script>
+    <script src="js/config.js?v=v4"></script>
+    <script src="js/utils.js?v=v4"></script>
+    <script src="js/api.js?v=v4"></script>
+    <script src="js/profile.js?v=v4"></script>
 </body>
 
 </html>

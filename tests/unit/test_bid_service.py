@@ -194,3 +194,108 @@ class TestBidService:
         )
         # 구현에 따라 None을 반환하거나 예외를 발생시킬 수 있음
         # 여기서는 함수가 실행되는지만 확인
+
+
+from unittest.mock import AsyncMock, MagicMock, patch
+
+
+class TestGetMatchingBidsMock:
+    """get_matching_bids 단위 테스트 (Mock)"""
+
+    def setup_method(self):
+        from app.services.bid_service import BidService
+        self.service = BidService()
+
+    @patch("app.services.bid_service.hard_match_engine")
+    @patch("app.services.bid_service.subscription_service")
+    async def test_free_user_limited(self, mock_sub, mock_engine):
+        """Free 플랜 사용자 - 3건 제한"""
+        mock_sub.get_user_plan = AsyncMock(return_value="free")
+        mock_sub.get_plan_limits = AsyncMock(
+            return_value={"hard_match_limit": 3}
+        )
+
+        repo = AsyncMock()
+        bids = [MagicMock(id=i, title=f"공고{i}") for i in range(10)]
+        repo.get_multi_with_filters.return_value = bids
+
+        mock_engine.evaluate.return_value = (True, [], {})
+
+        user = MagicMock()
+        profile = MagicMock()
+
+        result = await self.service.get_matching_bids(
+            repo, profile, user=user, limit=100
+        )
+        assert len(result) <= 3
+
+    @patch("app.services.bid_service.hard_match_engine")
+    @patch("app.services.bid_service.subscription_service")
+    async def test_pro_user_unlimited(self, mock_sub, mock_engine):
+        """Pro 플랜 사용자 - 제한 없음"""
+        mock_sub.get_user_plan = AsyncMock(return_value="pro")
+        mock_sub.get_plan_limits = AsyncMock(
+            return_value={"hard_match_limit": 9999}
+        )
+
+        repo = AsyncMock()
+        bids = [MagicMock(id=i, title=f"공고{i}") for i in range(10)]
+        repo.get_multi_with_filters.return_value = bids
+
+        mock_engine.evaluate.return_value = (True, [], {})
+
+        user = MagicMock()
+        profile = MagicMock()
+
+        result = await self.service.get_matching_bids(
+            repo, profile, user=user
+        )
+        assert len(result) == 10
+
+    @patch("app.services.bid_service.hard_match_engine")
+    async def test_no_user_default_limit(self, mock_engine):
+        """사용자 없이 호출 (기본 limit 100)"""
+        repo = AsyncMock()
+        bids = [MagicMock(id=i, title=f"공고{i}") for i in range(5)]
+        repo.get_multi_with_filters.return_value = bids
+
+        mock_engine.evaluate.return_value = (True, [], {})
+
+        profile = MagicMock()
+        result = await self.service.get_matching_bids(repo, profile)
+        assert len(result) == 5
+
+    @patch("app.services.bid_service.hard_match_engine")
+    @patch("app.services.bid_service.subscription_service")
+    async def test_skip_beyond_max(self, mock_sub, mock_engine):
+        """skip이 max_allowed 이상이면 빈 리스트"""
+        mock_sub.get_user_plan = AsyncMock(return_value="free")
+        mock_sub.get_plan_limits = AsyncMock(
+            return_value={"hard_match_limit": 3}
+        )
+
+        repo = AsyncMock()
+        user = MagicMock()
+        profile = MagicMock()
+
+        result = await self.service.get_matching_bids(
+            repo, profile, user=user, skip=10
+        )
+        assert result == []
+
+    @patch("app.services.bid_service.hard_match_engine")
+    async def test_partial_match(self, mock_engine):
+        """일부만 매칭되는 경우"""
+        repo = AsyncMock()
+        bids = [MagicMock(id=i, title=f"공고{i}") for i in range(5)]
+        repo.get_multi_with_filters.return_value = bids
+
+        # 짝수 ID만 매칭
+        mock_engine.evaluate.side_effect = [
+            (True, [], {}) if i % 2 == 0 else (False, ["지역 불일치"], {})
+            for i in range(5)
+        ]
+
+        profile = MagicMock()
+        result = await self.service.get_matching_bids(repo, profile)
+        assert len(result) == 3  # 0, 2, 4

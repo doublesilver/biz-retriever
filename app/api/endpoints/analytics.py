@@ -6,7 +6,7 @@
 from datetime import datetime, timedelta
 from typing import Dict, List
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 # from fastapi_cache.decorator import cache  # Removed due to dependency conflict
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,12 +16,15 @@ from app.core.logging import logger
 from app.core.security import get_current_user
 from app.db.models import BidAnnouncement, User
 from app.db.session import get_db
+from app.services.rate_limiter import limiter
 
 router = APIRouter()
 
 
 @router.get("/summary")
+@limiter.limit("30/minute")
 async def get_analytics_summary(
+    request: Request,
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict:
@@ -106,7 +109,9 @@ async def get_analytics_summary(
 
 
 @router.get("/trends")
+@limiter.limit("20/minute")
 async def get_trends(
+    request: Request,
     days: int = Query(default=30, ge=1, le=365, description="조회 기간 (1-365일)"),
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -173,7 +178,9 @@ async def get_trends(
 
 
 @router.get("/deadline-alerts")
+@limiter.limit("30/minute")
 async def get_deadline_alerts(
+    request: Request,
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[Dict]:

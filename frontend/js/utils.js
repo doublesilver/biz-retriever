@@ -1,24 +1,29 @@
 // Utility Functions
 
-// Toast Notification
+// Toast Notification - 접근성: role="alert" + aria-live
 function showToast(message, type = 'success') {
-    const toast = document.getElementById('toast');
-    
+    var toast = document.getElementById('toast');
+    if (!toast) return;
+
+    // 접근성: 스크린 리더가 알림을 읽도록 role, aria-live 설정
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+
     // Handle multi-line messages (preserve line breaks)
     if (message.includes('\n')) {
-        toast.innerHTML = message.split('\n').map(line => 
-            line ? `<div>${line}</div>` : '<br>'
-        ).join('');
+        toast.innerHTML = message.split('\n').map(function(line) {
+            return line ? '<div>' + escapeHtml(line) + '</div>' : '<br>';
+        }).join('');
     } else {
         toast.textContent = message;
     }
-    
-    toast.className = `toast ${type} show`;
+
+    toast.className = 'toast ' + type + ' show';
 
     // Longer duration for error messages (5 seconds vs 3 seconds)
-    const duration = type === 'error' ? 5000 : 3000;
-    
-    setTimeout(() => {
+    var duration = type === 'error' ? 5000 : 3000;
+
+    setTimeout(function() {
         toast.classList.remove('show');
     }, duration);
 }
@@ -37,17 +42,71 @@ function initPasswordToggle() {
     });
 }
 
-// Modal Control
+// Modal Control - 접근성 포커스 트랩 포함
+var _previousFocusElement = null;
+
 function showModal(modalId) {
-    const modal = document.getElementById(modalId);
+    var modal = document.getElementById(modalId);
+    _previousFocusElement = document.activeElement;
     modal.classList.add('active');
+    modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
+
+    // 포커스를 모달 내부 첫 번째 포커스 가능 요소로 이동
+    var focusable = modal.querySelectorAll('button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable.length > 0) {
+        setTimeout(function() { focusable[0].focus(); }, 50);
+    }
+
+    // Escape 키로 모달 닫기
+    modal._escHandler = function(e) {
+        if (e.key === 'Escape') {
+            hideModal(modalId);
+        }
+    };
+    document.addEventListener('keydown', modal._escHandler);
+
+    // 포커스 트랩
+    modal._trapHandler = function(e) {
+        if (e.key !== 'Tab') return;
+        var currentFocusable = modal.querySelectorAll('button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])');
+        if (currentFocusable.length === 0) return;
+        var first = currentFocusable[0];
+        var last = currentFocusable[currentFocusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
+    };
+    modal.addEventListener('keydown', modal._trapHandler);
 }
 
 function hideModal(modalId) {
-    const modal = document.getElementById(modalId);
+    var modal = document.getElementById(modalId);
     modal.classList.remove('active');
+    modal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+    document.body.classList.remove('modal-open');
+
+    // 이벤트 리스너 정리
+    if (modal._escHandler) {
+        document.removeEventListener('keydown', modal._escHandler);
+        modal._escHandler = null;
+    }
+    if (modal._trapHandler) {
+        modal.removeEventListener('keydown', modal._trapHandler);
+        modal._trapHandler = null;
+    }
+
+    // 이전 포커스 복원
+    if (_previousFocusElement && _previousFocusElement.focus) {
+        _previousFocusElement.focus();
+        _previousFocusElement = null;
+    }
 }
 
 // Format Date
@@ -91,17 +150,66 @@ function isValidPassword(password) {
     return re.test(password);
 }
 
-// Dark Mode
+// Dark Mode - 3단계: system / light / dark
+// localStorage 'theme': 'system' | 'light' | 'dark'
 function initDarkMode() {
-    const savedMode = localStorage.getItem('darkMode');
-    if (savedMode === 'true') {
-        document.body.classList.add('dark-mode');
+    // 레거시 마이그레이션: 기존 darkMode key -> 신규 theme key
+    if (!localStorage.getItem('theme') && localStorage.getItem('darkMode') === 'true') {
+        localStorage.setItem('theme', 'dark');
+    }
+    const saved = localStorage.getItem('theme') || 'system';
+    applyTheme(saved);
+    updateDarkModeToggleIcon(saved);
+
+    // prefers-color-scheme 변경 시 system 모드면 자동 전환
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+            if ((localStorage.getItem('theme') || 'system') === 'system') {
+                applyTheme('system');
+            }
+        });
     }
 }
 
+function applyTheme(mode) {
+    var html = document.documentElement;
+    var body = document.body;
+    body.classList.remove('dark-mode');
+    html.classList.remove('light-mode');
+
+    if (mode === 'dark') {
+        body.classList.add('dark-mode');
+    } else if (mode === 'light') {
+        html.classList.add('light-mode');
+    }
+    // 'system' => prefers-color-scheme 미디어쿼리가 자동 적용
+}
+
 function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+    // system -> dark -> light -> system 순환
+    var current = localStorage.getItem('theme') || 'system';
+    var next;
+    if (current === 'system') next = 'dark';
+    else if (current === 'dark') next = 'light';
+    else next = 'system';
+
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+    updateDarkModeToggleIcon(next);
+
+    // 레거시 호환
+    localStorage.setItem('darkMode', next === 'dark' ? 'true' : 'false');
+}
+
+function updateDarkModeToggleIcon(mode) {
+    var btn = document.getElementById('darkModeToggle');
+    if (!btn) return;
+    var icons = { system: '💻', dark: '🌙', light: '☀️' };
+    var labels = { system: '시스템 테마 (자동)', dark: '다크모드 켜짐', light: '라이트모드 켜짐' };
+    btn.textContent = icons[mode] || '💻';
+    btn.setAttribute('aria-label', labels[mode] || '테마 변경');
+    btn.setAttribute('aria-pressed', mode === 'dark' ? 'true' : 'false');
+    btn.title = labels[mode] || '테마 변경';
 }
 
 // Loading State
@@ -297,19 +405,127 @@ function initKeyboardShortcuts(shortcuts) {
     });
 }
 
-// Auto dark mode based on time
+// Auto dark mode - 이제 CSS prefers-color-scheme으로 대체됨 (레거시 호환)
 function autoSwitchDarkMode() {
-    const theme = localStorage.getItem('theme');
-    
-    if (theme === 'auto') {
-        const hour = new Date().getHours();
-        const shouldBeDark = hour >= 18 || hour < 6;
-        document.body.classList.toggle('dark-mode', shouldBeDark);
+    // initDarkMode()에서 prefers-color-scheme 리스너로 처리됨
+}
+
+// Skeleton Screen Generator
+function createSkeleton(type = 'card', count = 1) {
+    const templates = {
+        card: `<div class="skeleton-card-wrapper" style="padding: 1.5rem; background: var(--bg-primary); border-radius: var(--radius-lg); border: 1px solid var(--border-color); margin-bottom: 1rem;">
+            <div class="skeleton skeleton-title" style="width: 60%; height: 1.25rem; margin-bottom: 1rem;"></div>
+            <div class="skeleton skeleton-text" style="width: 100%; height: 0.875rem; margin-bottom: 0.5rem;"></div>
+            <div class="skeleton skeleton-text" style="width: 80%; height: 0.875rem; margin-bottom: 0.5rem;"></div>
+            <div class="skeleton skeleton-text" style="width: 40%; height: 0.875rem;"></div>
+        </div>`,
+        stat: `<div class="skeleton-stat" style="padding: 1.25rem; background: var(--bg-primary); border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
+            <div class="skeleton skeleton-text" style="width: 50%; height: 0.75rem; margin-bottom: 0.75rem;"></div>
+            <div class="skeleton skeleton-title" style="width: 40%; height: 2rem;"></div>
+        </div>`,
+        table: `<div style="padding: 1rem; border-bottom: 1px solid var(--border-color);">
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <div class="skeleton" style="width: 60%; height: 0.875rem;"></div>
+                <div class="skeleton" style="width: 20%; height: 0.875rem;"></div>
+                <div class="skeleton" style="width: 15%; height: 0.875rem;"></div>
+            </div>
+        </div>`,
+        plan: `<div style="padding: 2rem; background: var(--bg-primary); border-radius: var(--radius-lg); border: 2px solid var(--border-color);">
+            <div class="skeleton" style="width: 40%; height: 1.5rem; margin-bottom: 1rem;"></div>
+            <div class="skeleton" style="width: 50%; height: 2.5rem; margin-bottom: 1.5rem;"></div>
+            <div class="skeleton skeleton-text" style="width: 80%; margin-bottom: 0.5rem;"></div>
+            <div class="skeleton skeleton-text" style="width: 70%; margin-bottom: 0.5rem;"></div>
+            <div class="skeleton skeleton-text" style="width: 60%;"></div>
+        </div>`
+    };
+
+    return Array(count).fill(templates[type] || templates.card).join('');
+}
+
+// Enhanced Toast with action button and auto-dismiss progress
+function showActionToast(message, type = 'info', options = {}) {
+    const existing = document.getElementById('action-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'action-toast';
+    toast.className = `toast ${type} show`;
+    toast.style.cssText = 'position: fixed; bottom: 2rem; right: 2rem; z-index: 9999; max-width: 400px; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem;';
+
+    const textEl = document.createElement('div');
+    textEl.textContent = message;
+    toast.appendChild(textEl);
+
+    if (options.actionText && options.onAction) {
+        const actionBtn = document.createElement('button');
+        actionBtn.textContent = options.actionText;
+        actionBtn.style.cssText = 'align-self: flex-end; background: none; border: 1px solid currentColor; padding: 0.25rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; color: inherit; font-size: 0.85rem;';
+        actionBtn.addEventListener('click', () => {
+            options.onAction();
+            toast.remove();
+        });
+        toast.appendChild(actionBtn);
+    }
+
+    document.body.appendChild(toast);
+
+    const duration = options.duration || (type === 'error' ? 8000 : 4000);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+// Retry wrapper for API calls with exponential backoff
+async function withRetry(fn, options = {}) {
+    const maxRetries = options.maxRetries || 3;
+    const baseDelay = options.baseDelay || 1000;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error) {
+            if (attempt === maxRetries || !error.isRetryable) {
+                throw error;
+            }
+            const delay = baseDelay * Math.pow(2, attempt);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
     }
 }
 
-// Initialize auto dark mode
-setInterval(autoSwitchDarkMode, 60 * 60 * 1000); // Check every hour
+// Format subscription plan display name
+function formatPlanName(planName) {
+    const planMap = {
+        'free': 'Free',
+        'basic': 'Basic',
+        'pro': 'Pro'
+    };
+    return planMap[planName] || planName;
+}
+
+// Format date in Korean locale
+function formatDateKR(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+// Format payment status
+function formatPaymentStatus(status) {
+    const statusMap = {
+        'paid': { text: '결제완료', class: 'success' },
+        'pending': { text: '대기중', class: 'warning' },
+        'failed': { text: '실패', class: 'danger' },
+        'refunded': { text: '환불', class: '' },
+        'cancelled': { text: '취소', class: '' }
+    };
+    return statusMap[status] || { text: status, class: '' };
+}
 
 window.utils = {
     formatCurrency,
@@ -326,6 +542,7 @@ window.utils = {
     setLoading,
     escapeHtml,
     calculateDday,
+    getPriorityStars,
     formatBRN,
     formatPhone,
     formatNumberWithComma,
@@ -336,5 +553,11 @@ window.utils = {
     addToRecentItems,
     getRecentItems,
     initKeyboardShortcuts,
-    autoSwitchDarkMode
+    autoSwitchDarkMode,
+    createSkeleton,
+    showActionToast,
+    withRetry,
+    formatPlanName,
+    formatDateKR,
+    formatPaymentStatus
 };

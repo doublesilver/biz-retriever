@@ -6,14 +6,18 @@ import type {
     BidFilters
 } from '../types';
 
-// Auto-detect API URL based on environment (consistent with api.js)
+// 환경별 API URL 결정 (Vite 빌드 시 import.meta.env 사용, 런타임 시 __CONFIG__ fallback)
 const API_BASE = (() => {
-    // If running on Vercel or any production domain
-    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        return 'https://leeeunseok.tail32c3e2.ts.net/api/v1';
+    // Vite 빌드 환경: import.meta.env.VITE_API_URL 사용
+    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
     }
-    // Local development
-    return 'http://localhost:8000/api/v1';
+    // 런타임 config fallback (config.js에서 주입)
+    const config = (window as any).__CONFIG__ || {};
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        return config.LOCAL_API_URL || 'http://localhost:8000/api/v1';
+    }
+    return config.API_URL || 'http://localhost:8000/api/v1';
 })();
 
 interface RequestOptions extends RequestInit {
